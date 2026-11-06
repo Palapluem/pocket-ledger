@@ -1,36 +1,36 @@
-# PocketLedger: เส้นทางจาก Sprint 1 ไปสู่ Final Delivery
+# PocketLedger: From Sprint 1 to Final Delivery
 
 ## Destination
 
-กำหนด PocketLedger ให้เป็นผลิตภัณฑ์ที่ทำครบ Theme 7 ผ่านสาม sprints และใช้ accepted releases เดียวกันต่อเนื่องใน Deliverable 1, Labs 5–7, Deliverable 2 และ Final Delivery โดยตัดสินเรื่องที่เปลี่ยนผลลัพธ์ก่อนเริ่ม implementation ของงานนั้น
+Take PocketLedger through all of Theme 7 over three sprints, then carry the same reviewed and accepted releases through Deliverable 1, Labs 5–7, Deliverable 2, and Final Delivery. Decide behavior-changing rules before implementing the work they govern.
 
 ## Notes
 
-- ผู้ขับเคลื่อนแผน: Wisit; ผู้ร่วมตัดสินใจ: Wisit และ Natthawat
-- ใช้ local Markdown tracker ใน [ทะเบียนการตัดสินใจ](decisions.md) เป็นคำตอบหลัก; GitHub Issues/Project ใช้ติดตาม bounded work และอ้างกลับมาที่ contract/decision แทนการทำสำเนาหลายชุด
-- สถานะและ dependency อยู่ที่ทะเบียนเดียว แผนนี้ชี้ไปยังคำตอบ ไม่คัดลอกคำตอบทั้งชุด
-- ใช้ `pdf`, `thai-study-assistant`, `wayfinder`, `domain-modeling` และ `tdd` ตามหน้าที่ใน [คู่มือ course project](https://github.com/Palapluem/cpe334-software-engineer-2026/blob/main/project/README.md)
-- ผู้เรียนอนุมัติชื่อ PocketLedger, nested independent repo และการเตรียมงานถึง Final แล้ว รอบนี้ทำเอกสาร/แม่แบบ/การตั้งค่า repo ได้; ยังไม่ลงมือ financial implementation หรือ billing/IAM/database ของ GCP
-- [Assessment plan](../assessment-plan.md) เก็บกำหนดส่ง rubric และหลักฐานทั้งหกงาน; อย่าคัดลอกสถานะผ่านก่อนเกิดการรันจริง
-- ข้อความที่เขียนว่า “เสนอ” หรือ “ยังไม่ยืนยัน” ไม่ใช่ stakeholder decision และไม่ใช่ผลตรวจว่าระบบผ่านแล้ว
+- **Plan driver:** Wisit. **Decision owners:** Wisit and Natthawat.
+- The local Markdown [decision register](decisions.md) is the source of truth for decisions. GitHub Issues and the Project track bounded work and point back to the relevant decision or contract; they do not duplicate it.
+- Keep status and dependencies in the decision register. This map links to the relevant records instead of copying their contents.
+- Apply `pdf`, `thai-study-assistant`, `wayfinder`, `domain-modeling`, and `tdd` as appropriate, following the [course project guide](https://github.com/Palapluem/cpe334-software-engineer-2026/blob/main/project/README.md).
+- The student approved the PocketLedger name, a nested independent repository, and preparation through Final Delivery. This preparation phase may cover documents, templates, and repository setup; financial implementation and GCP billing, IAM, and database work have not started.
+- The [assessment plan](../assessment-plan.md) tracks deadlines, rubrics, and evidence for all six assessments. Do not record a pass before the relevant work has actually been run and checked.
+- Wording such as “proposed” or “not yet confirmed” does not represent a stakeholder decision or a passing result.
 
 ## Decisions so far
 
-- [ตรวจแหล่งข้อมูลและยืนยันทีมกับหัวข้อ](decisions.md#ตรวจแหล่งข้อมูลและยืนยันทีมกับหัวข้อ): ตรวจไฟล์ต้นทางและแยกรูปแบบส่งของ Deliverable 1 กับ Lab 5; ทีมเลือก Theme 7 แล้ว
-- [ยืนยัน PocketLedger และขอบเขต Git repository](decisions.md#ยืนยัน-pocketledger-และขอบเขต-git-repository): ชื่อ Product/repo และการแยก course/product ยืนยันแล้ว
+- [Source review and team/topic confirmation](decisions.md#source-review-and-team-topic-confirmation): source materials and the different submission formats for Deliverable 1 and Lab 5 were checked; the team selected Theme 7.
+- [Confirm PocketLedger and Git repository boundaries](decisions.md#confirm-pocketledger-and-git-repository-boundaries): the product/repository name and separation between the course and product repositories were confirmed.
 
 ## Not yet specified
 
-- รายละเอียดที่ต้องตกลงอยู่ใน [ยืนยันข้อมูลกลุ่มและ stack](decisions.md#ยืนยันข้อมูลกลุ่มและ-stack) และ [ตกลงกติกาการเงินและขอบเขต Sprint 1](decisions.md#ตกลงกติกาการเงินและขอบเขต-sprint-1)
-- รายละเอียด UI/API/schema และคำสั่งจริงจะกำหนดใน feature contracts หลังรู้ stack และกติกาที่เลือก
-- GCP project/resource/บัญชีที่ใช้ trial และการแบ่งงาน cloud ยังไม่ยืนยัน; เตรียมรายการไว้ใน Lab 5 แต่ยังไม่สร้าง resource
-- ใบ Lab 6/7 ฉบับละเอียด, independent UAT partner และ maintenance change ที่ TA อนุมัติยังไม่มี
-- Final handout ขัดกันเรื่องวิดีโอ 10/4 นาที ต้องเก็บคำตอบจากอาจารย์ก่อน final recording
+- Decisions still needed are listed under [team details and stack](decisions.md#confirm-team-details-and-stack) and [financial rules and Sprint 1 scope](decisions.md#agree-financial-rules-and-sprint-1-scope).
+- UI, API, schema, and concrete commands will be specified in feature contracts after the stack and applicable rules are agreed.
+- The GCP project and resources, trial account, and division of cloud work are not confirmed. Lab 5 preparation may list them, but no cloud resources have been created.
+- Detailed Lab 6 and Lab 7 handouts, an independent UAT partner, and a TA-approved maintenance change are not yet available.
+- The Final handout conflicts on whether the video should be 10 or 4 minutes. Ask the instructor before recording the final video.
 
 ## Out of scope
 
-- เปลี่ยน TokTickIT Lab 1–4 หรือใช้ repo รายบุคคลแทนแอปกลุ่มโดยอัตโนมัติ
-- ลงมือทำแอปทั้งหมด สร้าง PR วนเพื่อบันทึก merge หรือเปลี่ยน billing/IAM/database ในรอบเตรียมงาน
-- เลือกกติกาการเงินที่โจทย์ไม่ได้ระบุแทนสมาชิกทั้งสอง
-- ทำรายงานฉบับส่งหรืออ้างว่าครบคะแนนก่อนมีแอป ผลทดสอบ และ release จริง
-- เพิ่ม external bank integration, recurring transactions, period/shared budgets หรือระบบใหญ่ที่อยู่นอก Theme 7
+- Changing TokTickIT Labs 1–4 or automatically using an individual repository in place of the group application.
+- Implementing the entire application, opening PRs merely to record merges, or changing GCP billing, IAM, or databases during preparation.
+- Choosing unspecified financial rules on behalf of both team members.
+- Preparing a submission report or claiming full marks before there is an application, test evidence, and an actual release.
+- Adding external bank integration, recurring transactions, period/shared budgets, or other large features outside Theme 7.

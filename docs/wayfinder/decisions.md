@@ -1,120 +1,120 @@
-# ทะเบียนการตัดสินใจ
+# Decision Register
 
-ทะเบียน local Markdown นี้ใช้ชื่อเรื่องเป็นตัวอ้างอิง สถานะ OPEN เป็นคำถามที่ยังต้องตอบ ไม่ใช่ GitHub Issue ที่เปิดไว้แล้ว
+This local Markdown register identifies records by their titles. An `OPEN` status means that a question remains to be answered; it does not mean that a GitHub Issue is open.
 
-| เรื่อง | ชนิด | สถานะ | ผู้ตัดสินใจ / ผู้รับผิดชอบ | ขึ้นกับ |
+| Topic | Type | Status | Decision owner / assignee | Depends on |
 | --- | --- | --- | --- | --- |
-| [ตรวจแหล่งข้อมูลและยืนยันทีมกับหัวข้อ](#ตรวจแหล่งข้อมูลและยืนยันทีมกับหัวข้อ) | wayfinder:research | DONE | Wisit | — |
-| [ยืนยัน PocketLedger และขอบเขต Git repository](#ยืนยัน-pocketledger-และขอบเขต-git-repository) | wayfinder:research | DONE | Wisit | ตรวจแหล่งข้อมูลและยืนยันทีมกับหัวข้อ |
-| [ยืนยันข้อมูลกลุ่มและ stack](#ยืนยันข้อมูลกลุ่มและ-stack) | wayfinder:grilling | OPEN | Wisit + Natthawat | ยืนยัน PocketLedger และขอบเขต Git repository |
-| [ตกลงกติกาการเงินและขอบเขต Sprint 1](#ตกลงกติกาการเงินและขอบเขต-sprint-1) | wayfinder:grilling | OPEN | Wisit + Natthawat | ตรวจแหล่งข้อมูลและยืนยันทีมกับหัวข้อ |
+| [Source review and team topic confirmation](#source-review-and-team-topic-confirmation) | `wayfinder:research` | DONE | Wisit | — |
+| [Confirm PocketLedger and Git repository boundaries](#confirm-pocketledger-and-git-repository-boundaries) | `wayfinder:research` | DONE | Wisit | Source review and team/topic confirmation |
+| [Confirm team details and stack](#confirm-team-details-and-stack) | `wayfinder:grilling` | OPEN | Wisit + Natthawat | Confirm PocketLedger and Git repository boundaries |
+| [Agree financial rules and Sprint 1 scope](#agree-financial-rules-and-sprint-1-scope) | `wayfinder:grilling` | OPEN | Wisit + Natthawat | Source review and team/topic confirmation |
 
-Frontier ตอนนี้คือสองเรื่องที่ OPEN: ตอบร่วมกันได้ก่อนสร้าง contract ฉบับอนุมัติ การจัดเอกสาร/แตก ZIP ไม่ติด dependency นี้
+The current frontier consists of the two `OPEN` records. The team can answer them before approving contracts. Organizing documents and extracting the starter archive do not depend on these decisions.
 
-## ตรวจแหล่งข้อมูลและยืนยันทีมกับหัวข้อ
+## Source review and team topic confirmation
 
-**Status:** DONE, 3 พฤศจิกายน 2026 · **Assignee:** Wisit
+**Status:** DONE, 3 November 2026 · **Assignee:** Wisit
 
 ### Question
 
-มีเอกสารใดอยู่จริง แต่ละเอกสารใช้กำหนดอะไร และทีม/หัวข้อของงานกลุ่มคืออะไร?
+Which source materials are available, what does each one govern, and what are the group and project topic?
 
 ### Resolution
 
-ใช้ข้อเท็จจริงและลิงก์ต้นทางที่ [course project index](https://github.com/Palapluem/cpe334-software-engineer-2026/blob/main/project/README.md): master, Deliverable 1, Deliverable 2, Final และ Lab 5 handout อ่านครบ; Workflow Guide อ่านเนื้อหาภาษาอังกฤษครบ; Lecture 11 ตรวจหน้าที่เกี่ยวกับ SDD/release/workflow/smoke; Student Guide ตรวจ overview, cloud-ready, merge gate และ persistence/rollback ตลอดจน README และจุดปรับ CI ของ starter kit ยังไม่ได้ทำ walkthrough ทุกหน้าของคู่มือ 105 หน้า
+The source materials and links listed in the [course project index](https://github.com/Palapluem/cpe334-software-engineer-2026/blob/main/project/README.md) were checked. The master brief, Deliverable 1, Deliverable 2, Final, and Lab 5 handout were read in full. The English contents of the Workflow Guide were read in full. Relevant Lecture 11 pages on SDD, release, workflow, and smoke testing were reviewed. The Student Guide overview, cloud-ready, merge-gate, persistence/rollback, README, and starter-kit CI sections were checked. The entire 105-page guide was not walked through page by page.
 
-สมาชิกและ Theme 7 ยืนยันจากคำตอบของผู้เรียนแล้ว สำเนา PDF ทั้งสี่ใน course `project/` ตรงกับชุด Week 10 ทุกไบต์ Starter ZIP ตรวจ CRC และเทียบข้อมูลหลังแตกครบ 23 ไฟล์ก่อนลบต้นฉบับ รายละเอียดอยู่ที่ [course Lab 5](https://github.com/Palapluem/cpe334-software-engineer-2026/blob/main/labs/Lab05/README.md)
+The student confirmed the team members and Theme 7. All four PDFs in the course repository's `project/` directory were byte-for-byte identical to the Week 10 set. The starter ZIP's CRC was checked, and all 23 extracted files were compared before the original ZIP was deleted. See [course Lab 5](https://github.com/Palapluem/cpe334-software-engineer-2026/blob/main/labs/Lab05/README.md) for the recorded details.
 
-Deliverable 1 ต้องมี complete engineering content ใน PDF ตาม handout §4; Lab 5 ใช้ concise evidence index ตาม handout §12 ความแตกต่างนี้เป็นข้อกำหนดของแต่ละงาน ไม่ใช่เลือก report format เดียวใช้แทนทุกงาน
+Deliverable 1 requires complete engineering content in the PDF under handout §4. Lab 5 uses a concise evidence index under handout §12. These are assignment-specific requirements; one report format should not be substituted for the other.
 
-Lab 6/7 ยังไม่มี PDF ในโฟลเดอร์ที่ผู้เรียนเตรียม จึงใช้ master §10 เป็น preparation เท่านั้น Deliverable 2 §4 ยืนยันเวลา 23:59; Final §2 กับ §3.5 ขัดกันเรื่อง 10/4 นาที บันทึกข้อขัดแย้งไว้ใน [assessment plan](../assessment-plan.md)
+Detailed Lab 6 and Lab 7 PDFs were not in the folders the student had prepared at setup, so master brief §10 was used for preparation only. Deliverable 2 §4 specifies a 23:59 deadline. Final §§2 and 3.5 conflict on whether the video should be 10 or 4 minutes; the conflict is recorded in the [assessment plan](../assessment-plan.md).
 
-## ยืนยัน PocketLedger และขอบเขต Git repository
+## Confirm PocketLedger and Git repository boundaries
 
-**Status:** DONE, 3 พฤศจิกายน 2026 · **Assignee:** Wisit
+**Status:** DONE, 3 November 2026 · **Assignee:** Wisit
 
 ### Question
 
-ชื่อ Product, repo และที่เก็บ source ของงานกลุ่มคืออะไร และป้องกันการ push ปนกับ course อย่างไร?
+What are the group product and repository, where does its source live, and how will it remain separate from the course repository?
 
 ### Resolution
 
-ผู้เรียนเลือก **PocketLedger**, ใช้ `Palapluem/pocket-ledger` และ local checkout `project/pocket-ledger/` ภายใต้ course workspace โฟลเดอร์นี้มี Git root แยกและ course `.gitignore` ตัดทั้งโฟลเดอร์ ไม่ใช่ submodule
+The student selected **PocketLedger**, with repository `Palapluem/pocket-ledger` and local checkout `project/pocket-ledger/` inside the course workspace. This directory has its own Git root and is excluded by the course repository's `.gitignore`; it is not a submodule.
 
-Product specifications/code/tests/configuration อยู่ที่ product repo; ใบงาน/lecture/คู่มือเตรียมและ PDF ฉบับส่งอยู่ที่ course repo ตรวจ root/remote/status ก่อนทุก Git write ตาม `AGENTS.md` การ bootstrap เป็นเอกสารและการตั้งค่า ไม่ใช่ accepted Sprint 1 release
+Product specifications, code, tests, and configuration belong in the product repository. Course handouts, lecture materials, preparation guides, and submitted PDFs belong in the course repository. Before every Git write, verify the repository root, remote, and working-tree status as required by `AGENTS.md`. Bootstrap covers documents and repository setup; it is not an accepted Sprint 1 release.
 
-## ยืนยันข้อมูลกลุ่มและ stack
+## Confirm team details and stack
 
-**Status:** OPEN · **Type:** wayfinder:grilling · **Decision owners:** Wisit + Natthawat
+**Status:** OPEN · **Type:** `wayfinder:grilling` · **Decision owners:** Wisit + Natthawat
 
-ติดตามงาน: [Confirm team metadata, runtime and authentication design](https://github.com/Palapluem/pocket-ledger/issues/2)
+Track the work in [Issue #2: Confirm team metadata, runtime and authentication design](https://github.com/Palapluem/pocket-ledger/issues/2).
 
 ### Question
 
-ทีมใช้ชื่อ/เลขกลุ่ม section และ stack ใด วิธี auth/session เป็นอย่างไร และทั้งสองคนยืนยันการเข้าถึง/review ได้หรือยัง?
+What are the group name, number, section, and stack? How will authentication and sessions work, and have both members confirmed repository access and review arrangements?
 
-### ข้อมูลที่ต้องเติม
+### Details to confirm
 
-| รายการ | คำตอบของทีม |
+| Item | Team answer |
 | --- | --- |
-| ชื่อกลุ่ม / เลขกลุ่ม / section | |
-| ชื่อผลิตภัณฑ์และบริบทผู้ใช้ที่เจาะจง | PocketLedger; บริบทเพิ่มเติมรอทีม |
-| Product repository URL และเจ้าของ repo | https://github.com/Palapluem/pocket-ledger · Palapluem |
-| Sprint staging branch และรูปแบบ branch/Issue | `sprint-1-staging`; ดู CONTRIBUTING.md |
+| Group name / number / section | |
+| Product name and specific user context | PocketLedger; further context pending team discussion |
+| Product repository URL and owner | https://github.com/Palapluem/pocket-ledger · Palapluem |
+| Sprint staging branch and Issue/branch workflow | `sprint-1-staging`; see `CONTRIBUTING.md` |
 | UI / API / database / migration / test tooling | |
-| Runtime version ที่ใช้ตรงกันใน local, CI และ image | |
-| วิธี session/token, logout และ disabling a user | |
-| ผู้เริ่ม feature แรก / ผู้ review และรอบสลับหน้าที่ | |
+| Runtime version shared by local development, CI, and image | |
+| Session/token approach, logout, and user deactivation behavior | |
+| Who starts the first feature / who reviews, and how responsibilities rotate | |
 
-ข้อเสนอที่เปลี่ยนได้: ใช้ stack ที่ทีมคุ้นเคยและ architecture ขนาดเล็กซึ่งทำ UI → API → persistent DB ได้จริง เลือก container runtime version เดียวกัน ไม่ต้องเพิ่ม microservices หรือหลาย server ให้ครบจำนวนชั้น
+**Revisable proposal, not a decision:** use a stack familiar to the team and a small architecture that can complete a UI → API → persistent database path. Use one consistent container runtime version. Do not add microservices or multiple servers merely to represent every layer.
 
 ### Done when
 
-ทีมตอบรายการข้างต้นพร้อมเหตุผลที่จำเป็น, repo เข้าถึงได้ตามข้อกำหนด และเขียน System-Level SDS ได้โดยไม่ต้องเดา environment/commands
+The team has answered the items above with any necessary rationale, repository access meets the requirements, and the System-Level SDS can be written without guessing the environment or commands.
 
-## ตกลงกติกาการเงินและขอบเขต Sprint 1
+## Agree financial rules and Sprint 1 scope
 
-**Status:** OPEN · **Type:** wayfinder:grilling · **Decision owners:** Wisit + Natthawat
+**Status:** OPEN · **Type:** `wayfinder:grilling` · **Decision owners:** Wisit + Natthawat
 
-ติดตามงาน: [Agree the financial rules and Sprint 1 vertical slice](https://github.com/Palapluem/pocket-ledger/issues/1)
+Track the work in [Issue #1: Agree the financial rules and Sprint 1 vertical slice](https://github.com/Palapluem/pocket-ledger/issues/1).
 
 ### Question
 
-จะเปลี่ยน Theme 7 ให้เป็นกติกาการเงินที่ตรวจผลได้อย่างไร และ Sprint 1 จะทำ vertical slice ใดให้ครบจริงภายใน 8 พฤศจิกายน?
+How will Theme 7 become a set of financial rules with verifiable outcomes, and which complete vertical slice will Sprint 1 deliver by 8 November?
 
-### ส่วนที่โจทย์กำหนดไว้แล้ว
+### Requirements already specified by the assignment
 
-ใช้ [Theme 7 coverage และ proposed sprint allocation](../assessment-plan.md#whole-product-coverage-and-proposed-sprint-allocation) และ [GLOSSARY](../../GLOSSARY.md) เป็นฐาน ไม่ลด scope เหลือ generic expense CRUD หรือให้ Administrator อ่านข้อมูลการเงิน
+Use [Theme 7 coverage and proposed sprint allocation](../assessment-plan.md#whole-product-coverage-and-proposed-sprint-allocation) and the [GLOSSARY](../../GLOSSARY.md) as the starting point. Do not reduce the scope to generic expense CRUD or allow an Administrator to read financial records.
 
-### เรื่องที่ต้องตัดสินก่อนเขียน contract
+### Decisions required before writing contracts
 
-| เรื่อง | ประเด็นที่ต้องระบุและกรณีทดสอบ |
+| Topic | What the rule and tests must specify |
 | --- | --- |
-| เงินและสกุลเงิน | สกุลเงินที่รองรับ, precision/scale, จำนวนสูงสุด, zero/negative amount และวิธีจัดการเศษ ห้ามปล่อยให้ floating-point rounding เป็นกติกาโดยบังเอิญ |
-| Balance convention | Cash, Loan Given, Loan Taken, Income, Expense แสดงยอดและเครื่องหมายอย่างไร; opening balances ของแต่ละประเภทมีผลอย่างไร |
-| Allocation compatibility | แต่ละ transaction form ใช้ source/destination account ประเภทใดได้; ทุกบัญชีที่อ้างต้องเป็นของผู้ใช้; sum(lines) ต้องเท่ากับ total |
-| Atomicity | หากบรรทัดหนึ่งผิดหรือบันทึกล้มเหลว ต้องไม่มีบางยอด/บางบรรทัดถูกเขียนค้าง ตรวจผลผ่าน API ที่อ่าน balances และ history ได้ |
-| Opening balance | วันที่ที่มีผล, อนุญาตแก้เมื่อมีรายการแล้วหรือไม่ และทำให้ยอดถูกต้องโดยไม่นับเป็น Income/Expense อย่างไร |
-| Dates and summaries | รูปแบบวันที่/time zone, วันอนาคต/ย้อนหลังที่อนุญาต, ขอบเขตช่วงรายงานและวันที่ตัดยอด |
-| Correction | แก้ธุรกรรมเดิมหรือใช้ reversal/replacement; รักษาประวัติและผลต่อยอดอย่างไร; จัดไว้ sprint ใด |
-| Duplicate and retries | การ Duplicate ให้แก้ไข/ยืนยันเมื่อใด; แยกการทำรายการซ้ำโดยตั้งใจจาก retry ของ request; กำหนด policy เท่าที่ contract จำเป็น |
-| Administration | การเปิด/ปิดผู้ใช้มีผลต่อ session อย่างไร; ขั้นต่ำที่ทำให้ Admin role มีงานจริง; financial APIs ต้องปฏิเสธ Admin ด้วย |
-| Sprint boundary | บัญชี/transaction types ใดมี UI ครบใน Sprint 1 และส่วนใดใช้ reproducible seed; สิ่งที่เหลือต้องลง Sprint 2/3 ไม่หายจาก inventory |
-| Test seams | public domain interface, HTTP API + real test DB และ UI journeys ใดจะตรวจจริง; ยืนยันก่อนเขียน executable tests |
+| Currency and amounts | Supported currencies, precision/scale, maximum amount, zero/negative amounts, and rounding. Floating-point rounding must not become an accidental policy. |
+| Balance convention | How balances and signs work for Cash, Loan Given, Loan Taken, Income, and Expense; how opening balances affect each type. |
+| Allocation compatibility | Which source/destination account types each transaction form accepts; every referenced account must belong to the user; allocation lines must sum to the total. |
+| Atomicity | If one line is invalid or a save fails, no partial balance or line may remain. Verify through API reads of balances and history. |
+| Opening balance | Effective date, whether it can be edited after transactions exist, and how it affects balances without counting as Income or Expense. |
+| Dates and summaries | Date format/time zone, permitted future or past dates, reporting-period boundaries, and balance cut-off dates. |
+| Corrections | Whether to edit the original transaction or use reversal/replacement; how history and balances are preserved; which sprint handles it. |
+| Duplicates and retries | When a duplicate can be edited/confirmed; how an intentional duplicate differs from a request retry; define only the policy required by the contract. |
+| Administration | How enabling/disabling a user affects sessions; the minimum meaningful Administrator work; financial APIs must also reject Administrator access. |
+| Sprint boundary | Which account and transaction types have complete UI in Sprint 1 and which use reproducible seed data; place the remaining scope in Sprint 2/3 inventory. |
+| Test seams | Which public domain interfaces, HTTP API with a real test database, and UI journeys will be verified; agree these before writing executable tests. |
 
-### ตัวอย่างช่วยตรวจความหมาย
+### Illustrative example
 
-**คำอธิบายเสริม: ชุดตัวเลขเสนอเพื่อใช้ทดสอบ ไม่ใช่ข้อมูลจากอาจารย์หรือ policy ที่ทีมอนุมัติแล้ว** สมมติเป็นเงินสกุลเดียวและรายการทั้งหมดอยู่ในช่วงรายงานเดียวกัน
+**Illustrative numbers only—not provided by the instructor and not an approved team policy.** Assume one currency and that all entries fall within the same reporting period.
 
-| ขั้นตอน | Bank balance | Credit-card debt | Income | Expense |
+| Step | Bank balance | Credit-card debt | Income | Expense |
 | --- | ---: | ---: | ---: | ---: |
-| ตั้ง opening bank balance 10,000 | 10,000 | 0 | 0 | 0 |
-| รับเงินเดือน 20,000 เข้าธนาคาร | 30,000 | 0 | 20,000 | 0 |
-| ซื้อด้วยบัตรเครดิต 1,200: dining 700 + groceries 500 | 30,000 | 1,200 | 20,000 | 1,200 |
-| ชำระบัตร 500 จากธนาคาร | 29,500 | 700 | 20,000 | 1,200 |
+| Set an opening bank balance of 10,000 | 10,000 | 0 | 0 | 0 |
+| Receive a salary of 20,000 into the bank | 30,000 | 0 | 20,000 | 0 |
+| Make a 1,200 credit-card purchase: dining 700 + groceries 500 | 30,000 | 1,200 | 20,000 | 1,200 |
+| Pay 500 toward the card from the bank | 29,500 | 700 | 20,000 | 1,200 |
 
-ควรอ่านรายการที่บันทึกกลับมาได้ ปฏิเสธ allocation เช่น 700 + 400 ที่ไม่เท่ากับ total 1,200 โดยไม่เปลี่ยนยอด และปฏิเสธ User B หรือ Administrator ที่พยายามอ่าน/เปลี่ยน financial records ของ User A Expected values ใช้ตัวเลขอิสระที่ตกลงกัน ไม่คำนวณซ้ำด้วย algorithm เดียวกับโค้ดเพื่อให้ test ผ่านเอง
+The saved record should be readable. Reject an allocation such as 700 + 400 when the total is 1,200, without changing balances. Reject User B or an Administrator attempting to read or change User A's financial records. Expected values must be independently agreed; do not calculate them with the same algorithm as the implementation, which could let a test pass itself.
 
 ### Done when
 
-เขียนคำตอบที่เลือกลง SRS/System SDS/feature contracts พร้อม expected results และเหตุผลของข้อยกเว้น ทีมทั้งสองคนอธิบายได้ จึงเปลี่ยนงานถัดไปเป็น bounded implementation task ได้ ยังไม่ต้องออกแบบทุก endpoint ของ Sprint 3 ให้ตายตัวก่อนเริ่ม Sprint 1
+Record the chosen rules in the SRS, System-Level SDS, or feature contracts, with expected results and the rationale for exceptions. Both team members can explain them. The next work can then be framed as a bounded implementation task. The team does not need to fix every Sprint 3 endpoint before starting Sprint 1.

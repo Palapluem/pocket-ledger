@@ -10,6 +10,11 @@ Read this file, `CONTRIBUTING.md`, `COORDINATION.md`, `GLOSSARY.md` and the rele
 - The enclosing CPE334 repository is a different Git root. Never stage this checkout there or copy product source into the course tree.
 - Verify the intended root, remote and working-tree state before staging, committing or pushing. Preserve other people's work; isolate concurrent implementation in an agreed worktree.
 
+## Documentation language
+
+- Write product specifications, decision records, repository documentation, and GitHub Issue/PR text in clear, professional English. Keep Thai study notes and course-report content in the separate CPE334 course repository unless an assessment specifically requires otherwise.
+- Preserve official names, technical identifiers, code, and quoted source wording when translating or editing documentation.
+
 ## Before implementation
 
 - Resolve the applicable money/date/ownership decisions, then version the feature SDS, applicable UI/API/data details, stable AC, STS and DoD before its implementation.

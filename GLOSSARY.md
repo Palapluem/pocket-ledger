@@ -1,65 +1,21 @@
-# Personal Money and Expense Logging
+# PocketLedger Domain Glossary
 
-คำศัพท์ของ Theme 7 ตาม Group Work Specification §6, PDF หน้า 7–8 ใช้คำนิยามนี้ในเอกสารและการคุยงาน; นโยบายเรื่องสกุลเงิน เครื่องหมายของยอด และการแก้รายการต้องตัดสินแยกใน contract
+This glossary records the Theme 7 terms in §6 of the Group Work Specification (PDF pp. 7–8). Use these definitions consistently in product documents and team discussions. Currency, amount-sign, and correction policies require separate decisions in the relevant contracts.
 
-## Language
+## Domain terms
 
-**User Account**:
-ตัวตนที่ใช้เข้าสู่ระบบและรับสิทธิ์ User หรือ Administrator แยกจากบัญชีที่ใช้บันทึกเงินของบุคคลนั้น
-_Avoid_: Account โดยไม่บอกว่าหมายถึงบัญชีผู้ใช้หรือบัญชีการเงิน
-
-**Financial Account**:
-บัญชีการเงินส่วนตัวที่เป็นหนึ่งในห้าประเภท: Cash, Loan Given, Loan Taken, Income หรือ Expense
-_Avoid_: ใช้ User Account แทนบัญชีเงินหรือหมวดรายรับรายจ่าย
-
-**Cash Account**:
-บัญชีเงินที่ผู้ใช้ถืออยู่ เช่น กระเป๋าเงินสดหรือบัญชีธนาคาร เป็นประเภท Cash ในโจทย์
-_Avoid_: ตีความ Cash ว่าหมายถึงธนบัตรเท่านั้น
-
-**Loan Given Account**:
-บัญชีที่แทนเงินซึ่งผู้อื่นเป็นหนี้ผู้ใช้
-_Avoid_: Loan Taken, เงินที่ผู้ใช้กู้มา
-
-**Loan Taken Account**:
-บัญชีหนี้ที่ผู้ใช้ต้องชำระคืน รวมถึงบัตรเครดิตและเงินกู้อื่น
-_Avoid_: Loan Given, จัดบัตรเครดิตเป็น Cash Account
-
-**Income Account**:
-บัญชีที่ใช้จัดหมวดรายได้ เช่น เงินเดือนหรือดอกเบี้ยรับ
-_Avoid_: นับเงินรับทุกชนิดเป็น Income
-
-**Expense Account**:
-บัญชีที่ใช้จัดหมวดค่าใช้จ่าย เช่น ค่าอาหารหรือของใช้
-_Avoid_: นับเงินออกทุกชนิดเป็น Expense
-
-**Transaction**:
-รายการทางการเงินที่มีวันที่ ยอดรวม และ allocation line อย่างน้อยหนึ่งบรรทัด ใช้รูปแบบ Make a payment or record a charge หรือ Receive money
-_Avoid_: ใช้ Transaction แทนเพียงข้อความหมายเหตุที่ไม่สัมพันธ์กับยอดบัญชี
-
-**Allocation Line**:
-ส่วนหนึ่งของ transaction ที่ระบุว่ายอดส่วนนี้จัดไปยังบัญชีใด ผลรวม allocation lines ต้องเท่ากับยอดรวมของ transaction
-_Avoid_: ใช้ “category” กับทุกบรรทัด เพราะบางบรรทัดเป็น transfer หรือการชำระหนี้
-
-**Opening Balance**:
-ยอดตั้งต้นของบัญชีตามวันที่กำหนด ไม่ใช่รายรับหรือค่าใช้จ่ายที่เกิดจากธุรกรรมของช่วงนั้น
-_Avoid_: บันทึกยอดตั้งต้นเป็นเงินเดือนหรือรายจ่ายเพื่อทำให้ยอดตรง
-
-**Transfer**:
-การย้ายเงินระหว่างบัญชีเงินของผู้ใช้ ไม่ใช่รายได้หรือค่าใช้จ่าย
-_Avoid_: บันทึกเงินออกและเงินเข้าเป็น Expense และ Income คู่กัน
-
-**Loan Repayment**:
-การชำระหนี้ที่มีอยู่เดิม รวมถึงการชำระบัตรเครดิต ตัวเงินชำระหนี้ไม่ใช่รายได้หรือค่าใช้จ่ายใหม่
-_Avoid_: นับการจ่ายหนี้บัตรเครดิตเป็นค่าใช้จ่ายซ้ำจากรายการซื้อเดิม
-
-**Favourite Transaction**:
-transaction ที่ผู้ใช้ทำเครื่องหมายไว้เพื่อกลับมาใช้รายละเอียดเดิมได้สะดวก
-_Avoid_: ถือว่าการทำเครื่องหมาย favourite สร้างรายการเงินใหม่
-
-**Duplicate Transaction**:
-transaction ใหม่ที่แก้ไขได้และคัดลอกรายละเอียดจากรายการเดิม ทั้งสองเป็นคนละรายการ
-_Avoid_: แก้ต้นฉบับแทนการสร้างรายการใหม่
-
-**Administrator**:
-ผู้ดูแลบัญชีผู้ใช้และสิทธิ์การเข้าใช้แพลตฟอร์ม เช่น เปิดหรือปิดการใช้งานผู้ใช้ โดยไม่มีสิทธิ์ดูหรือแก้ข้อมูลการเงินและสรุปของผู้ใช้
-_Avoid_: สมมติว่าผู้ดูแลเข้าถึง financial records ได้ทุกคน
+- **User Account:** An identity used to sign in and receive the User or Administrator role. It is distinct from a financial account used to record a person's money. **Avoid:** Using “account” without clarifying whether it means a user identity or a financial account.
+- **Financial Account:** A personal financial account of one of five types: Cash, Loan Given, Loan Taken, Income, or Expense. **Avoid:** Using User Account to mean a money account or an income/expense category.
+- **Cash Account:** An account that holds money owned by the user, such as a cash wallet or bank account; it is the Cash type in the assignment. **Avoid:** Interpreting Cash as physical banknotes only.
+- **Loan Given Account:** An account representing money that another person owes the user. **Avoid:** Confusing it with Loan Taken or money borrowed by the user.
+- **Loan Taken Account:** A debt account that the user must repay, including credit-card debt and other loans. **Avoid:** Confusing it with Loan Given or classifying a credit card as a Cash Account.
+- **Income Account:** An account used to classify income, such as salary or interest received. **Avoid:** Treating every receipt of money as income.
+- **Expense Account:** An account used to classify expenses, such as food or household items. **Avoid:** Treating every outgoing payment as an expense.
+- **Transaction:** A financial record with a date, a total amount, and at least one allocation line. It uses one of two forms: “Make a payment or record a charge” or “Receive money.” **Avoid:** Using Transaction for a note that has no relationship to account balances.
+- **Allocation Line:** A part of a transaction that assigns an amount to an account. The allocation lines must add up to the transaction total. **Avoid:** Calling every line a “category”; some lines represent transfers or debt repayments.
+- **Opening Balance:** An account balance established as of a specified date. It is not income or an expense generated by transactions during that period. **Avoid:** Recording an opening balance as salary or spending to make the account balance match.
+- **Transfer:** A movement of money between the user's financial accounts. It is neither income nor expense. **Avoid:** Recording the outgoing and incoming sides as a paired Expense and Income.
+- **Loan Repayment:** A payment toward an existing debt, including a credit-card payment. The repayment itself is not new income or expense. **Avoid:** Counting a credit-card payment as a second expense after recording the original purchase.
+- **Favourite Transaction:** A transaction the user marks so its details can be reused conveniently later. **Avoid:** Treating the favourite marker as a new financial transaction.
+- **Duplicate Transaction:** A new, editable transaction created by copying details from an existing transaction. The two transactions remain separate records. **Avoid:** Editing the original transaction when the intent is to create a new one.
+- **Administrator:** A person who manages platform user accounts and access, such as enabling or disabling users, but cannot view or edit users' financial records or summaries. **Avoid:** Assuming that an Administrator can access everyone's financial records.
