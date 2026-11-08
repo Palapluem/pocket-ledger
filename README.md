@@ -2,7 +2,7 @@
 
 PocketLedger is a personal finance application for tracking financial accounts, allocated transactions, balances and debt. It is the CPE334 group product for Wisit Suwannao and Natthawat Primsirikunawut, based on Theme 7: Personal Money and Expense Logging System.
 
-**Current stage: repository and engineering preparation.** Application implementation, automated product tests, accepted sprint releases and cloud deployment have not started. A document template or planned check is not passing execution evidence.
+**Current stage: draft engineering baseline and Sprint 1 contract review.** Application implementation, automated product tests, accepted sprint releases and cloud deployment have not started. LEB2 group name is **2-Nor**. Stack and financial policies remain proposed until the team agrees them.
 
 ## Product scope
 
@@ -16,7 +16,12 @@ Users access their own financial data. Administrators manage platform user accou
 
 - [Team and assessment identity](docs/team.md)
 - [Engineering and delivery plan](docs/assessment-plan.md)
-- [Decisions before implementation](docs/wayfinder/map.md)
+- [Team decisions and unresolved policies](docs/decisions.md)
+- [SRS and product scope](docs/srs.md)
+- [Feature inventory](docs/features.md) and [requirements traceability](docs/traceability.md)
+- [System-Level SDS](docs/system-sds.md)
+- [Three-sprint plan and rotating work](docs/sprints/plan.md)
+- [Sprint 1 feature contracts](docs/sprints/sprint-1/contract.md) and [STS/results](docs/sprints/sprint-1/tests.md)
 - [Financial vocabulary](GLOSSARY.md)
 - [Contribution and release workflow](CONTRIBUTING.md)
 - [Coordination and handoff](COORDINATION.md)
@@ -57,7 +62,7 @@ Use later sprint staging branches when those sprints begin. Keep related documen
 
 ## Running the application
 
-There is no application runtime or selected stack in this bootstrap. Record the team's stack decision, money/date rules and Sprint 1 contracts before implementing features. The first implementation change must supply the actual dependency, environment, database migration/seed, run, build and test commands here.
+There is no application runtime or accepted stack yet. The System SDS proposes the familiar React/TypeScript, Express/TypeScript and PostgreSQL/Prisma stack; it is not a team decision. Resolve the relevant decisions, approve the feature contract and agree public interfaces before implementing that feature. The first implementation change must supply the actual dependency, environment, database migration/seed, run, build and test commands here.
 
 Do not run the TokTickIT example deploy scripts against a cloud project without adapting them and reviewing every resource, permission and database operation. The reference kit remains in the [course Lab 5 folder](https://github.com/Palapluem/cpe334-software-engineer-2026/tree/main/labs/Lab05).
 
