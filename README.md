@@ -62,7 +62,9 @@ Use later sprint staging branches when those sprints begin. Keep related documen
 
 ## Running the application
 
-The requested scaffold stack is Better T Stack with TanStack Router, Elysia, Bun, Better Auth, PostgreSQL and Drizzle ORM. Docker is selected for local database setup and web/server deployment packaging; Biome, Husky and Turborepo are selected add-ons. API add-ons, payments and examples are disabled. See [D-02](docs/decisions.md#d-02-stack-and-reproducible-runtime) and the [System SDS](docs/system-sds.md). This records Natthawat's selection; Wisit's confirmation, exact runtime/dependency versions, feature contracts and public interfaces remain open. The scaffold and runtime have not been generated yet.
+The source scaffold uses Better T Stack with TanStack Router, Elysia, Bun, Better Auth, PostgreSQL and Drizzle ORM. Docker is configured for local database setup and web/server packaging; Biome, Husky and Turborepo are included. API add-ons, payments and examples are disabled. See [D-02](docs/decisions.md#d-02-stack-and-reproducible-runtime) and the [System SDS](docs/system-sds.md). This records Natthawat's selection; Wisit's confirmation and product feature contracts remain open.
+
+With Bun 1.4.4 and Docker installed, run `bun install`, `bun run db:start`, `bun run db:push` and `bun run dev`. The web app is served on port 3001 and the API on port 3000. `bun run check` runs Biome and may apply formatting changes. Docker Compose deployment commands are `bun run docker:build` and `bun run docker:up`. The generated scaffold includes authentication and starter UI, but no PocketLedger financial workflows or policies are implemented yet.
 
 Do not run the TokTickIT example deploy scripts against a cloud project without adapting them and reviewing every resource, permission and database operation. The reference kit remains in the [course Lab 5 folder](https://github.com/Palapluem/cpe334-software-engineer-2026/tree/main/labs/Lab05).
 
