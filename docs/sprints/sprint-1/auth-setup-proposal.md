@@ -48,6 +48,8 @@ Error responses use `{ "code": "...", "message": "..." }` without account-existe
 
 Using two distinct synthetic users and an administrator in an authorized disposable database: valid credentials return the matching identity; an incorrect password and a disabled identity both return `401 INVALID_CREDENTIALS`; a session fails with `401 UNAUTHENTICATED` after revocation, expiry or disabling its user; repeated logout returns `204`; and a direct signup request creates no user. Repeat reads after application restart to establish persistence. Testing that an administrator cannot read another user's financial resources is deferred until those endpoints exist in a later financial slice. Choose and agree the precise test interfaces and expected origin-rejection response before writing executable tests; record actual results and tested commit separately.
 
+For the proposed hash-only policy, an integration check must inspect the persisted session value and assert that it equals an independently computed one-way hash of the test cookie bearer token, not the raw bearer token. It must also demonstrate that the same session can be looked up and revoked successfully. The hash algorithm and test interface must be agreed before implementation. Keep token values out of logs and published evidence. This is a planned acceptance check; it has not been implemented or run.
+
 ## Acceptance criteria for the future setup
 
 1. A clean checkout has documented install, configuration and run steps, with placeholder-only configuration and locally supplied secrets. No secret values are committed or printed as evidence.
