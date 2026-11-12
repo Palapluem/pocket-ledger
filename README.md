@@ -62,7 +62,7 @@ Use later sprint staging branches when those sprints begin. Keep related documen
 
 ## Running the application
 
-There is no application runtime or accepted stack yet. The System SDS proposes the familiar React/TypeScript, Express/TypeScript and PostgreSQL/Prisma stack; it is not a team decision. Resolve the relevant decisions, approve the feature contract and agree public interfaces before implementing that feature. The first implementation change must supply the actual dependency, environment, database migration/seed, run, build and test commands here.
+The requested scaffold stack is Better T Stack with TanStack Router, Elysia, Bun, Better Auth, PostgreSQL and Drizzle ORM. Docker is selected for local database setup and web/server deployment packaging; Biome, Husky and Turborepo are selected add-ons. API add-ons, payments and examples are disabled. See [D-02](docs/decisions.md#d-02-stack-and-reproducible-runtime) and the [System SDS](docs/system-sds.md). This records Natthawat's selection; Wisit's confirmation, exact runtime/dependency versions, feature contracts and public interfaces remain open. The scaffold and runtime have not been generated yet.
 
 Do not run the TokTickIT example deploy scripts against a cloud project without adapting them and reviewing every resource, permission and database operation. The reference kit remains in the [course Lab 5 folder](https://github.com/Palapluem/cpe334-software-engineer-2026/tree/main/labs/Lab05).
 
