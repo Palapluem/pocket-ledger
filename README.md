@@ -22,6 +22,7 @@ Users access their own financial data. Administrators manage platform user accou
 - [System-Level SDS](docs/system-sds.md)
 - [Three-sprint plan and rotating work](docs/sprints/plan.md)
 - [Sprint 1 feature contracts](docs/sprints/sprint-1/contract.md) and [STS/results](docs/sprints/sprint-1/tests.md)
+- [Authentication and setup proposal](docs/sprints/sprint-1/auth-setup-proposal.md) — pending team decisions; not implementation approval
 - [Financial vocabulary](GLOSSARY.md)
 - [Contribution and release workflow](CONTRIBUTING.md)
 - [Coordination and handoff](COORDINATION.md)

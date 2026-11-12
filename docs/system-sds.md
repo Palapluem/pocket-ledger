@@ -1,6 +1,6 @@
 # System-Level Software Design Specification
 
-Draft 0.2, 12 November 2026. This is a proposed design for team review, not an implemented architecture. D-02 to D-07 in [team decisions](decisions.md) govern the choices below. The SRS defines the required product behavior.
+Draft 0.2, 12 November 2026. Better T Stack is selected; exact runtime and image versions remain to be pinned. This is still a proposed design for team review, not an implemented architecture. D-03 to D-07 in [team decisions](decisions.md) govern the remaining product choices. The SRS defines the required product behavior.
 
 ## Architecture and responsibilities
 
@@ -65,6 +65,8 @@ Proposed error precedence: establish authentication; enforce role; validate stru
 ## Authentication and configuration
 
 D-05 proposes an opaque server session in an HttpOnly cookie, a configurable expiry and immediate server-side rejection of disabled users on their next request. Logout revokes the session. Choose appropriate cookie security for local/cloud deployment, and protect authenticated writes against cross-site requests under the selected deployment model. Specify and test the mechanism before accepting the identity feature.
+
+The [auth/setup proposal](sprints/sprint-1/auth-setup-proposal.md) records the Better Auth session-storage, expiry, cookie, route and local-setup questions for team review. It is not an approved implementation contract.
 
 Keep real credentials outside Git and the report. The first implementation supplies placeholder configuration for database connection, session/cookie settings, allowed origin, runtime port and any seed identity inputs. Actual variable names, defaults and required/secret classifications are recorded in .env.example and deployment.md when selected; no runtime command is invented in this draft.
 

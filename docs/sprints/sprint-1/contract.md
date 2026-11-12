@@ -1,14 +1,14 @@
 # Sprint 1 feature engineering contracts
 
-Draft 0.1, 7 November 2026. Includes F-01 to F-06. This is a reviewable pre-implementation contract; D-01 to D-07 remain open except the confirmed context. Neither student has accepted the proposed policies or been assigned an implementation feature. No code, tests or product release are established by this document.
+Draft 0.1, prepared 7 November 2026 and updated 12 November. Includes F-01 to F-06. The Better T Stack is selected; D-02 runtime/image pins and D-01 and D-03 to D-07 remain open. This is a reviewable pre-implementation contract. Neither student has accepted the proposed product policies or been assigned an implementation feature. No code, tests or product release are established by this document.
 
 ## Contract identity and revision
 
 | Field | Value / evidence |
 | --- | --- |
 | Baseline and design | SRS, feature inventory, traceability and System-Level SDS in docs/ |
-| Decision work | Issue #1 financial/scope/interfaces; Issue #2 team/runtime/authentication |
-| Documentation review | PR #4; teammate review pending |
+| Decision work | Issue #1 financial/scope/interfaces; Issue #2 team/runtime/authentication; [auth/setup proposal](auth-setup-proposal.md) |
+| Documentation review | PR #4 merged after N0TAW00D approval; PR #5 and #6 reviewed and merged by Palapluem |
 | Implementation Issue / branch / owner / reviewer | |
 | Approved contract revision and pre-code commit | |
 

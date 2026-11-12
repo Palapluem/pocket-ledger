@@ -1,6 +1,6 @@
 # Sprint 1 Software Test Specification and results
 
-Draft 0.1, 7 November 2026. All tests below are planned and NOT RUN. Approve D-02 to D-07 and the public interfaces before implementing executable tests. Test IDs are stable; proposed file names are targets, not files that already exist.
+Draft 0.1, prepared 7 November 2026 and updated 12 November. All tests below are planned and NOT RUN. Pin the D-02 runtime/image versions and agree D-01 and D-03 to D-07 and the public interfaces before implementing executable tests. The [auth/setup proposal](auth-setup-proposal.md) is for team review and does not approve the session contract. Test IDs are stable; proposed file names are targets, not files that already exist.
 
 ## Independent fixture and expected values
 
