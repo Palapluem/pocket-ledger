@@ -24,7 +24,7 @@ The current Better Auth documentation describes the session table's `token` as t
 
 The following values are a proposal, not an agreed decision. Review them together before promoting them into D-05, D-07, the System SDS and the Sprint 1 contract.
 
-- **Expiry:** sessions last at most 24 hours from sign-in with no automatic renewal; there is no separate idle timeout. Expired sessions cannot access protected resources. A new sign-in creates a new session.
+- **Expiry:** propose a configurable absolute session lifetime with a default of 24 hours from sign-in, no separate idle timeout, and session refresh disabled. Expired sessions cannot access protected resources. A new sign-in creates a new session. These settings remain subject to both students' agreement.
 - **Storage:** retain D-05's hash-only requirement. Confirm that the selected Better Auth version can satisfy it through a supported adapter or integration before accepting this design. If it cannot, bring an explicit alternative back for team decision; do not silently store the bearer token in plaintext.
 - **Cookies and request protection:** use an HttpOnly, SameSite=Lax session cookie, with Secure enabled under HTTPS. Permit credentialed requests only from configured application origins. Reject unsafe requests with a missing or unapproved Origin; agree the handling of non-browser clients before supporting them. Do not enable a session cache that bypasses the enabled-user check.
 - **Disabled accounts:** reject sign-in with the same public response as invalid credentials. Recheck the current enabled state for every protected request and reject disabled users' existing sessions on the next request. Logout revokes the current session.
@@ -42,7 +42,7 @@ Error responses use `{ "code": "...", "message": "..." }` without account-existe
 
 ### Proposed verification examples
 
-Using two distinct synthetic users and an administrator in an authorized disposable database: valid credentials return the matching identity; an incorrect password and a disabled identity both return `401 INVALID_CREDENTIALS`; a session fails with `401 UNAUTHENTICATED` after revocation, expiry or disabling its user; repeated logout returns `204`; a direct signup request creates no user; and an administrator cannot read another user's financial resources. Repeat reads after application restart to establish persistence. Choose and agree the precise test interfaces and expected origin-rejection response before writing executable tests; record actual results and tested commit separately.
+Using two distinct synthetic users and an administrator in an authorized disposable database: valid credentials return the matching identity; an incorrect password and a disabled identity both return `401 INVALID_CREDENTIALS`; a session fails with `401 UNAUTHENTICATED` after revocation, expiry or disabling its user; repeated logout returns `204`; and a direct signup request creates no user. Repeat reads after application restart to establish persistence. Testing that an administrator cannot read another user's financial resources is deferred until those endpoints exist in a later financial slice. Choose and agree the precise test interfaces and expected origin-rejection response before writing executable tests; record actual results and tested commit separately.
 
 ## Acceptance criteria for the future setup
 
