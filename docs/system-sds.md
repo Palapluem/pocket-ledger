@@ -1,20 +1,20 @@
 # System-Level Software Design Specification
 
-Draft 0.1, 7 November 2026. This is a proposed design for team review, not an implemented architecture. D-02 to D-07 in [team decisions](decisions.md) govern the choices below. The SRS defines the required product behavior.
+Draft 0.2, 12 November 2026. This is a proposed design for team review, not an implemented architecture. D-02 to D-07 in [team decisions](decisions.md) govern the choices below. The SRS defines the required product behavior.
 
 ## Architecture and responsibilities
 
-Use a modular monolith with three logical layers. The proposed React/TypeScript UI calls an Express/TypeScript API; the API uses PostgreSQL/Prisma. Exact runtime, dependency versions and commands are selected and pinned with the first implementation after D-02. Three logical layers do not require three servers or microservices.
+Use a modular monolith with three logical layers. The team selected Better T Stack configured with TanStack Router for the frontend, Elysia for the backend, Bun as runtime and package manager, Better Auth for authentication, PostgreSQL with Drizzle ORM, Docker for local database setup and web/server deployment packaging, and Biome, Husky and Turborepo add-ons. API add-ons, payments and examples are disabled. D-02 records the confirmed stack; exact supported runtime/image versions and implementation contracts remain open. The application has not been scaffolded. Three logical layers do not require three servers or microservices.
 
 ```text
-Browser UI
-  -> authenticated HTTP API
+TanStack Router browser UI
+  -> Elysia HTTP API
      -> identity / administration / financial application services
         -> exact money rules and ownership checks
-           -> persistent relational database
+           -> Drizzle ORM -> PostgreSQL
 ```
 
-The browser owns input presentation and feedback. The API establishes identity, enforces permission and ownership, validates the complete transaction and controls the database transaction. The database persists users, sessions, financial accounts, transactions and allocation lines. Client-supplied owner or role values never establish authority.
+The browser owns input presentation and feedback. Better Auth provides the authentication foundation; the Elysia application establishes the authenticated identity, enforces product permissions and ownership, validates the complete transaction and controls the database transaction through Drizzle. PostgreSQL persists users/auth records, financial accounts, transactions and allocation lines. Client-supplied owner or role values never establish authority. Better Auth configuration, session storage and the mapping to PocketLedger's User/Administrator roles require an explicit implementation contract.
 
 Balances are proposed to be derived from opening balances and persisted transaction/allocation effects rather than maintained in a second mutable balance cache. A query must use the same agreed sign rules as the domain contract. Test expected values must be independently calculated. If the team chooses a cache or a different persistence model, document its atomicity and reconciliation before implementation.
 

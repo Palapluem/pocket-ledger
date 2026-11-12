@@ -13,7 +13,7 @@ This is the single decision register for PocketLedger. Assignment requirements a
 | Decision | Owners | Status | Work affected |
 | --- | --- | --- | --- |
 | D-01 Team identifiers and rotating work | Wisit + Natthawat | PARTIAL: group name confirmed; section and task allocation open | Submission identity and task ownership |
-| D-02 Stack and reproducible runtime | Wisit + Natthawat | PROPOSED | System SDS, setup and implementation |
+| D-02 Stack and reproducible runtime | Wisit + Natthawat | STACK CONFIRMED; PINNED RUNTIME/IMAGE VERSION OPEN | System SDS, setup and implementation |
 | D-03 Money, balance signs and account compatibility | Wisit + Natthawat | PROPOSED | Financial contracts and expected values |
 | D-04 Dates, opening balances and correction boundary | Wisit + Natthawat | PROPOSED | History, summaries and validation |
 | D-05 Authentication and deactivation | Wisit + Natthawat | PROPOSED | Identity, authorization and administrator contract |
@@ -28,9 +28,9 @@ Both students must participate in design, tests, implementation, agent supervisi
 
 ## D-02 Stack and reproducible runtime
 
-Proposal: reuse the team's familiar React/TypeScript UI, Express/TypeScript API, PostgreSQL/Prisma persistence, Vitest and selected Playwright journeys. Use a modular monolith. Pin actual supported runtime and dependency versions together when the first implementation is prepared; the old TokTickIT package files are not a PocketLedger dependency lock.
+The team selected Better T Stack with TanStack Router, Elysia, Bun, Better Auth, PostgreSQL, Drizzle ORM, Docker database setup and Docker web/server deployment. API add-ons and payments are disabled. Use Bun as the package manager, Biome for formatting/linting, Husky for local Git hooks, and Turborepo for workspace orchestration. No example features are included. Wisit confirmed this selection in the review of PR #5 on 12 November 2026. A reproducible exact Bun/runtime and image-version choice remains open.
 
-Alternatives and rationale may be recorded here by the team. Local development, CI and container images must use the same selected runtime. No runtime, package installation, database or cloud resource is established by this proposal.
+The repository is a single product workspace. Keep the frontend and Elysia backend in that workspace, with PostgreSQL as the persistent relational store and Drizzle as its schema/migration/query layer. Better Auth supplies authentication; the product's role and ownership authorization remain application responsibilities. Docker is the local database and deployment packaging target. Keep local development, CI and container images on the same pinned Bun version. Resolve the actual template output, supported versions, environment variable names, scripts and container topology during setup; do not infer them from the generator name. No cloud resource is established by this decision.
 
 ## D-03 Money, balance signs and account compatibility
 
@@ -69,7 +69,7 @@ Use unit checks for financial logic, API tests against an isolated real database
 | Decision | Agreed answer and rationale | Student confirmations / review link | Date / contract revision |
 | --- | --- | --- | --- |
 | D-01 remaining identifiers and work split | | | |
-| D-02 | | | |
+| D-02 | Better T Stack options listed above; exact runtime and image tags remain to pin | Wisit confirmed in PR #5 review; Natthawat selected via setup request | 12 November 2026; System SDS 0.2 |
 | D-03 | | | |
 | D-04 | | | |
 | D-05 | | | |

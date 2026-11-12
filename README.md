@@ -2,7 +2,7 @@
 
 PocketLedger is a personal finance application for tracking financial accounts, allocated transactions, balances and debt. It is the CPE334 group product for Wisit Suwannao and Natthawat Primsirikunawut, based on Theme 7: Personal Money and Expense Logging System.
 
-**Current stage: draft engineering baseline and Sprint 1 contract review.** Application implementation, automated product tests, accepted sprint releases and cloud deployment have not started. LEB2 group name is **2-Nor**. Stack and financial policies remain proposed until the team agrees them.
+**Current stage: draft engineering baseline and Sprint 1 contract review.** The Better T Stack configuration is confirmed; exact runtime/image versions and financial policies remain open. Application implementation, automated product tests, accepted sprint releases and cloud deployment have not started. LEB2 group name is **2-Nor**.
 
 ## Product scope
 
@@ -62,7 +62,7 @@ Use later sprint staging branches when those sprints begin. Keep related documen
 
 ## Running the application
 
-There is no application runtime or accepted stack yet. The System SDS proposes the familiar React/TypeScript, Express/TypeScript and PostgreSQL/Prisma stack; it is not a team decision. Resolve the relevant decisions, approve the feature contract and agree public interfaces before implementing that feature. The first implementation change must supply the actual dependency, environment, database migration/seed, run, build and test commands here.
+The team selected Better T Stack with TanStack Router, Elysia, Bun, Better Auth, PostgreSQL and Drizzle ORM. Docker is selected for local database setup and web/server packaging; Biome, Husky and Turborepo are included. API add-ons, payments and examples are disabled. See [D-02](docs/decisions.md#d-02-stack-and-reproducible-runtime) and the [System SDS](docs/system-sds.md). The stack is documented but not yet scaffolded; exact runtime/image versions and product feature contracts remain open.
 
 Do not run the TokTickIT example deploy scripts against a cloud project without adapting them and reviewing every resource, permission and database operation. The reference kit remains in the [course Lab 5 folder](https://github.com/Palapluem/cpe334-software-engineer-2026/tree/main/labs/Lab05).
 
