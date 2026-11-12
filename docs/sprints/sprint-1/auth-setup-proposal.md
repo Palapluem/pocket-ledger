@@ -29,3 +29,19 @@ Set up the confirmed Better T Stack workspace and the Sprint 1 seeded-user sign-
 ## Review and implementation gate
 
 Resolve the decisions above and update the System SDS, Sprint 1 contract and STS with approved public interfaces and independent expected results. Record the teammate's specific review before writing dependent tests or application behavior. Then implement on a bounded branch from current staging and request the other teammate's review. Palapluem's PR #5 comments on signup, session endpoints, Compose secrets, database exposure, Bun image pinning and ignore rules remain review inputs for that implementation.
+
+## Implementation review checklist
+
+The reverted scaffold remains in Git history at `7015eca` for reference; it is not the current product implementation. Its generated configuration needs these changes before reuse:
+
+| Review finding | Required evidence for the source PR |
+| --- | --- |
+| Generated Better Auth routes differ from the draft `/api/session` contract | Show the approved route and response contract and verify actual requests against it. Do not publish an unreviewed alternative interface. |
+| Generated signup is reachable | Demonstrate that a direct signup request is rejected by the server and that sign-in is the entry point. |
+| Compose build secrets point to absent local files | Document how to create every required local configuration file from placeholders, and show that a clean checkout can resolve the Compose configuration without real credentials in Git. |
+| PostgreSQL used a default password and exposed all host interfaces | Require a locally supplied password, bind the host port to loopback, and inspect resolved configuration without printing credentials. |
+| Database teardown command had an invalid service argument | Document whether the command stops only PostgreSQL or tears down the Compose project; verify that the command matches that scope and preserves the named volume. |
+| Bun image tags floated independently of the package manager | Pin the agreed version consistently and record the actual version used for the checks. |
+| Generated ignore rules replaced existing protections | Preserve and inspect the existing credential, private-data and evidence ignore patterns as well as generated build ignores. |
+
+The specific test paths and expected HTTP responses remain proposals until D-05 and D-07 are agreed. Do not treat this checklist or a successful build as proof of the identity and privacy acceptance criteria.
