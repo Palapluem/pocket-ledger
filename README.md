@@ -2,7 +2,7 @@
 
 PocketLedger is a personal finance application for tracking financial accounts, allocated transactions, balances and debt. It is the CPE334 group product for Wisit Suwannao and Natthawat Primsirikunawut, based on Theme 7: Personal Money and Expense Logging System.
 
-**Current stage: draft engineering baseline and Sprint 1 contract review.** Application implementation, automated product tests, accepted sprint releases and cloud deployment have not started. LEB2 group name is **2-Nor**. Stack and financial policies remain proposed until the team agrees them.
+**Current stage: draft engineering baseline and Sprint 1 contract review.** The Better T Stack configuration is confirmed; exact runtime/image versions and financial policies remain open. Application implementation, automated product tests, accepted sprint releases and cloud deployment have not started. LEB2 group name is **2-Nor**.
 
 ## Product scope
 
