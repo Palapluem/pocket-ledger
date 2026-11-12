@@ -69,11 +69,11 @@ Use unit checks for financial logic, API tests against an isolated real database
 | Decision | Agreed answer and rationale | Student confirmations / review link | Date / contract revision |
 | --- | --- | --- | --- |
 | D-01 remaining identifiers and work split | | | |
-| D-02 | Better T Stack options listed above; exact runtime and image tags remain to pin | Wisit confirmed in PR #5 review; Natthawat selected via setup request | 12 November 2026; System SDS 0.2 |
+| D-02 | Better T Stack selected; exact Bun/runtime and image tags remain to pin | Natthawat authored PR #5; Wisit reviewed and approved it | 12 November 2026; System SDS 0.2 |
 | D-03 | | | |
 | D-04 | | | |
 | D-05 | | | |
 | D-06 | | | |
 | D-07 | | | |
 
-Draft preparation: 7 November 2026. Track D-01/D-02/D-05 in Issue #2 and D-03/D-04/D-06/D-07 in Issue #1. Keep both Issues open until their actual completion conditions are met. PR #4 reviews the documentation draft; it does not imply acceptance of the unresolved decisions.
+Draft preparation: 7 November 2026; status updated 12 November after PRs #5–#7. Track D-01, D-05 and the D-02 runtime/image pin in Issue #2; track D-03, D-04, D-06 and D-07 in Issue #1. Keep both Issues open until their actual completion conditions are met. PR #4 established the documentation baseline, PR #5 recorded the selected stack, and PR #6 added an auth/setup proposal. PR #7 was approved by Palapluem and merged into `sprint-1-staging` at `3e8bc5f` as a session-policy/API proposal; its choices still require team agreement. No implementation or product tests are claimed.
