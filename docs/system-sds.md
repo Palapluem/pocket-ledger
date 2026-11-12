@@ -23,7 +23,7 @@ Balances are proposed to be derived from opening balances and persisted transact
 | Entity | Main fields and relationships | Constraints and lifecycle |
 | --- | --- | --- |
 | UserAccount | id, email, displayName, passwordHash, role, enabled, timestamps | Unique normalized identity; User or Administrator; no plaintext password |
-| Session | id/tokenHash, userId, createdAt, expiresAt, revokedAt | Opaque token hash only; references current enabled user; expiry/revocation checked server-side |
+| Session | id/tokenHash, userId, createdAt, expiresAt, revokedAt | Proposed D-05 policy: store only an opaque token hash; resolve the current enabled user and check expiry/revocation server-side |
 | FinancialAccount | id, ownerId, name, type, currency, openingAmountMinor, openingDate | Five required types; owner is a User; opening policy D-03/D-04 |
 | FinancialTransaction | id, ownerId, form, primaryAccountId, date, totalMinor, memo, createdAt | Positive exact total under D-03; supported form; primary account owned by same User |
 | AllocationLine | id, transactionId, accountId, amountMinor, position | Positive exact amount; all accounts owned by transaction owner; sum equals total |
