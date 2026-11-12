@@ -1,10 +1,25 @@
 # Authentication and setup contract proposal
 
-Draft 0.2, 12 November 2026 · Issue #2 · **Awaiting team decisions and review.** This document prepares the first source setup for review; it does not approve implementation or replace the Sprint 1 contract.
+Draft 0.3, 12 November 2026 · Issue #2 · **Awaiting team decisions and review.** This document prepares the first source setup for review; it does not approve implementation or replace the Sprint 1 contract.
 
 ## Scope
 
 Set up the confirmed Better T Stack workspace and the Sprint 1 seeded-user sign-in foundation. Public self-registration, email delivery and password recovery are outside this slice. Administrators cannot read or modify financial records or summaries. No financial workflow or cloud resource is included.
+
+## Proposed change: first-party session instead of Better Auth
+
+Natthawat proposes removing Better Auth from the Sprint 1 identity slice and implementing a small first-party login and session layer on the confirmed Elysia, Drizzle and PostgreSQL stack. This changes the D-02 library selection that both students confirmed in PR #5, so it is **not agreed** until Wisit reviews it and the decision is recorded in D-02 and D-05. Until then, the Better Auth text elsewhere in the documents stands.
+
+Reasons: the slice needs only seeded users, no public registration, no email or recovery, a fixed absolute lifetime and hash-only session storage. The inspected Better Auth 1.7.12 default flow stores the cookie bearer token as the session `token` and looks it up by that value (see below), which conflicts with D-05 and would need a custom integration that has not been proven.
+
+Proposed shape, for review and not implemented:
+- Tables for users (identity, display name, role, enabled state, password hash) and sessions (opaque id, user reference, one-way hash of the bearer token, creation and expiry times). The bearer token is random, held only in the cookie and never stored or logged.
+- Password hashing with a salted, memory-hard algorithm supplied by the runtime or a reviewed library; the algorithm and parameters are chosen and recorded before implementation.
+- The `/api/session` interface below is implemented directly. Invalid password, unknown identity and disabled identity return the same public response.
+- Each protected request resolves the session by token hash, loads the current user, role and enabled state, and rejects expired or revoked sessions.
+- Costs to accept: the team owns the security-sensitive code, so it needs independent tests for timing-safe comparison, login-attempt limiting, origin checks and session revocation. Confirm with the instructor or TA that replacing the selected library does not conflict with the course stack requirement.
+
+If the team keeps Better Auth, the hash-only requirement must instead be proven with a supported integration as described below, or D-05 must be revised explicitly.
 
 ## Decisions to agree before implementation
 
@@ -12,9 +27,9 @@ Set up the confirmed Better T Stack workspace and the Sprint 1 seeded-user sign-
 | --- | --- |
 | Runtime | Use Bun 1.4.4 locally, in CI and in both container builds; verify compatibility before accepting the pin. |
 | Session expiry | Select the idle and absolute expiry, whether activity renews a session, and the expired-session response. |
-| Session storage | Confirm how Better Auth stores and revokes sessions and whether its storage meets D-05's token-hash proposal. Document any difference before approving it. |
+| Authentication library | Choose between the first-party session proposal above and Better Auth. If Better Auth is kept, confirm how it stores and revokes sessions and whether its storage meets D-05's token-hash proposal; document any difference before approving it. |
 | Browser protection | Agree allowed origins, secure cookie behavior, same-site settings and cross-site request protection for local and deployed environments. |
-| Public interface | Confirm the existing proposed POST, GET and DELETE `/api/session` interfaces and their response bodies, statuses and error codes, or revise the System SDS before implementation. Define how Better Auth is exposed behind that contract. |
+| Public interface | Confirm the existing proposed POST, GET and DELETE `/api/session` interfaces and their response bodies, statuses and error codes, or revise the System SDS before implementation. If Better Auth is kept, define how it is exposed behind that contract. |
 | Disabled users | Confirm that a disabled user cannot sign in and an existing session is rejected on the next protected request; specify any administrator safeguards separately. |
 | Ownership and review | Assign the implementer and teammate reviewer, agree the test interfaces and record both students' decisions in D-02, D-05 and D-07. |
 

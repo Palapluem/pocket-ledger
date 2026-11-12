@@ -66,7 +66,7 @@ Proposed error precedence: establish authentication; enforce role; validate stru
 
 D-05 proposes an opaque server session in an HttpOnly cookie, a configurable expiry and immediate server-side rejection of disabled users on their next request. Logout revokes the session. Choose appropriate cookie security for local/cloud deployment, and protect authenticated writes against cross-site requests under the selected deployment model. Specify and test the mechanism before accepting the identity feature.
 
-The [auth/setup proposal](sprints/sprint-1/auth-setup-proposal.md) records the Better Auth session-storage, expiry, cookie, route and local-setup questions for team review. It is not an approved implementation contract.
+The [auth/setup proposal](sprints/sprint-1/auth-setup-proposal.md) records the Better Auth session-storage, expiry, cookie, route and local-setup questions for team review. It also proposes replacing Better Auth with a first-party session layer; that change is not agreed and the Better Auth description above stands until D-02 and D-05 are updated. It is not an approved implementation contract.
 
 Keep real credentials outside Git and the report. The first implementation supplies placeholder configuration for database connection, session/cookie settings, allowed origin, runtime port and any seed identity inputs. Actual variable names, defaults and required/secret classifications are recorded in .env.example and deployment.md when selected; no runtime command is invented in this draft.
 
