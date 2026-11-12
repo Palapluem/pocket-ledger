@@ -1,6 +1,6 @@
 # Authentication and setup contract proposal
 
-Draft 0.3, 12 November 2026 · Issue #2 · **Awaiting team decisions and review.** This document prepares the first source setup for review; it does not approve implementation or replace the Sprint 1 contract.
+Draft 0.4, 13 November 2026 · Issue #2 · **Awaiting team decisions and review.** This document prepares the first source setup for review; it does not approve implementation or replace the Sprint 1 contract.
 
 ## Scope
 
@@ -10,18 +10,18 @@ Set up the confirmed Better T Stack workspace and the Sprint 1 seeded-user sign-
 
 Natthawat proposes removing Better Auth from the Sprint 1 identity slice and implementing a small first-party login and session layer on the confirmed Elysia, Drizzle and PostgreSQL stack. This changes the D-02 library selection that both students confirmed in PR #5, so it is **not agreed** until Wisit reviews it and the decision is recorded in D-02 and D-05. Until then, the Better Auth text elsewhere in the documents stands.
 
-Reasons: the slice needs only seeded users, no public registration, no email or recovery, and a fixed absolute lifetime. Under the current D-05 proposal—not yet an agreed requirement—it also uses hash-only session storage. The inspected Better Auth 1.7.12 default flow stores the cookie bearer token as the session `token` and looks it up by that value (see below), which conflicts with D-05 and would need a custom integration that has not been proven.
+Reasons: the slice needs only seeded users, no public registration, no email or recovery, and a fixed absolute lifetime. Hash-only session storage remains a D-05 proposal, not a course requirement or team decision. The inspected Better Auth 1.7.12 default flow stores the cookie bearer token as the session `token` and looks it up by that value (see below), which conflicts with D-05 and would need a custom integration that has not been proven.
 
-A stateless signed JWT was considered but is not part of this proposal. Without server-side session state, it cannot provide immediate logout revocation; embedding role or enabled-state claims also makes them stale after an account change. A denylist or server-side check can restore those guarantees, but adds state and removes much of the simplicity argument. A signed JWT protects integrity, not claim confidentiality, so its payload must not contain secrets. If the team prefers JWT, revise D-05 and agree its logout, disabled-user and role-change guarantees before implementation.
+A stateless signed JWT was considered but is not part of this proposal. Without server-side session state, it cannot provide immediate logout revocation; embedding role or enabled-state claims also makes them stale after an account change. A server-side session record or a revocation list checked on protected requests can restore those guarantees, but adds state and removes much of the simplicity argument. A signed JWT protects integrity, not claim confidentiality, so its payload must not contain secrets. If the team prefers JWT, revise D-05 and agree its logout, disabled-user and role-change guarantees before implementation.
 
 Proposed shape, for review and not implemented:
 - Tables for users (identity, display name, role, enabled state, password hash) and sessions (opaque id, user reference, one-way hash of the bearer token, creation and expiry times). The bearer token is random, held only in the cookie and never stored or logged.
 - Password hashing with a salted, memory-hard algorithm supplied by the runtime or a reviewed library; the algorithm and parameters are chosen and recorded before implementation.
 - The `/api/session` interface below is implemented directly. Invalid password, unknown identity and disabled identity return the same public response.
 - Each protected request resolves the session by token hash, loads the current user, role and enabled state, and rejects expired or revoked sessions.
-- Costs to accept: the team owns the security-sensitive code, so it needs independent tests for timing-safe comparison, login-attempt limiting, origin checks and session revocation. Confirm with the instructor or TA that replacing the selected library does not conflict with the course stack requirement.
+- Costs to accept: the team owns the security-sensitive code, so it needs independent tests for timing-safe comparison, login-attempt limiting, origin checks and session revocation. The PD1 and Lab 5 handouts do not require Better Auth; this is a team stack decision. Check with the instructor only if the team has been given a separate stack instruction.
 
-If the team keeps Better Auth, the hash-only requirement must instead be proven with a supported integration as described below, or D-05 must be revised explicitly.
+If the team keeps Better Auth, the proposed hash-only policy must be proven with a supported integration as described below, or D-05 must be revised explicitly.
 
 ## Decisions to agree before implementation
 
@@ -37,7 +37,7 @@ If the team keeps Better Auth, the hash-only requirement must instead be proven 
 
 The current Better Auth documentation describes the session table's `token` as the token also used in the session cookie ([session management](https://better-auth.com/docs/concepts/session-management)). This appears to conflict with D-05's proposed hash-only session storage. The team must resolve that difference and verify the selected library version's behavior before approving the contract; do not assume the default adapter hashes session tokens. Better Auth documents an email/password `disableSignUp` option ([options reference](https://better-auth.com/docs/reference/options)); the implementation must still verify direct signup rejection.
 
-Read-only inspection of the locally cached generator dependency `better-auth@1.7.12` provides a concrete reason for this gate: `dist/db/internal-adapter.mjs` generates a session `token`, passes that session data to the create hook, and later looks up a session by the supplied token. The session route passes the cookie token to that lookup. This observation concerns the cached version and its default flow; it does not prove whether a supported custom integration can meet the hash-only requirement. No database or executable test was used for this inspection. Pin the actual version and prove the chosen integration with independent persistence and revocation checks before accepting it.
+Read-only inspection of the locally cached generator dependency `better-auth@1.7.12` provides a concrete reason for this gate: `dist/db/internal-adapter.mjs` generates a session `token`, passes that session data to the create hook, and later looks up a session by the supplied token. The session route passes the cookie token to that lookup. This observation concerns the cached version and its default flow; it does not prove whether a supported custom integration can meet the proposed hash-only policy. No database or executable test was used for this inspection. Pin the actual version and prove the chosen integration with independent persistence and revocation checks before accepting it.
 
 On 12 November 2026, `bun --version` in Natthawat's local environment returned `1.4.4`. A read-only query of [Docker Hub tag metadata](https://hub.docker.com/v2/repositories/oven/bun/tags/1.4.4) reported the `oven/bun:1.4.4` tag active for `linux/amd64` and `linux/arm64`. This confirms tag availability at that time, not image compatibility or team approval; no image was pulled or built.
 
@@ -46,7 +46,7 @@ On 12 November 2026, `bun --version` in Natthawat's local environment returned `
 The following values are a proposal, not an agreed decision. Review them together before promoting them into D-05, D-07, the System SDS and the Sprint 1 contract.
 
 - **Expiry:** propose a configurable absolute session lifetime with a default of 24 hours from sign-in, no separate idle timeout, and session refresh disabled. Expired sessions cannot access protected resources. A new sign-in creates a new session. These settings remain subject to both students' agreement.
-- **Storage:** retain D-05's hash-only requirement. Confirm that the selected Better Auth version can satisfy it through a supported adapter or integration before accepting this design. If it cannot, bring an explicit alternative back for team decision; do not silently store the bearer token in plaintext.
+- **Storage:** retain D-05's proposed hash-only policy. Confirm that the selected Better Auth version can satisfy it through a supported adapter or integration before accepting this design. If it cannot, bring an explicit alternative back for team decision; do not silently store the bearer token in plaintext.
 - **Cookies and request protection:** use an HttpOnly, SameSite=Lax session cookie, with Secure enabled under HTTPS. Permit credentialed requests only from configured application origins. Reject unsafe requests with a missing or unapproved Origin; agree the handling of non-browser clients before supporting them. Authorization must not rely on stale identity or role data cached in a session or cookie.
 - **Protected requests and disabled accounts:** resolve each protected request's session to the current identity and role and check the current enabled state before authorizing it. Reject sign-in for a disabled identity with the same public response as invalid credentials, and reject a disabled user's existing sessions on the next protected request. Logout revokes the current session.
 - **Seed:** provision explicitly configured synthetic users through a documented idempotent setup path. Rerunning it must not reset an existing user's password, enabled state or financial data. Public self-registration remains disabled.
