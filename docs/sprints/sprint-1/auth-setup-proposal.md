@@ -1,6 +1,6 @@
 # Authentication and setup contract proposal
 
-Draft 0.1, 12 November 2026 · Issue #2 · **Awaiting team decisions and review.** This document prepares the first source setup for review; it does not approve implementation or replace the Sprint 1 contract.
+Draft 0.2, 12 November 2026 · Issue #2 · **Awaiting team decisions and review.** This document prepares the first source setup for review; it does not approve implementation or replace the Sprint 1 contract.
 
 ## Scope
 
@@ -19,6 +19,30 @@ Set up the confirmed Better T Stack workspace and the Sprint 1 seeded-user sign-
 | Ownership and review | Assign the implementer and teammate reviewer, agree the test interfaces and record both students' decisions in D-02, D-05 and D-07. |
 
 The current Better Auth documentation describes the session table's `token` as the token also used in the session cookie ([session management](https://better-auth.com/docs/concepts/session-management)). This appears to conflict with D-05's proposed hash-only session storage. The team must resolve that difference and verify the selected library version's behavior before approving the contract; do not assume the default adapter hashes session tokens. Better Auth documents an email/password `disableSignUp` option ([options reference](https://better-auth.com/docs/reference/options)); the implementation must still verify direct signup rejection.
+
+## Concrete session proposal for team review
+
+The following values are a proposal, not an agreed decision. Review them together before promoting them into D-05, D-07, the System SDS and the Sprint 1 contract.
+
+- **Expiry:** sessions last at most 24 hours from sign-in with no automatic renewal; there is no separate idle timeout. Expired sessions cannot access protected resources. A new sign-in creates a new session.
+- **Storage:** retain D-05's hash-only requirement. Confirm that the selected Better Auth version can satisfy it through a supported adapter or integration before accepting this design. If it cannot, bring an explicit alternative back for team decision; do not silently store the bearer token in plaintext.
+- **Cookies and request protection:** use an HttpOnly, SameSite=Lax session cookie, with Secure enabled under HTTPS. Permit credentialed requests only from configured application origins. Reject unsafe requests with a missing or unapproved Origin; agree the handling of non-browser clients before supporting them. Do not enable a session cache that bypasses the enabled-user check.
+- **Disabled accounts:** reject sign-in with the same public response as invalid credentials. Recheck the current enabled state for every protected request and reject disabled users' existing sessions on the next request. Logout revokes the current session.
+- **Seed:** provision explicitly configured synthetic users through a documented idempotent setup path. Rerunning it must not reset an existing user's password, enabled state or financial data. Public self-registration remains disabled.
+
+### Proposed public session interface
+
+| Request | Proposed success | Proposed rejection |
+| --- | --- | --- |
+| `POST /api/session` with `email` and `password` | `200` with `{ "id", "displayName", "role" }` and a session cookie | `401` with `INVALID_CREDENTIALS` for an invalid or disabled identity; `400` with `INVALID_INPUT` for malformed input |
+| `GET /api/session` | `200` with the same identity fields | `401` with `UNAUTHENTICATED` for missing, expired, revoked or disabled sessions |
+| `DELETE /api/session` | `204`, revoke the current session and clear its cookie | `204` and clear the cookie even if the session is already absent or expired |
+
+Error responses use `{ "code": "...", "message": "..." }` without account-existence or financial details. Role is derived server-side. No API response includes a password or session token. Confirm transport and error precedence for disallowed origins as part of D-07.
+
+### Proposed verification examples
+
+Using two distinct synthetic users and an administrator in an authorized disposable database: valid credentials return the matching identity; an incorrect password and a disabled identity both return `401 INVALID_CREDENTIALS`; a session fails with `401 UNAUTHENTICATED` after revocation, expiry or disabling its user; repeated logout returns `204`; a direct signup request creates no user; and an administrator cannot read another user's financial resources. Repeat reads after application restart to establish persistence. Choose and agree the precise test interfaces and expected origin-rejection response before writing executable tests; record actual results and tested commit separately.
 
 ## Acceptance criteria for the future setup
 
