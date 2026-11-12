@@ -20,6 +20,8 @@ Set up the confirmed Better T Stack workspace and the Sprint 1 seeded-user sign-
 
 The current Better Auth documentation describes the session table's `token` as the token also used in the session cookie ([session management](https://better-auth.com/docs/concepts/session-management)). This appears to conflict with D-05's proposed hash-only session storage. The team must resolve that difference and verify the selected library version's behavior before approving the contract; do not assume the default adapter hashes session tokens. Better Auth documents an email/password `disableSignUp` option ([options reference](https://better-auth.com/docs/reference/options)); the implementation must still verify direct signup rejection.
 
+Read-only inspection of the locally cached generator dependency `better-auth@1.7.12` provides a concrete reason for this gate: `dist/db/internal-adapter.mjs` generates a session `token`, passes that session data to the create hook, and later looks up a session by the supplied token. The session route passes the cookie token to that lookup. This observation concerns the cached version and its default flow; it does not prove whether a supported custom integration can meet the hash-only requirement. No database or executable test was used for this inspection. Pin the actual version and prove the chosen integration with independent persistence and revocation checks before accepting it.
+
 ## Concrete session proposal for team review
 
 The following values are a proposal, not an agreed decision. Review them together before promoting them into D-05, D-07, the System SDS and the Sprint 1 contract.
