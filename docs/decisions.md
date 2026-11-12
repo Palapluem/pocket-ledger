@@ -76,4 +76,4 @@ Use unit checks for financial logic, API tests against an isolated real database
 | D-06 | | | |
 | D-07 | | | |
 
-Draft preparation: 7 November 2026; status updated 12 November after PRs #5 and #6. Track D-01, D-05 and the D-02 runtime/image pin in Issue #2; track D-03, D-04, D-06 and D-07 in Issue #1. Keep both Issues open until their actual completion conditions are met. PR #4 established the documentation baseline, PR #5 recorded the selected stack, and PR #6 added an auth/setup proposal; none approves the unresolved policies or claims an implemented product.
+Draft preparation: 7 November 2026; status updated 12 November after PRs #5–#7. Track D-01, D-05 and the D-02 runtime/image pin in Issue #2; track D-03, D-04, D-06 and D-07 in Issue #1. Keep both Issues open until their actual completion conditions are met. PR #4 established the documentation baseline, PR #5 recorded the selected stack, and PR #6 added an auth/setup proposal. PR #7 was approved by Palapluem and merged into `sprint-1-staging` at `3e8bc5f` as a session-policy/API proposal; its choices still require team agreement. No implementation or product tests are claimed.

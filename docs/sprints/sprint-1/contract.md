@@ -8,7 +8,7 @@ Draft 0.1, prepared 7 November 2026 and updated 12 November. Includes F-01 to F-
 | --- | --- |
 | Baseline and design | SRS, feature inventory, traceability and System-Level SDS in docs/ |
 | Decision work | Issue #1 financial/scope/interfaces; Issue #2 team/runtime/authentication; [auth/setup proposal](auth-setup-proposal.md) |
-| Documentation review | PR #4 merged after N0TAW00D approval; PR #5 and #6 reviewed and merged by Palapluem |
+| Documentation review | PR #4 merged after N0TAW00D approval; PR #5 and #6 reviewed and merged by Palapluem; PR #7 approved by Palapluem and merged at `3e8bc5f` as a session proposal pending team agreement; no implementation or product tests are claimed |
 | Implementation Issue / branch / owner / reviewer | |
 | Approved contract revision and pre-code commit | |
 
