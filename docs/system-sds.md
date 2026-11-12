@@ -4,7 +4,7 @@ Draft 0.2, 12 November 2026. This is a proposed design for team review, not an i
 
 ## Architecture and responsibilities
 
-Use a modular monolith with three logical layers. The selected scaffold is Better T Stack configured with TanStack Router for the frontend, Elysia for the backend, Bun as runtime and package manager, Better Auth for authentication, PostgreSQL with Drizzle ORM, Docker for local database setup and web/server deployment packaging, and Biome, Husky and Turborepo add-ons. API add-ons, payments and examples are disabled. D-02 records Natthawat's selection; teammate confirmation and exact supported versions remain open. Three logical layers do not require three servers or microservices.
+Use a modular monolith with three logical layers. The team selected Better T Stack configured with TanStack Router for the frontend, Elysia for the backend, Bun as runtime and package manager, Better Auth for authentication, PostgreSQL with Drizzle ORM, Docker for local database setup and web/server deployment packaging, and Biome, Husky and Turborepo add-ons. API add-ons, payments and examples are disabled. D-02 records the confirmed stack; exact supported runtime/image versions and implementation contracts remain open. The application has not been scaffolded. Three logical layers do not require three servers or microservices.
 
 ```text
 TanStack Router browser UI
