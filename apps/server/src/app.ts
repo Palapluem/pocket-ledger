@@ -1,6 +1,6 @@
 import type { Database } from "@pocket-ledger/db";
 import { schema } from "@pocket-ledger/db";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { jwtVerify, SignJWT } from "jose";
 
@@ -71,6 +71,31 @@ export function createApp(config: AppConfig) {
 			return null;
 		}
 	};
+
+	const requireAdmin = async (request: Request) => {
+		const identity = await identityFrom(request);
+		if (!identity)
+			return { error: failure(401, "UNAUTHENTICATED", "Sign in to continue.") };
+		if (identity.role !== "administrator") {
+			return {
+				error: failure(
+					403,
+					"FORBIDDEN",
+					"You do not have access to this operation.",
+				),
+			};
+		}
+		return { identity };
+	};
+	const safeUser = (u: typeof schema.users.$inferSelect) => ({
+		id: u.id,
+		email: u.email,
+		displayName: u.displayName,
+		role: u.role,
+		enabled: u.enabled,
+	});
+	const UUID =
+		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 	return new Elysia()
 		.onRequest(({ request }) => {
@@ -156,5 +181,46 @@ export function createApp(config: AppConfig) {
 					headers: { "set-cookie": clearCookie() },
 				}),
 		)
+		.get("/api/admin/users", async ({ request }) => {
+			const guard = await requireAdmin(request);
+			if (guard.error) return guard.error;
+			const rows = await config.db
+				.select()
+				.from(schema.users)
+				.orderBy(asc(schema.users.email));
+			return json(200, rows.map(safeUser));
+		})
+		.patch("/api/admin/users/:id", async ({ request, params }) => {
+			const guard = await requireAdmin(request);
+			if (guard.error) return guard.error;
+			let body: unknown;
+			try {
+				body = await request.json();
+			} catch {
+				body = undefined;
+			}
+			const enabled = (body as { enabled?: unknown } | undefined)?.enabled;
+			if (typeof enabled !== "boolean") {
+				return failure(400, "INVALID_INPUT", "enabled must be true or false.");
+			}
+			if (!UUID.test(params.id))
+				return failure(404, "NOT_FOUND", "User not found.");
+			// Safeguard (proposal): an administrator cannot disable their own account.
+			if (!enabled && params.id === guard.identity.id) {
+				return failure(
+					409,
+					"SELF_DISABLE_FORBIDDEN",
+					"You cannot disable your own account.",
+				);
+			}
+			const [updated] = await config.db
+				.update(schema.users)
+				.set({ enabled, updatedAt: new Date() })
+				.where(eq(schema.users.id, params.id))
+				.returning();
+			return updated
+				? json(200, safeUser(updated))
+				: failure(404, "NOT_FOUND", "User not found.");
+		})
 		.get("/", () => "OK");
 }

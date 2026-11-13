@@ -79,6 +79,7 @@ These values are used by the F-01 implementation (Issue #11) and are proposals u
 - Cookie `session`: HttpOnly, SameSite=Lax, Path=/, Max-Age equal to the lifetime, Secure when `COOKIE_SECURE=true`.
 - Request protection: an unsafe request (POST/PUT/PATCH/DELETE) whose `Origin` header is present and differs from the configured origin is rejected with `403 FORBIDDEN_ORIGIN`. A request without an `Origin` header (non-browser client) is accepted.
 - Interface as proposed above: `POST/GET/DELETE /api/session`; no signup route.
+- Administration (F-02, Issue #13): `GET /api/admin/users` and `PATCH /api/admin/users/:id` with `{ "enabled": boolean }`, Administrator role claim required (`401 UNAUTHENTICATED`, `403 FORBIDDEN`). Safeguard proposal: an administrator cannot disable their own account (`409 SELF_DISABLE_FORBIDDEN`), so at least the acting administrator stays enabled. AC-08 is deferred until financial endpoints exist.
 
 Evidence for these choices comes only from the automated tests in the PR, not from this document.
 
