@@ -18,27 +18,48 @@ beforeEach(async () => {
 	app = createApp({ db, jwt: TEST_JWT, allowedOrigin: ALLOWED_ORIGIN });
 });
 
-const send = (method: string, path: string, init: { body?: unknown; cookie?: string; origin?: string | null } = {}) =>
+const send = (
+	method: string,
+	path: string,
+	init: { body?: unknown; cookie?: string; origin?: string | null } = {},
+) =>
 	app.handle(
 		new Request(`http://localhost${path}`, {
 			method,
 			headers: {
-				...(init.body === undefined ? {} : { "content-type": "application/json" }),
+				...(init.body === undefined
+					? {}
+					: { "content-type": "application/json" }),
 				...(init.cookie ? { cookie: init.cookie } : {}),
-				...(init.origin === null ? {} : { origin: init.origin ?? ALLOWED_ORIGIN }),
+				...(init.origin === null
+					? {}
+					: { origin: init.origin ?? ALLOWED_ORIGIN }),
 			},
 			body: init.body === undefined ? undefined : JSON.stringify(init.body),
 		}),
 	);
 
 const login = async (u: { email: string; password: string }) => {
-	const res = await send("POST", "/api/session", { body: { email: u.email, password: u.password } });
+	const res = await send("POST", "/api/session", {
+		body: { email: u.email, password: u.password },
+	});
 	const cookie = res.headers.get("set-cookie")?.split(";")[0] ?? "";
 	return { res, cookie };
 };
 
-const forge = (overrides: { alg?: string; iss?: string; aud?: string; exp?: number; secret?: string; sub?: string; role?: string }) =>
-	new SignJWT({ displayName: "Forged", role: overrides.role ?? "administrator" })
+const forge = (overrides: {
+	alg?: string;
+	iss?: string;
+	aud?: string;
+	exp?: number;
+	secret?: string;
+	sub?: string;
+	role?: string;
+}) =>
+	new SignJWT({
+		displayName: "Forged",
+		role: overrides.role ?? "administrator",
+	})
 		.setProtectedHeader({ alg: overrides.alg ?? "HS256" })
 		.setSubject(overrides.sub ?? crypto.randomUUID())
 		.setIssuer(overrides.iss ?? TEST_JWT.issuer)
@@ -53,7 +74,11 @@ describe("TEST-01 / AC-01 sign in and current identity", () => {
 			const { res, cookie } = await login(u);
 			expect(res.status).toBe(200);
 			const body = await res.json();
-			expect(body).toEqual({ id: expect.any(String), displayName: u.displayName, role: u.role });
+			expect(body).toEqual({
+				id: expect.any(String),
+				displayName: u.displayName,
+				role: u.role,
+			});
 			const setCookie = res.headers.get("set-cookie") ?? "";
 			expect(setCookie).toContain("HttpOnly");
 			expect(setCookie).toContain("SameSite=Lax");
@@ -64,14 +89,21 @@ describe("TEST-01 / AC-01 sign in and current identity", () => {
 		}
 	});
 	test("email is matched case-insensitively and trimmed", async () => {
-		const res = await send("POST", "/api/session", { body: { email: `  ${FIXTURE.userA.email.toUpperCase()} `, password: FIXTURE.userA.password } });
+		const res = await send("POST", "/api/session", {
+			body: {
+				email: `  ${FIXTURE.userA.email.toUpperCase()} `,
+				password: FIXTURE.userA.password,
+			},
+		});
 		expect(res.status).toBe(200);
 	});
 	test("password hash is stored, never the plaintext", async () => {
 		const rows = await db.select().from(schema.users);
 		for (const r of rows) {
 			expect(r.passwordHash.startsWith("$argon2id$")).toBe(true);
-			expect(Object.values(FIXTURE).map((u) => u.password)).not.toContain(r.passwordHash);
+			expect(Object.values(FIXTURE).map((u) => u.password)).not.toContain(
+				r.passwordHash,
+			);
 		}
 	});
 });
@@ -90,15 +122,24 @@ describe("TEST-02 / AC-02 safe login failure", () => {
 			expect(res.headers.get("set-cookie")).toBeNull();
 			bodies.push(await res.json());
 		}
-		expect(bodies[0]).toEqual({ code: "INVALID_CREDENTIALS", message: expect.any(String) });
+		expect(bodies[0]).toEqual({
+			code: "INVALID_CREDENTIALS",
+			message: expect.any(String),
+		});
 		expect(bodies[1]).toEqual(bodies[0]);
 		expect(bodies[2]).toEqual(bodies[0]);
 	});
 	test("malformed input is 400 INVALID_INPUT", async () => {
-		for (const body of [{}, { email: "a@b.test" }, { email: 5, password: "x" }]) {
+		for (const body of [
+			{},
+			{ email: "a@b.test" },
+			{ email: 5, password: "x" },
+		]) {
 			const res = await send("POST", "/api/session", { body });
 			expect(res.status).toBe(400);
-			expect((await res.json()).code).toBe("INVALID_INPUT");
+			expect(((await res.json()) as { code: string }).code).toBe(
+				"INVALID_INPUT",
+			);
 		}
 	});
 });
@@ -107,7 +148,9 @@ describe("TEST-03 / AC-03 protected access", () => {
 	test("no credential is 401 UNAUTHENTICATED", async () => {
 		const res = await send("GET", "/api/session");
 		expect(res.status).toBe(401);
-		expect((await res.json()).code).toBe("UNAUTHENTICATED");
+		expect(((await res.json()) as { code: string }).code).toBe(
+			"UNAUTHENTICATED",
+		);
 	});
 	test("tampered, expired, wrong issuer, wrong audience, wrong key, wrong algorithm and alg-none tokens are rejected", async () => {
 		const good = (await login(FIXTURE.userA)).cookie.split("=")[1] ?? "";
@@ -126,7 +169,9 @@ describe("TEST-03 / AC-03 protected access", () => {
 		for (const t of tokens) {
 			const res = await send("GET", "/api/session", { cookie: `session=${t}` });
 			expect(res.status).toBe(401);
-			expect((await res.json()).code).toBe("UNAUTHENTICATED");
+			expect(((await res.json()) as { code: string }).code).toBe(
+				"UNAUTHENTICATED",
+			);
 		}
 	});
 });
@@ -147,14 +192,27 @@ describe("TEST-04 / AC-04 logout", () => {
 describe("sign-up and request protection", () => {
 	test("no public signup route exists and no user is created", async () => {
 		const before = (await db.select().from(schema.users)).length;
-		for (const path of ["/api/signup", "/api/users", "/api/auth/sign-up/email"]) {
-			const res = await send("POST", path, { body: { email: "new@example.test", password: "new-pass-12345", displayName: "New" } });
+		for (const path of [
+			"/api/signup",
+			"/api/users",
+			"/api/auth/sign-up/email",
+		]) {
+			const res = await send("POST", path, {
+				body: {
+					email: "new@example.test",
+					password: "new-pass-12345",
+					displayName: "New",
+				},
+			});
 			expect([404, 405]).toContain(res.status);
 		}
 		expect((await db.select().from(schema.users)).length).toBe(before);
 	});
 	test("unsafe request from an unapproved Origin is 403 and issues no cookie", async () => {
-		const res = await send("POST", "/api/session", { origin: "http://evil.example", body: { email: FIXTURE.userA.email, password: FIXTURE.userA.password } });
+		const res = await send("POST", "/api/session", {
+			origin: "http://evil.example",
+			body: { email: FIXTURE.userA.email, password: FIXTURE.userA.password },
+		});
 		expect(res.status).toBe(403);
 		expect(res.headers.get("set-cookie")).toBeNull();
 	});

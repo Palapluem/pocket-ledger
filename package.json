@@ -2,7 +2,10 @@
 	"name": "pocket-ledger",
 	"private": true,
 	"type": "module",
-	"workspaces": ["apps/*", "packages/*"],
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
 	"scripts": {
 		"dev:server": "bun run --hot apps/server/src/index.ts",
 		"test": "bun test apps/server",

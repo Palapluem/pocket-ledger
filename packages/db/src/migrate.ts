@@ -4,9 +4,13 @@ import { createDb } from "./index";
 
 export async function runMigrations(databaseUrl: string) {
 	const db = createDb(databaseUrl);
-	await migrate(db, {
-		migrationsFolder: new URL("./migrations", import.meta.url).pathname,
-	});
+	try {
+		await migrate(db, {
+			migrationsFolder: new URL("./migrations", import.meta.url).pathname,
+		});
+	} finally {
+		await db.$client.close();
+	}
 }
 
 if (import.meta.main) {

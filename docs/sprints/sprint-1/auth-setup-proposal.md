@@ -70,6 +70,18 @@ These are planned checks, not test results. Do not claim they have been implemen
 - Seed only explicitly configured synthetic users. Re-running setup must not reset an existing password or change user state or financial data.
 - No database, cloud resource, executable test or application behavior is created by this documentation proposal.
 
+## Implementation choices proposed with the F-01 PR
+
+These values are used by the F-01 implementation (Issue #11) and are proposals until Wisit's review records them in D-05 and D-07:
+
+- JWT lifetime 3600 seconds, no refresh; HS256 using the `jose` library; fixed issuer `pocket-ledger` and audience `pocket-ledger-web` (configurable); secret from the `JWT_SECRET` environment variable (at least 32 bytes).
+- Passwords hashed with argon2id through the Bun runtime (`Bun.password`).
+- Cookie `session`: HttpOnly, SameSite=Lax, Path=/, Max-Age equal to the lifetime, Secure when `COOKIE_SECURE=true`.
+- Request protection: an unsafe request (POST/PUT/PATCH/DELETE) whose `Origin` header is present and differs from the configured origin is rejected with `403 FORBIDDEN_ORIGIN`. A request without an `Origin` header (non-browser client) is accepted.
+- Interface as proposed above: `POST/GET/DELETE /api/session`; no signup route.
+
+Evidence for these choices comes only from the automated tests in the PR, not from this document.
+
 ## Implementation gate
 
 Before implementation, agree the remaining D-05 token-lifetime/signing values and review the public interface in D-07; keep the System SDS, Sprint 1 contract and STS consistent with this decision. Then implement on a bounded branch from current staging and request the other teammate's review. Keep generated Better Auth routes and dependencies out of the Sprint 1 authentication path; inspect the actual scaffold before removing unused generated pieces.

@@ -9,6 +9,10 @@
 		"ignoreUnknown": false,
 		"includes": [
 			"**",
+			"!docs",
+			"!.github",
+			"!**/migrations",
+			"!bun.lock",
 			"!**/.next",
 			"!**/dist",
 			"!**/.turbo",

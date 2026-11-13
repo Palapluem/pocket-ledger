@@ -1,26 +1,35 @@
 import { cors } from "@elysiajs/cors";
-import { Elysia } from "elysia";
+import { createDb } from "@pocket-ledger/db";
 
-import { ENV } from "./env.server";
-import { auth } from "./services";
+import { createApp } from "./app";
 
-new Elysia()
+function required(name: string) {
+	const value = process.env[name];
+	if (!value) throw new Error(`${name} is required`);
+	return value;
+}
+
+const allowedOrigin = required("CORS_ORIGIN");
+const app = createApp({
+	db: createDb(required("DATABASE_URL")),
+	jwt: {
+		secret: required("JWT_SECRET"),
+		issuer: process.env.JWT_ISSUER ?? "pocket-ledger",
+		audience: process.env.JWT_AUDIENCE ?? "pocket-ledger-web",
+		ttlSeconds: Number(process.env.JWT_TTL_SECONDS ?? 3600),
+	},
+	allowedOrigin,
+	secureCookie: process.env.COOKIE_SECURE === "true",
+});
+
+app
 	.use(
 		cors({
-			origin: ENV.CORS_ORIGIN,
-			methods: ["GET", "POST", "OPTIONS"],
-			allowedHeaders: ["Content-Type", "Authorization"],
+			origin: allowedOrigin,
+			methods: ["GET", "POST", "DELETE", "OPTIONS"],
 			credentials: true,
 		}),
 	)
-	.all("/api/auth/*", async (context) => {
-		const { request, status } = context;
-		if (["POST", "GET"].includes(request.method)) {
-			return auth.handler(request);
-		}
-		return status(405);
-	})
-	.get("/", () => "OK")
-	.listen(3000, () => {
-		console.log("Server is running on http://localhost:3000");
+	.listen(Number(process.env.PORT ?? 3000), () => {
+		console.log(`Server is running on port ${process.env.PORT ?? 3000}`);
 	});
