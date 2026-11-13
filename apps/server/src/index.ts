@@ -1,26 +1,16 @@
 import { createDb } from "@pocket-ledger/db";
 
 import { createApp } from "./app";
+import { loadServerConfig } from "./config";
 
-function required(name: string) {
-	const value = process.env[name];
-	if (!value) throw new Error(`${name} is required`);
-	return value;
-}
-
-const allowedOrigin = required("CORS_ORIGIN");
+const config = loadServerConfig(process.env);
 const app = createApp({
-	db: createDb(required("DATABASE_URL")),
-	jwt: {
-		secret: required("JWT_SECRET"),
-		issuer: process.env.JWT_ISSUER ?? "pocket-ledger",
-		audience: process.env.JWT_AUDIENCE ?? "pocket-ledger-web",
-		ttlSeconds: Number(process.env.JWT_TTL_SECONDS ?? 3600),
-	},
-	allowedOrigin,
-	secureCookie: process.env.COOKIE_SECURE === "true",
+	db: createDb(config.databaseUrl),
+	jwt: config.jwt,
+	allowedOrigin: config.allowedOrigin,
+	secureCookie: config.secureCookie,
 });
 
-app.listen(Number(process.env.PORT ?? 3000), () => {
-	console.log(`Server is running on port ${process.env.PORT ?? 3000}`);
+app.listen(config.port, () => {
+	console.log(`Server is running on port ${config.port}`);
 });

@@ -5,7 +5,6 @@ export const TEST_JWT = {
 	secret: "test-only-secret-that-is-at-least-32-characters-long",
 	issuer: "pocket-ledger",
 	audience: "pocket-ledger-web",
-	ttlSeconds: 3600,
 };
 export const ALLOWED_ORIGIN = "http://localhost:3001";
 
@@ -37,9 +36,16 @@ export const FIXTURE = {
 };
 
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const OWNED_DATABASE = "pocket_ledger_test";
 
-/** Fail closed: tests delete rows, so only a loopback `*_test` database is allowed. */
-export function assertDisposableTestDatabase(url: string) {
+/**
+ * Fail closed: tests migrate and delete rows, so only the disposable database
+ * created by scripts/test-db.sh (pocket_ledger_test on its loopback port) is allowed.
+ */
+export function assertDisposableTestDatabase(
+	url: string,
+	env: Record<string, string | undefined> = process.env,
+) {
 	let parsed: URL;
 	try {
 		parsed = new URL(url);
@@ -50,9 +56,14 @@ export function assertDisposableTestDatabase(url: string) {
 		throw new Error("TEST_DATABASE_URL must use the postgres scheme.");
 	if (!LOOPBACK_HOSTS.has(parsed.hostname))
 		throw new Error("TEST_DATABASE_URL must point at a loopback host.");
+	const expectedPort = env.TEST_DB_PORT ?? "55432";
+	if (parsed.port !== expectedPort)
+		throw new Error(
+			`TEST_DATABASE_URL must use port ${expectedPort} from scripts/test-db.sh.`,
+		);
 	const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
-	if (!database.endsWith("_test"))
-		throw new Error("TEST_DATABASE_URL database name must end with _test.");
+	if (database !== OWNED_DATABASE)
+		throw new Error(`TEST_DATABASE_URL database must be ${OWNED_DATABASE}.`);
 	return url;
 }
 

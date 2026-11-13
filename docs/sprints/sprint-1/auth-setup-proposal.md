@@ -1,10 +1,10 @@
 # Authentication and setup proposal
 
-Draft 0.5, 13 November 2026 · Issue #2 · **JWT approach selected; implementation details remain open.** This records the team's selected Sprint 1 authentication scope. It does not implement authentication or replace the remaining Sprint 1 contract.
+Draft 0.5, 13 November 2026 · Issue #2 · **JWT approach, 3600-second lifetime and HS256 with `jose` approved; key rotation and request-protection details remain open.** This records the team's selected Sprint 1 authentication scope. It does not implement authentication or replace the remaining Sprint 1 contract.
 
 ## Scope
 
-The team selected Better T Stack. Although Better Auth was included in the initial D-02 selection, the team now chooses a small first-party JWT flow for Sprint 1 seeded-user sign-in. The team accepts the logout and account-change limitations listed below; the token expiry duration and signing details remain open. Public self-registration, email delivery, password recovery and financial workflows are outside this slice.
+The team selected Better T Stack. Although Better Auth was included in the initial D-02 selection, the team now chooses a small first-party JWT flow for Sprint 1 seeded-user sign-in. The team accepts the logout and account-change limitations listed below; the 3600-second token lifetime and HS256 with `jose` are approved, while key rotation and request-protection (Origin/CSRF) details remain open. Public self-registration, email delivery, password recovery and financial workflows are outside this slice.
 
 ## Selected Sprint 1 approach: first-party signed JWT
 
@@ -74,11 +74,12 @@ These are planned checks, not test results. Do not claim they have been implemen
 
 These values are used by the F-01 implementation (Issue #11). The 3600-second lifetime and HS256 with `jose` are approved by Wisit; the remaining items stay proposals until both teammates record them in D-05 and D-07:
 
-- JWT lifetime 3600 seconds (approved), no refresh; HS256 using the `jose` library (approved); `exp` and `sub` claims are required, so a correctly signed token without `exp` is rejected; fixed issuer `pocket-ledger` and audience `pocket-ledger-web` (configurable); secret from the `JWT_SECRET` environment variable (at least 32 bytes).
+- JWT lifetime 3600 seconds (approved), no refresh; HS256 using the `jose` library (approved); `exp` and `sub` claims are required, so a correctly signed token without `exp` is rejected; fixed issuer `pocket-ledger` and audience `pocket-ledger-web` (configurable); the lifetime itself is not configurable, and a `JWT_TTL_SECONDS` value other than 3600 stops the server at start-up; secret from the `JWT_SECRET` environment variable (at least 32 bytes).
 - Passwords hashed with argon2id through the Bun runtime (`Bun.password`).
 - Cookie `session`: HttpOnly, SameSite=Lax, Path=/, Max-Age equal to the lifetime, Secure when `COOKIE_SECURE=true`.
-- Request protection (open, proposed fail-closed): an unsafe request (POST/PUT/PATCH/DELETE) is accepted only when its `Origin` header equals the configured origin; a different or missing `Origin` is rejected with `403 FORBIDDEN_ORIGIN`. The earlier proposal to accept a missing `Origin` was not approved and has been withdrawn. Non-browser clients must send the configured `Origin`. Both teammates still need to confirm this decision.
-- Test safety: integration tests refuse to run unless `TEST_DATABASE_URL` is a postgres URL on a loopback host whose database name ends in `_test`.
+- Request protection (open, proposed fail-closed): an unsafe request (POST/PUT/PATCH/DELETE) is accepted only when its `Origin` header equals the configured origin; a different or missing `Origin` is rejected with `403 FORBIDDEN_ORIGIN`. The earlier proposal to accept a missing `Origin` was not approved and has been withdrawn. Non-browser clients must send the configured `Origin`. Natthawat confirmed this rule on 13 November 2026; Wisit's confirmation is still required and will be recorded in D-05 before it is treated as accepted.
+- Test safety: integration tests refuse to run unless `TEST_DATABASE_URL` is the disposable database created by `scripts/test-db.sh`: a loopback host, port 55432 (or `TEST_DB_PORT`) and database `pocket_ledger_test`.
+- CI: `.github/workflows/ci.yml` runs type check, Biome and the integration tests against a PostgreSQL 18 service container on pull requests and pushes to `main` and `sprint-1-staging`. Required-check names are configured only after the jobs have run on GitHub.
 - Interface as proposed above: `POST/GET/DELETE /api/session`; no signup route.
 - Administration (F-02, Issue #13): `GET /api/admin/users` and `PATCH /api/admin/users/:id` with `{ "enabled": boolean }`, Administrator role claim required (`401 UNAUTHENTICATED`, `403 FORBIDDEN`). Approved safeguard: the last enabled administrator cannot be disabled. The server checks current database state inside one transaction (enabled administrator rows locked in id order), not the token's role snapshot, and rejects with `409 LAST_ADMIN_FORBIDDEN`. An administrator may disable their own account while another enabled administrator remains. CORS allows `GET, POST, PATCH, DELETE, OPTIONS` from the configured origin with credentials, verified by a preflight test. AC-08 is deferred until financial endpoints exist.
 

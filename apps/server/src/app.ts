@@ -5,9 +5,11 @@ import { and, asc, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { jwtVerify, SignJWT } from "jose";
 
+import { TOKEN_TTL_SECONDS } from "./config";
+
 export type AppConfig = {
 	db: Database;
-	jwt: { secret: string; issuer: string; audience: string; ttlSeconds: number };
+	jwt: { secret: string; issuer: string; audience: string };
 	allowedOrigin: string;
 	/** Add the Secure cookie attribute; enable under HTTPS. */
 	secureCookie?: boolean;
@@ -43,7 +45,7 @@ export function createApp(config: AppConfig) {
 	const cookieAttrs = (maxAge: number) =>
 		`Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${config.secureCookie ? "; Secure" : ""}`;
 	const issueCookie = (token: string) =>
-		`${COOKIE}=${token}; ${cookieAttrs(config.jwt.ttlSeconds)}`;
+		`${COOKIE}=${token}; ${cookieAttrs(TOKEN_TTL_SECONDS)}`;
 	const clearCookie = () => `${COOKIE}=; ${cookieAttrs(0)}`;
 
 	const readCookie = (request: Request) => {
@@ -162,7 +164,7 @@ export function createApp(config: AppConfig) {
 				.setIssuer(config.jwt.issuer)
 				.setAudience(config.jwt.audience)
 				.setIssuedAt()
-				.setExpirationTime(`${config.jwt.ttlSeconds}s`)
+				.setExpirationTime(`${TOKEN_TTL_SECONDS}s`)
 				.sign(key);
 			return json(
 				200,
