@@ -1,10 +1,10 @@
 # System-Level Software Design Specification
 
-Draft 0.2, 12 November 2026. Better T Stack is selected; exact runtime and image versions remain to be pinned. This is still a proposed design for team review, not an implemented architecture. D-03 to D-07 in [team decisions](decisions.md) govern the remaining product choices. The SRS defines the required product behavior.
+Draft 0.3, 13 November 2026. Better T Stack and first-party stateless JWT for Sprint 1 seeded-user authentication are selected; exact runtime and image versions remain to be pinned. This is the agreed design direction, not an implemented architecture. D-03 to D-07 in [team decisions](decisions.md) govern the remaining product choices. The SRS defines the required product behavior.
 
 ## Architecture and responsibilities
 
-Use a modular monolith with three logical layers. The team selected Better T Stack configured with TanStack Router for the frontend, Elysia for the backend, Bun as runtime and package manager, Better Auth for authentication, PostgreSQL with Drizzle ORM, Docker for local database setup and web/server deployment packaging, and Biome, Husky and Turborepo add-ons. API add-ons, payments and examples are disabled. D-02 records the confirmed stack; exact supported runtime/image versions and implementation contracts remain open. The application has not been scaffolded. Three logical layers do not require three servers or microservices.
+Use a modular monolith with three logical layers. The team selected Better T Stack configured with TanStack Router for the frontend, Elysia for the backend, Bun as runtime and package manager, PostgreSQL with Drizzle ORM, Docker for local database setup and web/server deployment packaging, and Biome, Husky and Turborepo add-ons. Better Auth was part of the initial preset choice; for Sprint 1 seeded-user authentication, the team selected first-party stateless JWT instead. API add-ons, payments and examples are disabled. D-02 records the confirmed stack; exact supported runtime/image versions and implementation contracts remain open. The application has not been scaffolded. Three logical layers do not require three servers or microservices.
 
 ```text
 TanStack Router browser UI
@@ -14,7 +14,7 @@ TanStack Router browser UI
            -> Drizzle ORM -> PostgreSQL
 ```
 
-The browser owns input presentation and feedback. Better Auth provides the authentication foundation; the Elysia application establishes the authenticated identity, enforces product permissions and ownership, validates the complete transaction and controls the database transaction through Drizzle. PostgreSQL persists users/auth records, financial accounts, transactions and allocation lines. Client-supplied owner or role values never establish authority. Better Auth configuration, session storage and the mapping to PocketLedger's User/Administrator roles require an explicit implementation contract.
+The browser owns input presentation and feedback. The Elysia application verifies the signed JWT, enforces product permissions and ownership, validates the complete transaction and controls the database transaction through Drizzle. PostgreSQL persists users, financial accounts, transactions and allocation lines. Client-supplied owner or role values never establish authority. Core claims are sub, displayName, role, iss, aud, iat and exp; confirm their exact names/types and verification settings in the implementation contract. Expiry duration remains open.
 
 Balances are proposed to be derived from opening balances and persisted transaction/allocation effects rather than maintained in a second mutable balance cache. A query must use the same agreed sign rules as the domain contract. Test expected values must be independently calculated. If the team chooses a cache or a different persistence model, document its atomicity and reconciliation before implementation.
 
@@ -23,7 +23,7 @@ Balances are proposed to be derived from opening balances and persisted transact
 | Entity | Main fields and relationships | Constraints and lifecycle |
 | --- | --- | --- |
 | UserAccount | id, email, displayName, passwordHash, role, enabled, timestamps | Unique normalized identity; User or Administrator; no plaintext password |
-| Session | id/tokenHash, userId, createdAt, expiresAt, revokedAt | Opaque token hash only; references current enabled user; expiry/revocation checked server-side |
+| JWT credential | sub, displayName, role, iss, aud, iat, exp claims | Signed, not encrypted; held in an HttpOnly cookie and not persisted as a server-side session; existing claims remain effective until expiry while the signing key is accepted |
 | FinancialAccount | id, ownerId, name, type, currency, openingAmountMinor, openingDate | Five required types; owner is a User; opening policy D-03/D-04 |
 | FinancialTransaction | id, ownerId, form, primaryAccountId, date, totalMinor, memo, createdAt | Positive exact total under D-03; supported form; primary account owned by same User |
 | AllocationLine | id, transactionId, accountId, amountMinor, position | Positive exact amount; all accounts owned by transaction owner; sum equals total |
@@ -64,9 +64,9 @@ Proposed error precedence: establish authentication; enforce role; validate stru
 
 ## Authentication and configuration
 
-D-05 proposes an opaque server session in an HttpOnly cookie, a configurable expiry and immediate server-side rejection of disabled users on their next request. Logout revokes the session. Choose appropriate cookie security for local/cloud deployment, and protect authenticated writes against cross-site requests under the selected deployment model. Specify and test the mechanism before accepting the identity feature.
+D-05 records the selected first-party stateless signed JWT in an HttpOnly cookie for Sprint 1 seeded-user authentication. The JWT expiry duration remains open. Logout clears the browser cookie but cannot revoke a copied token before expiry while its signing key remains accepted; role changes and account disable likewise do not affect an existing token until expiry. Retiring a signing key can invalidate outstanding tokens earlier. Validate signature, fixed algorithm, issuer, audience and expiry. Use HttpOnly, SameSite=Lax and Secure under HTTPS; agree allowed origins and CSRF details for local/deployed use before implementation.
 
-The [auth/setup proposal](sprints/sprint-1/auth-setup-proposal.md) records the Better Auth session-storage, expiry, cookie, route and local-setup questions for team review. It is not an approved implementation contract.
+The [auth/setup proposal](sprints/sprint-1/auth-setup-proposal.md) records the selected JWT scope and accepted logout/account-change limits. Expiry and signing details still require agreement before implementation.
 
 Keep real credentials outside Git and the report. The first implementation supplies placeholder configuration for database connection, session/cookie settings, allowed origin, runtime port and any seed identity inputs. Actual variable names, defaults and required/secret classifications are recorded in .env.example and deployment.md when selected; no runtime command is invented in this draft.
 
@@ -90,8 +90,8 @@ These are draft public interfaces, not existing endpoints. Monetary DTO fields a
 | Method / path | Input and success | Access and relevant errors |
 | --- | --- | --- |
 | POST /api/session | email/password -> current identity; session cookie | Generic invalid login; disabled user follows same safe message; service failure |
-| GET /api/session | -> id, displayName, role | 401 without a valid enabled identity |
-| DELETE /api/session | -> 204; current session revoked | Define expired-session behavior consistently under D-05 |
+| GET /api/session | -> id, displayName, role claims from the verified token | 401 for a missing, invalid or expired token; role/account state may be stale until expiry under D-05 |
+| DELETE /api/session | -> 204; clear the current browser cookie | No server-side revocation; a copied JWT remains valid until expiry under D-05 |
 | GET /api/admin/users | -> identity list only | Administrator only; 401/403 |
 | PATCH /api/admin/users/:id | enabled boolean -> updated safe identity | Administrator only; safeguards D-05; no financial properties |
 | GET /api/accounts | -> owned account identities/types and balances | User only; scoped before query |

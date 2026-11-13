@@ -1,79 +1,75 @@
-# Authentication and setup contract proposal
+# Authentication and setup proposal
 
-Draft 0.2, 12 November 2026 · Issue #2 · **Awaiting team decisions and review.** This document prepares the first source setup for review; it does not approve implementation or replace the Sprint 1 contract.
+Draft 0.5, 13 November 2026 · Issue #2 · **JWT approach selected; implementation details remain open.** This records the team's selected Sprint 1 authentication scope. It does not implement authentication or replace the remaining Sprint 1 contract.
 
 ## Scope
 
-Set up the confirmed Better T Stack workspace and the Sprint 1 seeded-user sign-in foundation. Public self-registration, email delivery and password recovery are outside this slice. Administrators cannot read or modify financial records or summaries. No financial workflow or cloud resource is included.
+The team selected Better T Stack. Although Better Auth was included in the initial D-02 selection, the team now chooses a small first-party JWT flow for Sprint 1 seeded-user sign-in. The team accepts the logout and account-change limitations listed below; the token expiry duration and signing details remain open. Public self-registration, email delivery, password recovery and financial workflows are outside this slice.
 
-## Decisions to agree before implementation
+## Selected Sprint 1 approach: first-party signed JWT
 
-| Decision | Reviewable proposal or question |
+After validating a seeded user's credentials and enabled status, the server issues a signed JWT and sets it as an HttpOnly cookie. The JWT is a signed token (JWS), not an encrypted token. Its claims can be read by the holder, so include only sub, displayName, role, iss, aud, iat and exp. Confirm exact claim names/types and issuer/audience values in D-07. Do not place passwords, secrets or financial data in the token.
+
+This design has no server-side session table, refresh token or revocation list. Protected requests verify the signature and required claims locally; they do not reload the user's current role or enabled state. The token's role and account state therefore remain the values from sign-in until that token expires.
+
+### Accepted behavior and limits
+
+- **Logout:** clear the cookie in the current browser and return success. A copied token cannot be revoked by that action and remains usable until its expiry while its signing key is accepted. Retiring the signing key can invalidate outstanding tokens earlier; define key-retention/rotation behavior before implementation.
+- **Role or account changes:** a role change or account disable does not invalidate an already-issued token while its signing key remains accepted. A new sign-in uses the current user record; a disabled user cannot receive a new token.
+- **Expiry:** the JWT expiry is the session limit. The duration must be agreed before implementation. No refresh token or idle-timeout mechanism is included in this small slice.
+- **Recovery:** if account-disable or role changes must take effect immediately, load the current user state on each protected request (at the cost of a database read). If logout must revoke copied tokens immediately, replace this stateless design with a server-side session or revocation mechanism and update D-05 first.
+
+This is the team's product-design choice, not a course requirement. PD1 and Lab 5 do not prescribe Better Auth, JWT or a token-storage method. The team should check with the instructor only if given a separate stack instruction. Follow the [OWASP JWT guidance](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_Cheat_Sheet.html); signed JWT claims are readable, not encrypted ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519.html)).
+
+### Password and token handling
+
+- Store passwords using an adaptive one-way password-hashing function from a trusted library, with parameters chosen before implementation. Never encrypt passwords for later decryption; follow the [OWASP Password Storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+- Use a maintained JWT library. Pin the accepted signing algorithm; reject tokens with an unexpected algorithm, invalid signature, issuer, audience, not-before time or expiry.
+- Keep the signing key in local/deployment secrets, never in Git or the client. Define key rotation and verification-key retention; retiring a key before all JWTs it signed expire invalidates those tokens early.
+- Use an HttpOnly, SameSite=Lax cookie and enable Secure under HTTPS. SameSite is one CSRF defense, not the only one. Because cookies are sent automatically, restrict credentialed requests to configured origins and protect unsafe requests against CSRF.
+- Do not log or publish bearer tokens. JWT signature validation protects integrity, not confidentiality.
+
+## Decisions to record before implementation
+
+| Decision | Review point |
 | --- | --- |
-| Runtime | Use Bun 1.4.4 locally, in CI and in both container builds; verify compatibility before accepting the pin. |
-| Session expiry | Select the idle and absolute expiry, whether activity renews a session, and the expired-session response. |
-| Session storage | Confirm how Better Auth stores and revokes sessions and whether its storage meets D-05's token-hash proposal. Document any difference before approving it. |
-| Browser protection | Agree allowed origins, secure cookie behavior, same-site settings and cross-site request protection for local and deployed environments. |
-| Public interface | Confirm the existing proposed POST, GET and DELETE `/api/session` interfaces and their response bodies, statuses and error codes, or revise the System SDS before implementation. Define how Better Auth is exposed behind that contract. |
-| Disabled users | Confirm that a disabled user cannot sign in and an existing session is rejected on the next protected request; specify any administrator safeguards separately. |
-| Ownership and review | Assign the implementer and teammate reviewer, agree the test interfaces and record both students' decisions in D-02, D-05 and D-07. |
+| Authentication library | First-party signed JWT is selected for Sprint 1 seeded-user authentication; do not use Better Auth for this slice. |
+| Token lifetime | Choose the JWT expiry duration and confirm whether the team accepts the resulting logout and account-change window. |
+| Signing | Choose a maintained library and fixed algorithm; define issuer, audience, key source and rotation approach. |
+| Cookie and request protection | Use HttpOnly and SameSite=Lax; enable Secure under HTTPS. Confirm allowed origins, CSRF handling and non-browser client behavior. |
+| Public interface | Confirm the proposed POST, GET and DELETE /api/session responses and error precedence in D-07. |
+| Account changes | Confirm that disabled users and changed roles affect existing tokens only after expiry; do not promise immediate revocation. |
+| Ownership and review | Assign implementer and teammate reviewer, and agree independent verification before writing dependent tests or application behavior. |
 
-The current Better Auth documentation describes the session table's `token` as the token also used in the session cookie ([session management](https://better-auth.com/docs/concepts/session-management)). This appears to conflict with D-05's proposed hash-only session storage. The team must resolve that difference and verify the selected library version's behavior before approving the contract; do not assume the default adapter hashes session tokens. Better Auth documents an email/password `disableSignUp` option ([options reference](https://better-auth.com/docs/reference/options)); the implementation must still verify direct signup rejection.
+## Proposed interface
 
-Read-only inspection of the locally cached generator dependency `better-auth@1.7.12` provides a concrete reason for this gate: `dist/db/internal-adapter.mjs` generates a session `token`, passes that session data to the create hook, and later looks up a session by the supplied token. The session route passes the cookie token to that lookup. This observation concerns the cached version and its default flow; it does not prove whether a supported custom integration can meet the hash-only requirement. No database or executable test was used for this inspection. Pin the actual version and prove the chosen integration with independent persistence and revocation checks before accepting it.
-
-On 12 November 2026, `bun --version` in Natthawat's local environment returned `1.4.4`. A read-only query of [Docker Hub tag metadata](https://hub.docker.com/v2/repositories/oven/bun/tags/1.4.4) reported the `oven/bun:1.4.4` tag active for `linux/amd64` and `linux/arm64`. This confirms tag availability at that time, not image compatibility or team approval; no image was pulled or built.
-
-## Concrete session proposal for team review
-
-The following values are a proposal, not an agreed decision. Review them together before promoting them into D-05, D-07, the System SDS and the Sprint 1 contract.
-
-- **Expiry:** propose a configurable absolute session lifetime with a default of 24 hours from sign-in, no separate idle timeout, and session refresh disabled. Expired sessions cannot access protected resources. A new sign-in creates a new session. These settings remain subject to both students' agreement.
-- **Storage:** retain D-05's hash-only requirement. Confirm that the selected Better Auth version can satisfy it through a supported adapter or integration before accepting this design. If it cannot, bring an explicit alternative back for team decision; do not silently store the bearer token in plaintext.
-- **Cookies and request protection:** use an HttpOnly, SameSite=Lax session cookie, with Secure enabled under HTTPS. Permit credentialed requests only from configured application origins. Reject unsafe requests with a missing or unapproved Origin; agree the handling of non-browser clients before supporting them. Authorization must not rely on stale identity or role data cached in a session or cookie.
-- **Protected requests and disabled accounts:** resolve each protected request's session to the current identity and role and check the current enabled state before authorizing it. Reject sign-in for a disabled identity with the same public response as invalid credentials, and reject a disabled user's existing sessions on the next protected request. Logout revokes the current session.
-- **Seed:** provision explicitly configured synthetic users through a documented idempotent setup path. Rerunning it must not reset an existing user's password, enabled state or financial data. Public self-registration remains disabled.
-
-### Proposed public session interface
-
-| Request | Proposed success | Proposed rejection |
+| Request | Proposed success | Proposed rejection or limitation |
 | --- | --- | --- |
-| `POST /api/session` with `email` and `password` | `200` with `{ "id", "displayName", "role" }` and a session cookie | `401` with `INVALID_CREDENTIALS` for an invalid or disabled identity; `400` with `INVALID_INPUT` for malformed input |
-| `GET /api/session` | `200` with the same identity fields | `401` with `UNAUTHENTICATED` for missing, expired, revoked or disabled sessions |
-| `DELETE /api/session` | `204`, revoke the current session and clear its cookie | `204` and clear the cookie even if the session is already absent or expired |
+| POST /api/session with email and password | 200 with identity fields and a signed JWT cookie | 401 INVALID_CREDENTIALS for invalid or disabled users; 400 INVALID_INPUT for malformed input |
+| GET /api/session | 200 with identity claims from the verified token | 401 UNAUTHENTICATED for missing, invalid or expired tokens; returned role is the sign-in snapshot |
+| DELETE /api/session | 204 and clear the current browser cookie | Does not revoke another copy of the token; that copy remains valid until expiry |
 
-Error responses use `{ "code": "...", "message": "..." }` without account-existence or financial details. Role is derived server-side. No API response includes a password or session token. Confirm transport and error precedence for disallowed origins as part of D-07.
+Error responses use a stable code and safe message without account-existence or financial details. The response body never contains the JWT or password. Public signup is not exposed, and a direct signup request must be rejected server-side.
 
-### Proposed verification examples
+## Verification plan
 
-Using two distinct synthetic users and an administrator in an authorized disposable database: valid credentials return the matching identity; an incorrect password and a disabled identity both return `401 INVALID_CREDENTIALS`; a session fails with `401 UNAUTHENTICATED` after revocation, expiry or disabling its user; repeated logout returns `204`; and a direct signup request creates no user. Repeat reads after application restart to establish persistence. Testing that an administrator cannot read another user's financial resources is deferred until those endpoints exist in a later financial slice. Choose and agree the precise test interfaces and expected origin-rejection response before writing executable tests; record actual results and tested commit separately.
+Before implementation, agree exact status codes, token lifetime, cookie settings and test interfaces. Then independently verify:
 
-For the proposed hash-only policy, an integration check must inspect the persisted session value and assert that it equals an independently computed one-way hash of the test cookie bearer token, not the raw bearer token. It must also demonstrate that the same session can be looked up and revoked successfully. The hash algorithm and test interface must be agreed before implementation. Keep token values out of logs and published evidence. This is a planned acceptance check; it has not been implemented or run.
+1. Valid seeded credentials issue a token with the expected subject and role; invalid credentials and a disabled identity do not issue one.
+2. Missing, expired, tampered, wrong-algorithm, wrong-issuer and wrong-audience tokens are rejected.
+3. Authorization uses the signed role claim; a role change or account disable does not change an existing token's behavior before expiry. A new sign-in uses the current user record, and a disabled user receives no new token.
+4. Logout clears the browser cookie. A separate copy of that same token remains usable until expiry while its signing key is accepted; this is the accepted limitation, not a test failure.
+5. Direct signup creates no user. No password, signing key or bearer token appears in responses, logs or committed evidence.
 
-## Acceptance criteria for the future setup
+These are planned checks, not test results. Do not claim they have been implemented or run.
 
-1. A clean checkout has documented install, configuration and run steps, with placeholder-only configuration and locally supplied secrets. No secret values are committed or printed as evidence.
-2. Local database access binds to loopback and requires a supplied password. Persistent data is outside application containers. Setup and seed do not overwrite existing financial activity.
-3. The approved session interface supports seeded-user sign-in, current identity and logout. Public signup is disabled server-side and absent from the entry screen.
-4. Docker Compose configuration and both images use the agreed Bun version. Database stop and project teardown commands state their scope. Existing ignore rules for private data, credentials and evidence remain effective.
-5. Verification covers clean setup and build, valid and invalid login, logout, disabled-user rejection, prohibited signup, role separation and persistence against an authorized disposable database. Record commands, results and the tested commit; obtain authorization before creating or changing database resources.
+## Setup notes
 
-## Review and implementation gate
+- Use the confirmed Better T Stack workspace. Exact Bun/runtime and container image versions remain open until recorded in D-02.
+- Supply database and signing-key values locally through ignored environment files or deployment secrets. Commit placeholders only; never print real credentials in evidence.
+- Seed only explicitly configured synthetic users. Re-running setup must not reset an existing password or change user state or financial data.
+- No database, cloud resource, executable test or application behavior is created by this documentation proposal.
 
-Resolve the decisions above and update the System SDS, Sprint 1 contract and STS with approved public interfaces and independent expected results. Record the teammate's specific review before writing dependent tests or application behavior. Then implement on a bounded branch from current staging and request the other teammate's review. Palapluem's PR #5 comments on signup, session endpoints, Compose secrets, database exposure, Bun image pinning and ignore rules remain review inputs for that implementation.
+## Implementation gate
 
-## Implementation review checklist
-
-The reverted scaffold remains in Git history at `7015eca` for reference; it is not the current product implementation. Its generated configuration needs these changes before reuse:
-
-| Review finding | Required evidence for the source PR |
-| --- | --- |
-| Generated Better Auth routes differ from the draft `/api/session` contract | Show the approved route and response contract and verify actual requests against it. Do not publish an unreviewed alternative interface. |
-| Generated signup is reachable | Demonstrate that a direct signup request is rejected by the server and that sign-in is the entry point. |
-| Compose build secrets point to absent local files | Document how to create every required local configuration file from placeholders, and show that a clean checkout can resolve the Compose configuration without real credentials in Git. |
-| PostgreSQL used a default password and exposed all host interfaces | Require a locally supplied password, bind the host port to loopback, and inspect resolved configuration without printing credentials. |
-| Database teardown command had an invalid service argument | Document whether the command stops only PostgreSQL or tears down the Compose project; verify that the command matches that scope and preserves the named volume. |
-| Bun image tags floated independently of the package manager | Pin the agreed version consistently and record the actual version used for the checks. |
-| Generated ignore rules replaced existing protections | Preserve and inspect the existing credential, private-data and evidence ignore patterns as well as generated build ignores. |
-
-The specific test paths and expected HTTP responses remain proposals until D-05 and D-07 are agreed. Do not treat this checklist or a successful build as proof of the identity and privacy acceptance criteria.
+Before implementation, agree the remaining D-05 token-lifetime/signing values and review the public interface in D-07; keep the System SDS, Sprint 1 contract and STS consistent with this decision. Then implement on a bounded branch from current staging and request the other teammate's review. Keep generated Better Auth routes and dependencies out of the Sprint 1 authentication path; inspect the actual scaffold before removing unused generated pieces.
