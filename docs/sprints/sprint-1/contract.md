@@ -1,6 +1,6 @@
 # Sprint 1 feature engineering contracts
 
-Draft 0.2, prepared 7 November 2026 and updated 13 November. Includes F-01 to F-06. The Better T Stack and first-party signed-JWT authentication (D-02, D-05) are selected; a 3600-second token lifetime and HS256 with `jose` are approved (D-05); runtime/image pins, key rotation, request-protection (Origin/CSRF) details and D-01, D-03, D-04, D-06 and D-07 remain open. This is a reviewable pre-implementation contract. Neither student has accepted the proposed product policies or been assigned an implementation feature. No code, tests or product release are established by this document.
+Draft 0.2, prepared 7 November 2026 and updated 13 November. Includes F-01 to F-06. The Better T Stack and first-party signed-JWT authentication (D-02, D-05) are selected; a 3600-second token lifetime and HS256 with `jose` are approved (D-05); runtime/image pins, key rotation, request-protection (Origin/CSRF) details and D-01, D-03, D-04, D-06 and D-07 remain open. This is a reviewable pre-implementation contract. The authentication choices recorded above are approved; the other proposed product policies are not yet accepted by both students. No code, tests or product release are established by this document.
 
 ## Contract identity and revision
 
@@ -29,11 +29,11 @@ Dependencies: D-02, D-05 and D-07. UI: Sign in and role-appropriate navigation, 
 | AC-02 | Wrong/unknown/disabled identity receives the approved safe login failure; no session or private data is returned | FR-01; BR-11; NFR-01 | TEST-02 |
 | AC-03 | Anonymous callers and callers with an invalid, tampered or expired credential cannot reach protected operations | FR-01; BR-01/02; NFR-01 | TEST-03 |
 | AC-04 | After logout the browser no longer holds a credential and cannot retrieve protected financial or administration data; copied-token reuse follows D-05 | FR-01; NFR-01 | TEST-04 |
-| AC-05 | Disabling a User blocks new login; the effect on an already-issued credential follows D-05 | FR-01/02; BR-11 | TEST-05 |
+| AC-05 | Disabling a User blocks new login and existing-session protected requests according to D-05 | FR-01/02; BR-11 | TEST-05 |
 
 ## F-02 Platform user administration
 
-User goal: an Administrator controls platform access without seeing finances. Load a safe identity list, select a user, change enabled state, then retrieve the new state. A rejected safeguard leaves identities unchanged. No administrator financial overview or financial API exception is allowed.
+User goal: an Administrator controls platform access without seeing finances. Load a safe identity list, select a user, change enabled state, then retrieve the new state. A rejected safeguard leaves identities and sessions unchanged. No administrator financial overview or financial API exception is allowed.
 
 Dependencies: F-01 and D-05/D-07. UI: Platform users list and enabled-state action with loading/success/error feedback. API: GET/PATCH /api/admin/users. Data: update identity access only. Review self/last-administrator safeguards explicitly; they are not borrowed silently from TokTickIT.
 

@@ -25,7 +25,7 @@ U = domain unit; I = HTTP API with a real isolated test database; E = browser jo
 | TEST-02 / AC-02 / I; session.api.test.ts | Wrong password, unknown email and disabled identity | Approved generic failure; no credential/private data |
 | TEST-03 / AC-03 / I; session.api.test.ts | Call protected routes without a credential and with tampered, expired and wrong-issuer/audience credentials | Rejected consistently; no private data or writes |
 | TEST-04 / AC-04 / I+E; session.api.test.ts; e2e/sprint-1/identity.spec.ts | Log in, log out and request a direct financial/admin URL from the same browser | No credential held; protected data unavailable. Copied-token reuse is the accepted D-05 limit, not asserted here |
-| TEST-05 / AC-05 / I; administration.api.test.ts | Sign in User A; Administrator disables A; attempt a new login as A | New login rejected; existing-token behavior follows the D-05 limit |
+| TEST-05 / AC-05 / I; administration.api.test.ts | Sign in User A; Administrator disables A; replay A session and new login | Both rejected under approved D-05 lifecycle |
 | TEST-06 / AC-06 / I; administration.api.test.ts | Administrator lists identities and performs agreed enable/disable | Safe identity fields and persisted access state; no financial fields |
 | TEST-07 / AC-07 / I; administration.api.test.ts | User and anonymous callers list/patch users | Forbidden/unauthenticated; target state unchanged |
 | TEST-08 / AC-08 / I; ownership.api.test.ts | Administrator requests account, transaction and summary routes | Rejected without any financial data |
