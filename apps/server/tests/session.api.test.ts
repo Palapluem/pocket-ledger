@@ -1,8 +1,8 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { schema } from "@pocket-ledger/db";
-import { SignJWT } from "jose";
+import { decodeJwt, SignJWT } from "jose";
 
-import { createApp } from "../src/app";
+import { type AppConfig, createApp } from "../src/app";
 import { ALLOWED_ORIGIN, FIXTURE, resetDatabase, TEST_JWT } from "./helpers";
 
 type Db = Awaited<ReturnType<typeof resetDatabase>>;
@@ -238,5 +238,25 @@ describe("sign-up and request protection", () => {
 	test("safe GET with no Origin is still allowed", async () => {
 		const res = await send("GET", "/api/session", { origin: null });
 		expect(res.status).toBe(401);
+	});
+});
+
+describe("approved 3600-second token lifetime", () => {
+	test("exp - iat and cookie Max-Age are exactly 3600", async () => {
+		const { res, cookie } = await login(FIXTURE.userA);
+		expect(res.headers.get("set-cookie")).toContain("Max-Age=3600");
+		const claims = decodeJwt(cookie.split("=")[1] ?? "");
+		expect((claims.exp ?? 0) - (claims.iat ?? 0)).toBe(3600);
+	});
+	test("a different configured lifetime cannot change it", async () => {
+		app = createApp({
+			db,
+			jwt: { ...TEST_JWT, ttlSeconds: 7200 } as AppConfig["jwt"],
+			allowedOrigin: ALLOWED_ORIGIN,
+		});
+		const { res, cookie } = await login(FIXTURE.userA);
+		expect(res.headers.get("set-cookie")).toContain("Max-Age=3600");
+		const claims = decodeJwt(cookie.split("=")[1] ?? "");
+		expect((claims.exp ?? 0) - (claims.iat ?? 0)).toBe(3600);
 	});
 });
