@@ -48,7 +48,7 @@ Proposal: Sprint 1 records the opening bank balance and permits new transactions
 
 ## D-05 Authentication and deactivation
 
-Agreed Sprint 1 model: first-party stateless signed JWT in an HttpOnly cookie for seeded-user sign-in. The JWT carries the user identifier, display name and role snapshot plus standard issuer, audience, issue-time and expiry claims. Its expiry duration, signing library and fixed algorithm remain open until recorded.
+Agreed Sprint 1 model: first-party stateless signed JWT in an HttpOnly cookie for seeded-user sign-in. The JWT carries the user identifier, display name and role snapshot plus standard issuer, audience, issue-time and expiry claims. Approved by Wisit: a 3600-second lifetime, HS256 as the fixed algorithm and the `jose` library. Signing-key rotation/retention and request-protection details (Origin/CSRF, including missing-`Origin` handling) remain open.
 
 This simple design has no server-side session row, refresh token or revocation list. Logout clears the current browser cookie; a copied token remains valid until expiry. A role change or account disable does not affect an existing token before expiry while its signing key remains accepted; new sign-ins use the current user record. Do not claim immediate revocation or current-account checks on every request. Both students accept these limits; Wisit approved a 3600-second lifetime and HS256 with the `jose` library. Key rotation and request-protection details (Origin/CSRF, including missing-`Origin` handling) remain open and are recorded in D-05 before they are relied on. Change the design if immediate effect becomes necessary.
 
@@ -74,7 +74,7 @@ Use unit checks for financial logic, API tests against an isolated real database
 | D-02 | Better T Stack selected; first-party stateless JWT selected for Sprint 1 seeded-user authentication; runtime/image pins remain open | Natthawat authored PR #5; Wisit approved the stack; both students accepted the JWT limits recorded in PR #9 | 13 November 2026; D-02 update in PR #9 |
 | D-03 | | | |
 | D-04 | | | |
-| D-05 | Stateless JWT; logout clears the current browser cookie only; copied tokens and old role/account state remain usable until expiry while the signing key is accepted. Approved: 3600-second lifetime, HS256 with `jose`. Key rotation and request-protection details remain open. | Both students accepted the stated limits; PR #9 records the behavior | 13 November 2026; D-05 update in PR #9 |
+| D-05 | Stateless JWT; logout clears the current browser cookie only; copied tokens and old role/account state remain usable until expiry while the signing key is accepted. Approved: 3600-second lifetime, HS256 with `jose`. Key rotation and request-protection details remain open. | Both students accepted the stated limits; PR #9 records the behavior | 13 November 2026; D-05 update in PR #9; lifetime and algorithm approved by Palapluem in the PR #10 and #12 reviews |
 | D-06 | | | |
 | D-07 | | | |
 

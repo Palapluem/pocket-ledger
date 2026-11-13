@@ -1,6 +1,6 @@
 # Sprint 1 Software Test Specification and results
 
-Draft 0.2, prepared 7 November 2026 and updated 13 November. All tests below are planned and NOT RUN. Pin the D-02 runtime/image versions, record the remaining D-05 details (key rotation, request protection; lifetime 3600 s and HS256 with `jose` are approved) and agree D-01, D-03, D-04, D-06, D-07 and the public interfaces before implementing executable tests. Authentication follows the first-party signed-JWT approach in the [auth/setup proposal](auth-setup-proposal.md). Test IDs are stable; proposed file names are targets, not files that already exist.
+Draft 0.1, prepared 7 November 2026 and updated 12 November. All tests below are planned and NOT RUN. Pin the D-02 runtime/image versions and agree D-01 and D-03 to D-07 and the public interfaces before implementing executable tests. The [auth/setup proposal](auth-setup-proposal.md) is for team review and does not approve the session contract. Test IDs are stable; proposed file names are targets, not files that already exist.
 
 ## Independent fixture and expected values
 
@@ -21,11 +21,11 @@ U = domain unit; I = HTTP API with a real isolated test database; E = browser jo
 
 | Test / AC / level and planned file | Preconditions and action | Expected outcome |
 | --- | --- | --- |
-| TEST-01 / AC-01 / I; server/tests/sprint-1/session.api.test.ts | Seed enabled User and Administrator; sign in and retrieve current identity | Correct safe identity/role; usable approved credential |
-| TEST-02 / AC-02 / I; session.api.test.ts | Wrong password, unknown email and disabled identity | Approved generic failure; no credential/private data |
-| TEST-03 / AC-03 / I; session.api.test.ts | Call protected routes without a credential and with tampered, expired and wrong-issuer/audience credentials | Rejected consistently; no private data or writes |
-| TEST-04 / AC-04 / I+E; session.api.test.ts; e2e/sprint-1/identity.spec.ts | Log in, log out and request a direct financial/admin URL from the same browser | No credential held; protected data unavailable. Copied-token reuse is the accepted D-05 limit, not asserted here |
-| TEST-05 / AC-05 / I; administration.api.test.ts | Sign in User A; Administrator disables A; attempt a new login as A | New login rejected; existing-token behavior follows the D-05 limit |
+| TEST-01 / AC-01 / I; server/tests/sprint-1/session.api.test.ts | Seed enabled User and Administrator; sign in and retrieve session | Correct safe identity/role; usable approved session |
+| TEST-02 / AC-02 / I; session.api.test.ts | Wrong password, unknown email and disabled identity | Approved generic failure; no session/private data |
+| TEST-03 / AC-03 / I; session.api.test.ts | Call protected routes without session, with invalid, expired and revoked sessions | Rejected consistently; no private data or writes |
+| TEST-04 / AC-04 / I+E; session.api.test.ts; e2e/sprint-1/identity.spec.ts | Log in, log out, replay old cookie and direct financial/admin URL | Old session unusable; protected data unavailable |
+| TEST-05 / AC-05 / I; administration.api.test.ts | Sign in User A; Administrator disables A; replay A session and new login | Both rejected under approved D-05 lifecycle |
 | TEST-06 / AC-06 / I; administration.api.test.ts | Administrator lists identities and performs agreed enable/disable | Safe identity fields and persisted access state; no financial fields |
 | TEST-07 / AC-07 / I; administration.api.test.ts | User and anonymous callers list/patch users | Forbidden/unauthenticated; target state unchanged |
 | TEST-08 / AC-08 / I; ownership.api.test.ts | Administrator requests account, transaction and summary routes | Rejected without any financial data |
