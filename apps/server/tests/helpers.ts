@@ -36,11 +36,31 @@ export const FIXTURE = {
 	},
 };
 
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/** Fail closed: tests delete rows, so only a loopback `*_test` database is allowed. */
+export function assertDisposableTestDatabase(url: string) {
+	let parsed: URL;
+	try {
+		parsed = new URL(url);
+	} catch {
+		throw new Error("TEST_DATABASE_URL is not a valid URL.");
+	}
+	if (!["postgres:", "postgresql:"].includes(parsed.protocol))
+		throw new Error("TEST_DATABASE_URL must use the postgres scheme.");
+	if (!LOOPBACK_HOSTS.has(parsed.hostname))
+		throw new Error("TEST_DATABASE_URL must point at a loopback host.");
+	const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+	if (!database.endsWith("_test"))
+		throw new Error("TEST_DATABASE_URL database name must end with _test.");
+	return url;
+}
+
 export function testDatabaseUrl() {
 	const url = process.env.TEST_DATABASE_URL;
 	if (!url)
 		throw new Error("TEST_DATABASE_URL is required (see scripts/test-db.sh)");
-	return url;
+	return assertDisposableTestDatabase(url);
 }
 
 let shared: ReturnType<typeof createDb> | undefined;

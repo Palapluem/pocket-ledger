@@ -72,12 +72,13 @@ These are planned checks, not test results. Do not claim they have been implemen
 
 ## Implementation choices proposed with the F-01 PR
 
-These values are used by the F-01 implementation (Issue #11) and are proposals until Wisit's review records them in D-05 and D-07:
+These values are used by the F-01 implementation (Issue #11). The 3600-second lifetime and HS256 with `jose` are approved by Wisit; the remaining items stay proposals until both teammates record them in D-05 and D-07:
 
-- JWT lifetime 3600 seconds, no refresh; HS256 using the `jose` library; fixed issuer `pocket-ledger` and audience `pocket-ledger-web` (configurable); secret from the `JWT_SECRET` environment variable (at least 32 bytes).
+- JWT lifetime 3600 seconds (approved), no refresh; HS256 using the `jose` library (approved); `exp` and `sub` claims are required, so a correctly signed token without `exp` is rejected; fixed issuer `pocket-ledger` and audience `pocket-ledger-web` (configurable); secret from the `JWT_SECRET` environment variable (at least 32 bytes).
 - Passwords hashed with argon2id through the Bun runtime (`Bun.password`).
 - Cookie `session`: HttpOnly, SameSite=Lax, Path=/, Max-Age equal to the lifetime, Secure when `COOKIE_SECURE=true`.
-- Request protection: an unsafe request (POST/PUT/PATCH/DELETE) whose `Origin` header is present and differs from the configured origin is rejected with `403 FORBIDDEN_ORIGIN`. A request without an `Origin` header (non-browser client) is accepted.
+- Request protection (open, proposed fail-closed): an unsafe request (POST/PUT/PATCH/DELETE) is accepted only when its `Origin` header equals the configured origin; a different or missing `Origin` is rejected with `403 FORBIDDEN_ORIGIN`. The earlier proposal to accept a missing `Origin` was not approved and has been withdrawn. Non-browser clients must send the configured `Origin`. Both teammates still need to confirm this decision.
+- Test safety: integration tests refuse to run unless `TEST_DATABASE_URL` is a postgres URL on a loopback host whose database name ends in `_test`.
 - Interface as proposed above: `POST/GET/DELETE /api/session`; no signup route.
 - Administration (F-02, Issue #13): `GET /api/admin/users` and `PATCH /api/admin/users/:id` with `{ "enabled": boolean }`, Administrator role claim required (`401 UNAUTHENTICATED`, `403 FORBIDDEN`). Safeguard proposal: an administrator cannot disable their own account (`409 SELF_DISABLE_FORBIDDEN`), so at least the acting administrator stays enabled. AC-08 is deferred until financial endpoints exist.
 

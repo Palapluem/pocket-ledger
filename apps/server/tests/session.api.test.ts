@@ -51,22 +51,27 @@ const forge = (overrides: {
 	alg?: string;
 	iss?: string;
 	aud?: string;
-	exp?: number;
+	exp?: number | null;
 	secret?: string;
 	sub?: string;
 	role?: string;
 }) =>
-	new SignJWT({
-		displayName: "Forged",
-		role: overrides.role ?? "administrator",
-	})
-		.setProtectedHeader({ alg: overrides.alg ?? "HS256" })
-		.setSubject(overrides.sub ?? crypto.randomUUID())
-		.setIssuer(overrides.iss ?? TEST_JWT.issuer)
-		.setAudience(overrides.aud ?? TEST_JWT.audience)
-		.setIssuedAt(Math.floor(Date.now() / 1000) - 10)
-		.setExpirationTime(overrides.exp ?? Math.floor(Date.now() / 1000) + 600)
-		.sign(new TextEncoder().encode(overrides.secret ?? TEST_JWT.secret));
+	(() => {
+		const jwt = new SignJWT({
+			displayName: "Forged",
+			role: overrides.role ?? "administrator",
+		})
+			.setProtectedHeader({ alg: overrides.alg ?? "HS256" })
+			.setSubject(overrides.sub ?? crypto.randomUUID())
+			.setIssuer(overrides.iss ?? TEST_JWT.issuer)
+			.setAudience(overrides.aud ?? TEST_JWT.audience)
+			.setIssuedAt(Math.floor(Date.now() / 1000) - 10);
+		if (overrides.exp !== null)
+			jwt.setExpirationTime(
+				overrides.exp ?? Math.floor(Date.now() / 1000) + 600,
+			);
+		return jwt;
+	})().sign(new TextEncoder().encode(overrides.secret ?? TEST_JWT.secret));
 
 describe("TEST-01 / AC-01 sign in and current identity", () => {
 	test("valid User and Administrator receive their own identity and a cookie", async () => {
@@ -152,7 +157,7 @@ describe("TEST-03 / AC-03 protected access", () => {
 			"UNAUTHENTICATED",
 		);
 	});
-	test("tampered, expired, wrong issuer, wrong audience, wrong key, wrong algorithm and alg-none tokens are rejected", async () => {
+	test("tampered, expired, wrong issuer, wrong audience, wrong key, wrong algorithm, alg-none and missing-exp tokens are rejected", async () => {
 		const good = (await login(FIXTURE.userA)).cookie.split("=")[1] ?? "";
 		const [h, p, s] = good.split(".");
 		const tampered = `${h}.${btoa(JSON.stringify({ sub: "x", role: "administrator" })).replaceAll("=", "")}.${s}`;
@@ -161,6 +166,7 @@ describe("TEST-03 / AC-03 protected access", () => {
 			tampered,
 			none,
 			await forge({ exp: Math.floor(Date.now() / 1000) - 5 }),
+			await forge({ exp: null }),
 			await forge({ iss: "someone-else" }),
 			await forge({ aud: "other-audience" }),
 			await forge({ secret: "a-different-secret-that-is-long-enough-1234" }),
@@ -215,5 +221,22 @@ describe("sign-up and request protection", () => {
 		});
 		expect(res.status).toBe(403);
 		expect(res.headers.get("set-cookie")).toBeNull();
+	});
+	test("unsafe request with no Origin is 403 FORBIDDEN_ORIGIN and issues no cookie", async () => {
+		const login = await send("POST", "/api/session", {
+			origin: null,
+			body: { email: FIXTURE.userA.email, password: FIXTURE.userA.password },
+		});
+		expect(login.status).toBe(403);
+		expect(((await login.json()) as { code: string }).code).toBe(
+			"FORBIDDEN_ORIGIN",
+		);
+		expect(login.headers.get("set-cookie")).toBeNull();
+		const logout = await send("DELETE", "/api/session", { origin: null });
+		expect(logout.status).toBe(403);
+	});
+	test("safe GET with no Origin is still allowed", async () => {
+		const res = await send("GET", "/api/session", { origin: null });
+		expect(res.status).toBe(401);
 	});
 });

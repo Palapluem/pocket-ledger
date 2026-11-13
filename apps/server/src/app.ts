@@ -61,6 +61,7 @@ export function createApp(config: AppConfig) {
 				algorithms: [ALGORITHM],
 				issuer: config.jwt.issuer,
 				audience: config.jwt.audience,
+				requiredClaims: ["exp", "sub"],
 			});
 			const { sub, displayName, role } = payload as Record<string, unknown>;
 			if (typeof sub !== "string" || typeof displayName !== "string")
@@ -100,11 +101,7 @@ export function createApp(config: AppConfig) {
 	return new Elysia()
 		.onRequest(({ request }) => {
 			const origin = request.headers.get("origin");
-			if (
-				UNSAFE.has(request.method) &&
-				origin !== null &&
-				origin !== config.allowedOrigin
-			) {
+			if (UNSAFE.has(request.method) && origin !== config.allowedOrigin) {
 				return failure(
 					403,
 					"FORBIDDEN_ORIGIN",
