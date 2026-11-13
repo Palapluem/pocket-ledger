@@ -1,0 +1,22 @@
+{
+	"name": "pocket-ledger",
+	"private": true,
+	"type": "module",
+	"workspaces": ["apps/*", "packages/*"],
+	"scripts": {
+		"dev:server": "bun run --hot apps/server/src/index.ts",
+		"test": "bun test apps/server",
+		"check-types": "tsc --noEmit -p apps/server && tsc --noEmit -p packages/db",
+		"check": "biome check --write .",
+		"db:generate": "cd packages/db && bunx drizzle-kit generate",
+		"db:migrate": "cd packages/db && bun run src/migrate.ts",
+		"db:seed": "cd packages/db && bun run src/seed.ts"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.6.2",
+		"@pocket-ledger/config": "workspace:*",
+		"@types/bun": "^1.4.3",
+		"typescript": "^6.0.3"
+	},
+	"packageManager": "bun@1.4.4"
+}
