@@ -39,7 +39,7 @@ Dependencies: F-01 and D-05/D-07. UI: Platform users list and enabled-state acti
 
 | AC | Observable expected outcome | Requirements | STS |
 | --- | --- | --- | --- |
-| AC-06 | Administrator retrieves only safe user identity fields and persists an agreed enable/disable operation | FR-02; BR-11 | TEST-06 |
+| AC-06 | Administrator retrieves only safe user identity fields and persists an enable/disable operation; the last enabled Administrator can never be disabled (`409 LAST_ADMIN_FORBIDDEN`, state unchanged), judged against current database state rather than the token's role snapshot | FR-02; BR-11 | TEST-06 |
 | AC-07 | User and anonymous callers cannot list or change platform users | FR-02; NFR-01 | TEST-07 |
 | AC-08 | Administrator calls to financial account, transaction and summary operations are rejected without financial data | BR-02; NFR-01 | TEST-08 |
 
