@@ -95,7 +95,7 @@ describe("TEST-06 / AC-06 administrator lists and changes access", () => {
 		expect(((await on.json()) as { enabled: boolean }).enabled).toBe(true);
 		expect(await enabledOf(FIXTURE.userA.email)).toBe(true);
 	});
-	test("invalid body, unknown id and self-disable are rejected without changes", async () => {
+	test("invalid body, unknown id and disabling the last administrator are rejected without changes", async () => {
 		const cookie = await login(FIXTURE.admin);
 		const id = await idOf(FIXTURE.userA.email);
 		for (const body of [{}, { enabled: "no" }, { enabled: 1 }]) {
@@ -126,7 +126,7 @@ describe("TEST-06 / AC-06 administrator lists and changes access", () => {
 		});
 		expect(self.status).toBe(409);
 		expect(((await self.json()) as { code: string }).code).toBe(
-			"SELF_DISABLE_FORBIDDEN",
+			"LAST_ADMIN_FORBIDDEN",
 		);
 		expect(await enabledOf(FIXTURE.admin.email)).toBe(true);
 		expect(await enabledOf(FIXTURE.userA.email)).toBe(true);
@@ -198,5 +198,97 @@ describe("TEST-07 / AC-07 only administrators manage users", () => {
 			expect(JSON.parse(text).code).toBe("FORBIDDEN");
 		}
 		expect(await enabledOf(FIXTURE.userB.email)).toBe(true);
+	});
+});
+
+const addAdmin = async (email: string, password: string) => {
+	await db.insert(schema.users).values({
+		email,
+		displayName: "Second Admin",
+		role: "administrator",
+		enabled: true,
+		passwordHash: await Bun.password.hash(password, "argon2id"),
+	});
+	return { email, password };
+};
+const disable = (cookie: string, id: string) =>
+	send("PATCH", `/api/admin/users/${id}`, { cookie, body: { enabled: false } });
+
+describe("last enabled administrator safeguard", () => {
+	test("an administrator may disable themself while another enabled administrator remains", async () => {
+		const second = await addAdmin("admin2@example.test", "admin2-pass-5");
+		const cookie = await login(FIXTURE.admin);
+		const res = await disable(cookie, await idOf(FIXTURE.admin.email));
+		expect(res.status).toBe(200);
+		expect(await enabledOf(FIXTURE.admin.email)).toBe(false);
+		expect(await enabledOf(second.email)).toBe(true);
+	});
+	test("a stale-token administrator cannot disable the last remaining enabled administrator", async () => {
+		const second = await addAdmin("admin2@example.test", "admin2-pass-5");
+		const cookieA = await login(FIXTURE.admin);
+		const cookieB = await login(second);
+		expect((await disable(cookieA, await idOf(second.email))).status).toBe(200);
+		const res = await disable(cookieB, await idOf(FIXTURE.admin.email));
+		expect(res.status).toBe(409);
+		expect(((await res.json()) as { code: string }).code).toBe(
+			"LAST_ADMIN_FORBIDDEN",
+		);
+		expect(await enabledOf(FIXTURE.admin.email)).toBe(true);
+	});
+	test("two administrators disabling each other concurrently leave one enabled", async () => {
+		const second = await addAdmin("admin2@example.test", "admin2-pass-5");
+		const cookieA = await login(FIXTURE.admin);
+		const cookieB = await login(second);
+		const idA = await idOf(FIXTURE.admin.email);
+		const idB = await idOf(second.email);
+		const results = await Promise.all([
+			disable(cookieA, idB),
+			disable(cookieB, idA),
+		]);
+		expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+		const enabled = [
+			await enabledOf(FIXTURE.admin.email),
+			await enabledOf(second.email),
+		];
+		expect(enabled.filter(Boolean).length).toBe(1);
+	});
+	test("disabling a regular user never counts against the administrator rule", async () => {
+		const cookie = await login(FIXTURE.admin);
+		const res = await disable(cookie, await idOf(FIXTURE.userA.email));
+		expect(res.status).toBe(200);
+	});
+});
+
+describe("CORS preflight for the browser client", () => {
+	test("PATCH preflight from the configured origin allows PATCH with credentials", async () => {
+		const res = await app.handle(
+			new Request("http://localhost/api/admin/users/x", {
+				method: "OPTIONS",
+				headers: {
+					origin: ALLOWED_ORIGIN,
+					"access-control-request-method": "PATCH",
+					"access-control-request-headers": "content-type",
+				},
+			}),
+		);
+		expect(res.headers.get("access-control-allow-origin")).toBe(ALLOWED_ORIGIN);
+		expect(res.headers.get("access-control-allow-credentials")).toBe("true");
+		expect(res.headers.get("access-control-allow-methods") ?? "").toContain(
+			"PATCH",
+		);
+	});
+	test("a preflight from another origin is not granted", async () => {
+		const res = await app.handle(
+			new Request("http://localhost/api/admin/users/x", {
+				method: "OPTIONS",
+				headers: {
+					origin: "http://evil.example",
+					"access-control-request-method": "PATCH",
+				},
+			}),
+		);
+		expect(res.headers.get("access-control-allow-origin")).not.toBe(
+			"http://evil.example",
+		);
 	});
 });
