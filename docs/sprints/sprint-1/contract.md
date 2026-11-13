@@ -1,6 +1,6 @@
 # Sprint 1 feature engineering contracts
 
-Draft 0.1, prepared 7 November 2026 and updated 12 November. Includes F-01 to F-06. The Better T Stack is selected; D-02 runtime/image pins and D-01 and D-03 to D-07 remain open. This is a reviewable pre-implementation contract. Neither student has accepted the proposed product policies or been assigned an implementation feature. No code, tests or product release are established by this document.
+Draft 0.2, prepared 7 November 2026 and updated 13 November. Includes F-01 to F-06. The Better T Stack and first-party signed-JWT authentication (D-02, D-05) are selected; a 3600-second token lifetime and HS256 with `jose` are approved (D-05); runtime/image pins, key rotation, request-protection (Origin/CSRF) details and D-01, D-03, D-04, D-06 and D-07 remain open. This is a reviewable pre-implementation contract. Neither student has accepted the proposed product policies or been assigned an implementation feature. No code, tests or product release are established by this document.
 
 ## Contract identity and revision
 
@@ -8,31 +8,32 @@ Draft 0.1, prepared 7 November 2026 and updated 12 November. Includes F-01 to F-
 | --- | --- |
 | Baseline and design | SRS, feature inventory, traceability and System-Level SDS in docs/ |
 | Decision work | Issue #1 financial/scope/interfaces; Issue #2 team/runtime/authentication; [auth/setup proposal](auth-setup-proposal.md) |
-| Documentation review | PR #4 merged after N0TAW00D approval; PR #5 and #6 reviewed and merged by Palapluem; PR #7 approved by Palapluem and merged at `3e8bc5f` as a session proposal pending team agreement; no implementation or product tests are claimed |
+| Documentation review | PR #4 merged after N0TAW00D approval; PR #5 and #6 reviewed and merged by Palapluem; PR #7 approved by Palapluem and merged at `3e8bc5f`; PR #9 selected the JWT approach (D-02, D-05). No implementation or product tests are claimed |
 | Implementation Issue / branch / owner / reviewer | |
 | Approved contract revision and pre-code commit | |
 
 | Revision | Reason | Approval and implementation impact |
 | --- | --- | --- |
 | 0.1, 7 November 2026 | Establish actual PocketLedger draft contracts and STS instead of old TokTickIT report content | Team decisions/review pending; no retrospective approval claimed |
+| 0.2, 13 November 2026 | Align F-01 with the JWT approach selected in PR #9: no server-side session or revocation; spec-level outcomes only | Documentation only; implementation details stay open until recorded |
 
 ## F-01 Identity and access
 
-User goal: sign in and use only the operations allowed by the identity's current role and enabled state. Preconditions are a seeded User or Administrator and an available persistent identity store. On valid credentials, establish the approved session and return current identity. Protected requests derive identity server-side. Logout ends the current session. Invalid credentials and disabled identities receive a safe response.
+User goal: sign in and use only the operations allowed by the signed-in identity's role. Preconditions are a seeded User or Administrator and an available persistent identity store. On valid credentials, issue the approved signed credential and return the current identity. Protected requests derive identity and role server-side from the verified credential. Logout clears the credential in the browser. Invalid credentials and disabled identities receive a safe response.
 
-Dependencies: D-02, D-05 and D-07. UI: Sign in and role-appropriate navigation, including ready/submitting/failure states. API: the three /api/session operations in the System SDS. Data: UserAccount and Session. Password hashing and backend access tests are required. D-05 must resolve session expiry, logout semantics and write-request protection before implementation.
+Dependencies: D-02, D-05 and D-07. UI: Sign in and role-appropriate navigation, including ready/submitting/failure states. API: the three /api/session operations in the System SDS. Data: UserAccount; the credential is a signed token and has no server-side session record. Password hashing and backend access tests are required. D-05 records the accepted logout and account-change limits; the 3600-second lifetime and HS256 with `jose` are approved; write-request protection (including missing-`Origin` handling) is recorded before implementation.
 
 | AC | Observable expected outcome | Requirements | STS |
 | --- | --- | --- | --- |
 | AC-01 | Valid enabled User and Administrator log in and retrieve the correct current identity/role | FR-01; NFR-01 | TEST-01 |
 | AC-02 | Wrong/unknown/disabled identity receives the approved safe login failure; no session or private data is returned | FR-01; BR-11; NFR-01 | TEST-02 |
-| AC-03 | Anonymous or invalid/expired/revoked sessions cannot reach protected operations | FR-01; BR-01/02; NFR-01 | TEST-03 |
-| AC-04 | After logout, reusing the old session cannot retrieve protected financial or administration data | FR-01; NFR-01 | TEST-04 |
-| AC-05 | Disabling a User blocks new login and existing-session protected requests according to D-05 | FR-01/02; BR-11 | TEST-05 |
+| AC-03 | Anonymous callers and callers with an invalid, tampered or expired credential cannot reach protected operations | FR-01; BR-01/02; NFR-01 | TEST-03 |
+| AC-04 | After logout the browser no longer holds a credential and cannot retrieve protected financial or administration data; copied-token reuse follows D-05 | FR-01; NFR-01 | TEST-04 |
+| AC-05 | Disabling a User blocks new login; the effect on an already-issued credential follows D-05 | FR-01/02; BR-11 | TEST-05 |
 
 ## F-02 Platform user administration
 
-User goal: an Administrator controls platform access without seeing finances. Load a safe identity list, select a user, change enabled state, then retrieve the new state. A rejected safeguard leaves identities and sessions unchanged. No administrator financial overview or financial API exception is allowed.
+User goal: an Administrator controls platform access without seeing finances. Load a safe identity list, select a user, change enabled state, then retrieve the new state. A rejected safeguard leaves identities unchanged. No administrator financial overview or financial API exception is allowed.
 
 Dependencies: F-01 and D-05/D-07. UI: Platform users list and enabled-state action with loading/success/error feedback. API: GET/PATCH /api/admin/users. Data: update identity access only. Review self/last-administrator safeguards explicitly; they are not borrowed silently from TokTickIT.
 
