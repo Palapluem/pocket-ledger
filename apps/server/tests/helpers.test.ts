@@ -10,9 +10,7 @@ describe("test database safety guard", () => {
 			),
 		).not.toThrow();
 		expect(() =>
-			assertDisposableTestDatabase(
-				"postgres://u:pw@localhost:5432/other_test",
-			),
+			assertDisposableTestDatabase("postgres://u:pw@localhost:5432/other_test"),
 		).not.toThrow();
 	});
 	test("rejects remote hosts, non-test database names and malformed URLs", () => {
