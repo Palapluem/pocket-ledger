@@ -1,6 +1,6 @@
 # Sprint 1 feature engineering contracts
 
-Draft 0.2, prepared 7 November 2026 and updated 13 November. Includes F-01 to F-06. The Better T Stack and first-party signed-JWT authentication (D-02, D-05) are selected; runtime/image pins, token lifetime/signing details and D-01, D-03, D-04, D-06 and D-07 remain open. This is a reviewable pre-implementation contract. Neither student has accepted the proposed product policies or been assigned an implementation feature. No code, tests or product release are established by this document.
+Draft 0.2, prepared 7 November 2026 and updated 13 November. Includes F-01 to F-06. The Better T Stack and first-party signed-JWT authentication (D-02, D-05) are selected; a 3600-second token lifetime and HS256 with `jose` are approved (D-05); runtime/image pins, key rotation, request-protection (Origin/CSRF) details and D-01, D-03, D-04, D-06 and D-07 remain open. This is a reviewable pre-implementation contract. Neither student has accepted the proposed product policies or been assigned an implementation feature. No code, tests or product release are established by this document.
 
 ## Contract identity and revision
 
@@ -21,7 +21,7 @@ Draft 0.2, prepared 7 November 2026 and updated 13 November. Includes F-01 to F-
 
 User goal: sign in and use only the operations allowed by the signed-in identity's role. Preconditions are a seeded User or Administrator and an available persistent identity store. On valid credentials, issue the approved signed credential and return the current identity. Protected requests derive identity and role server-side from the verified credential. Logout clears the credential in the browser. Invalid credentials and disabled identities receive a safe response.
 
-Dependencies: D-02, D-05 and D-07. UI: Sign in and role-appropriate navigation, including ready/submitting/failure states. API: the three /api/session operations in the System SDS. Data: UserAccount; the credential is a signed token and has no server-side session record. Password hashing and backend access tests are required. D-05 records the accepted logout and account-change limits; token lifetime, signing details and write-request protection are recorded before implementation.
+Dependencies: D-02, D-05 and D-07. UI: Sign in and role-appropriate navigation, including ready/submitting/failure states. API: the three /api/session operations in the System SDS. Data: UserAccount; the credential is a signed token and has no server-side session record. Password hashing and backend access tests are required. D-05 records the accepted logout and account-change limits; the 3600-second lifetime and HS256 with `jose` are approved; write-request protection (including missing-`Origin` handling) is recorded before implementation.
 
 | AC | Observable expected outcome | Requirements | STS |
 | --- | --- | --- | --- |

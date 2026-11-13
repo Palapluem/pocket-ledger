@@ -1,6 +1,6 @@
 # Sprint 1 Software Test Specification and results
 
-Draft 0.2, prepared 7 November 2026 and updated 13 November. All tests below are planned and NOT RUN. Pin the D-02 runtime/image versions, record the D-05 token lifetime/signing details and agree D-01, D-03, D-04, D-06, D-07 and the public interfaces before implementing executable tests. Authentication follows the first-party signed-JWT approach in the [auth/setup proposal](auth-setup-proposal.md). Test IDs are stable; proposed file names are targets, not files that already exist.
+Draft 0.2, prepared 7 November 2026 and updated 13 November. All tests below are planned and NOT RUN. Pin the D-02 runtime/image versions, record the remaining D-05 details (key rotation, request protection; lifetime 3600 s and HS256 with `jose` are approved) and agree D-01, D-03, D-04, D-06, D-07 and the public interfaces before implementing executable tests. Authentication follows the first-party signed-JWT approach in the [auth/setup proposal](auth-setup-proposal.md). Test IDs are stable; proposed file names are targets, not files that already exist.
 
 ## Independent fixture and expected values
 
