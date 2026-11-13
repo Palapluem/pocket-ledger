@@ -24,7 +24,7 @@ Sprint 1 is the proposed usable journey described in the sprint plan, not the en
 
 | ID | Observable requirement | Planned feature |
 | --- | --- | --- |
-| FR-01 | A person can log in, obtain current-user identity and log out; protected operations require an enabled identity | F-01 |
+| FR-01 | A person can log in, obtain current-user identity and log out; protected operations require a valid, unexpired signed credential; a disabled user cannot sign in again, while an already-issued token remains usable until expiry (D-05, BR-11) | F-01 |
 | FR-02 | An Administrator can inspect platform user identities and enable or disable a user without reading their finances | F-02 |
 | FR-03 | A User can create and manage owned financial accounts across all five account types | F-03 |
 | FR-04 | A User can establish opening balances with a defined effective date and inspect their effect separately from income/expense | F-03 |
