@@ -1,6 +1,7 @@
+import { cors } from "@elysiajs/cors";
 import type { Database } from "@pocket-ledger/db";
 import { schema } from "@pocket-ledger/db";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { jwtVerify, SignJWT } from "jose";
 
@@ -99,6 +100,13 @@ export function createApp(config: AppConfig) {
 		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 	return new Elysia()
+		.use(
+			cors({
+				origin: config.allowedOrigin,
+				methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+				credentials: true,
+			}),
+		)
 		.onRequest(({ request }) => {
 			const origin = request.headers.get("origin");
 			if (UNSAFE.has(request.method) && origin !== config.allowedOrigin) {
@@ -202,22 +210,40 @@ export function createApp(config: AppConfig) {
 			}
 			if (!UUID.test(params.id))
 				return failure(404, "NOT_FOUND", "User not found.");
-			// Safeguard (proposal): an administrator cannot disable their own account.
-			if (!enabled && params.id === guard.identity.id) {
+			// Approved safeguard: the last enabled administrator can never be disabled.
+			// Decided against current database state inside one transaction; enabled
+			// administrator rows are locked in id order so concurrent requests serialise.
+			const outcome = await config.db.transaction(async (tx) => {
+				const admins = await tx
+					.select({ id: schema.users.id })
+					.from(schema.users)
+					.where(
+						and(
+							eq(schema.users.role, "administrator"),
+							eq(schema.users.enabled, true),
+						),
+					)
+					.orderBy(asc(schema.users.id))
+					.for("update");
+				const targetIsEnabledAdmin = admins.some((a) => a.id === params.id);
+				if (!enabled && targetIsEnabledAdmin && admins.length <= 1)
+					return "last-admin" as const;
+				const [updated] = await tx
+					.update(schema.users)
+					.set({ enabled, updatedAt: new Date() })
+					.where(eq(schema.users.id, params.id))
+					.returning();
+				return updated ?? ("missing" as const);
+			});
+			if (outcome === "last-admin")
 				return failure(
 					409,
-					"SELF_DISABLE_FORBIDDEN",
-					"You cannot disable your own account.",
+					"LAST_ADMIN_FORBIDDEN",
+					"The last enabled administrator cannot be disabled.",
 				);
-			}
-			const [updated] = await config.db
-				.update(schema.users)
-				.set({ enabled, updatedAt: new Date() })
-				.where(eq(schema.users.id, params.id))
-				.returning();
-			return updated
-				? json(200, safeUser(updated))
-				: failure(404, "NOT_FOUND", "User not found.");
+			return outcome === "missing"
+				? failure(404, "NOT_FOUND", "User not found.")
+				: json(200, safeUser(outcome));
 		})
 		.get("/", () => "OK");
 }
