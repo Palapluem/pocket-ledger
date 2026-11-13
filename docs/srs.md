@@ -51,7 +51,7 @@ Sprint 1 is the proposed usable journey described in the sprint plan, not the en
 | BR-08 | Dates, opening cut-offs and reporting boundaries follow one explicit policy | D-04 |
 | BR-09 | A duplicate is a separate editable record; saving it does not change the source | Assignment requirement; save/retry policy in later contract |
 | BR-10 | Money precision, valid range, amount signs and rounding are explicit; invalid amounts are rejected without silent rounding | D-03 |
-| BR-11 | Disabled identities cannot retain usable protected access under the agreed session lifecycle | D-05 |
+| BR-11 | A disabled identity cannot sign in; effect on an already-issued credential follows the D-05 limits | D-05 |
 | BR-12 | Re-running setup does not overwrite existing personal financial activity | Reproducibility safeguard |
 
 ## Non-functional requirements and verification targets
@@ -60,13 +60,13 @@ These proposed acceptance targets must be reviewed with the system design. They 
 
 | ID | Target | Verification and planned sprint |
 | --- | --- | --- |
-| NFR-01 | All protected endpoints enforce identity, role and ownership; passwords/session tokens are not stored or logged in plaintext | Negative API/database tests and configuration review, Sprint 1; regression thereafter |
+| NFR-01 | All protected endpoints enforce identity, role and ownership; passwords are stored only as one-way hashes; passwords, signing keys and bearer tokens are not logged | Negative API/database tests and configuration review, Sprint 1; regression thereafter |
 | NFR-02 | A saved transaction and its balance effects survive an application restart and a subsequent deployment | Local persistence check in Sprint 1; same-record restart/redeploy evidence in Lab 5 |
 | NFR-03 | Core sign-in and transaction journeys work by keyboard, have labelled fields and readable feedback, and fit 390, 768 and 1280 px widths without clipped controls | Selected UI/browser checks in Sprint 1; remaining screens by Sprint 3 |
 | NFR-04 | A clean checkout can install locked dependencies, migrate/seed safely, build and execute documented tests using placeholder configuration | Independent setup check at every assessed release; Docker version in Lab 5 |
 
 ## Assumptions, decisions and acceptance boundary
 
-The team has selected Theme 7 and the PocketLedger name. LEB2 group name is 2-Nor. Section, runtime, financial/date rules, session details, public interfaces and feature ownership remain in D-01 to D-07. The example fixture is proposed data, not an instructor-supplied calculation.
+The team has selected Theme 7 and the PocketLedger name. LEB2 group name is 2-Nor. Section, runtime, financial/date rules, authentication token lifetime/signing details, public interfaces and feature ownership remain in D-01 to D-07. The example fixture is proposed data, not an instructor-supplied calculation.
 
 An accepted Sprint 1 requires the complete agreed journey, actual tests of rules/persistence/access, substantive teammate reviews and a tested release on main. A contract draft or a green documentation check does not establish working product behavior. Later requirements must remain allocated in the feature inventory even when not implemented in Sprint 1.

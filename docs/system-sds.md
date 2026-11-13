@@ -55,7 +55,7 @@ Income/expense summaries include only their relevant classification effects with
 
 | Operation | User | Administrator / anonymous |
 | --- | --- | --- |
-| Login / current identity / logout | Own session | Administrator uses own session; anonymous cannot read a protected identity |
+| Login / current identity / logout | Own credential | Administrator uses own session; anonymous cannot read a protected identity |
 | List platform identities; enable/disable | Forbidden | Administrator only, subject to agreed safeguards |
 | Financial account, opening balance and transaction read/write | Own records and owned allocation references only | Forbidden for Administrator; anonymous unauthenticated |
 | Balances, summaries, history and later favourites/duplicates | Own data only | Forbidden for Administrator; anonymous unauthenticated |
@@ -93,7 +93,7 @@ These are draft public interfaces, not existing endpoints. Monetary DTO fields a
 | GET /api/session | -> id, displayName, role claims from the verified token | 401 for a missing, invalid or expired token; role/account state may be stale until expiry under D-05 |
 | DELETE /api/session | -> 204; clear the current browser cookie | No server-side revocation; a copied JWT remains valid until expiry under D-05 |
 | GET /api/admin/users | -> identity list only | Administrator only; 401/403 |
-| PATCH /api/admin/users/:id | enabled boolean -> updated safe identity | Administrator only; safeguards D-05; no financial properties |
+| PATCH /api/admin/users/:id | enabled boolean -> updated safe identity | Administrator only; safeguards D-05; no financial properties; an already-issued token is unaffected until expiry (D-05) |
 | GET /api/accounts | -> owned account identities/types and balances | User only; scoped before query |
 | GET /api/accounts/:id | -> one owned account and its opening/balance state | User only; safe 404 outside ownership scope |
 | PUT /api/accounts/:id/opening-balance | amount/date -> updated owned opening state | User only; safe 404 outside scope; opening/date/amount errors |

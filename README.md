@@ -63,7 +63,7 @@ Use later sprint staging branches when those sprints begin. Keep related documen
 
 ## Running the application
 
-The team selected Better T Stack with TanStack Router, Elysia, Bun, Better Auth, PostgreSQL and Drizzle ORM. Docker is selected for local database setup and web/server packaging; Biome, Husky and Turborepo are included. API add-ons, payments and examples are disabled. See [D-02](docs/decisions.md#d-02-stack-and-reproducible-runtime) and the [System SDS](docs/system-sds.md). The stack is documented but not yet scaffolded; exact runtime/image versions and product feature contracts remain open.
+The team selected Better T Stack with TanStack Router, Elysia, Bun, PostgreSQL and Drizzle ORM. Docker is selected for local database setup and web/server packaging; Biome, Husky and Turborepo are included. API add-ons, payments and examples are disabled. Sprint 1 seeded-user authentication uses a first-party signed JWT instead of Better Auth. See [D-02](docs/decisions.md#d-02-stack-and-reproducible-runtime) and the [System SDS](docs/system-sds.md). The stack is documented but not yet scaffolded; exact runtime/image versions and product feature contracts remain open.
 
 Do not run the TokTickIT example deploy scripts against a cloud project without adapting them and reviewing every resource, permission and database operation. The reference kit remains in the [course Lab 5 folder](https://github.com/Palapluem/cpe334-software-engineer-2026/tree/main/labs/Lab05).
 
