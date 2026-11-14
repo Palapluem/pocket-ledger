@@ -1,6 +1,6 @@
 # Authentication and setup decision
 
-Draft 0.7, 15 November 2026 · Issue #2 · **Stateless JWT, 3600-second lifetime, HS256/`jose` and key source/rotation/retention agreed; Origin/CSRF request protection deferred until deployment review.** Natthawat proposed the D-05 choices in PR #15, and Wisit accepted them on 15 November; formal review and merge remain pending. This records the team's selected Sprint 1 authentication scope. It does not add implementation beyond the changes already recorded in the feature PRs.
+Draft 0.8, 15 November 2026 · Issue #2 · **Stateless JWT, 3600-second lifetime, HS256/`jose` and key source/rotation/retention agreed; Origin/CSRF request protection deferred until deployment review.** The choices were accepted by both students and integrated through PR #15 (`98afb3b`). This records the team's selected Sprint 1 authentication scope and the implementation details verified in merged PRs #12 and #14.
 
 ## Scope
 
@@ -8,7 +8,7 @@ The team selected Better T Stack. Although Better Auth was included in the initi
 
 ## Selected Sprint 1 approach: first-party signed JWT
 
-After validating a seeded user's credentials and enabled status, the server issues a signed JWT and sets it as an HttpOnly cookie. The JWT is a signed token (JWS), not an encrypted token. Its claims can be read by the holder, so include only sub, displayName, role, iss, aud, iat and exp. Confirm exact claim names/types and issuer/audience values in D-07. Do not place passwords, secrets or financial data in the token.
+After validating a seeded user's credentials and enabled status, the server issues a signed JWT and sets it as an HttpOnly cookie. The JWT is a signed token (JWS), not an encrypted token. Its claims can be read by the holder, so include only the agreed `sub`, `displayName`, `role`, `iss`, `aud`, `iat` and `exp` claims. The issuer is `pocket-ledger` and the audience is `pocket-ledger-web`. Do not place passwords, secrets or financial data in the token.
 
 This design has no server-side session table, refresh token or revocation list. Protected requests verify the signature and required claims locally; they do not reload the user's current role or enabled state. The token's role and account state therefore remain the values from sign-in until that token expires.
 
@@ -39,7 +39,7 @@ This is the team's product-design choice, not a course requirement. PD1 and Lab 
 | Cookie and request protection | Use HttpOnly and SameSite=Lax; enable Secure under HTTPS. Current implementation rejects unsafe requests with a missing or mismatched configured Origin. This is optional hardening, not the agreed policy; the team deferred a formal Origin/CSRF decision until deployment review. |
 | Public interface | The baseline POST, GET and DELETE /api/session responses and error outcomes are agreed in D-07; feature-specific refinements are reviewed in their own PRs. |
 | Account changes | Confirm that disabled users and changed roles affect existing tokens only after expiry; do not promise immediate revocation. |
-| Ownership and review | Assign implementer and teammate reviewer, and agree independent verification before writing dependent tests or application behavior. |
+| Ownership and review | F-01 and F-02 backend changes are merged in PRs #12 and #14 with teammate review; financial feature ownership follows the D-01/D-06 split in `docs/decisions.md`. |
 
 ## Sprint 1 baseline interface (agreed)
 
@@ -61,7 +61,7 @@ The 3600-second lifetime and HS256 with `jose` are approved and implemented. The
 4. Logout clears the browser cookie. A separate copy of that same token remains usable until expiry while its signing key is accepted; this is the accepted limitation, not a test failure.
 5. Direct signup creates no user. No password, signing key or bearer token appears in responses, logs or committed evidence.
 
-These are planned checks, not test results. Do not claim they have been implemented or run.
+The implemented authentication/administration results are recorded in `docs/sprints/sprint-1/tests.md`. The list above is the verification intent; do not infer coverage beyond the specific test rows and runs recorded there.
 
 ## Setup notes
 
@@ -70,9 +70,9 @@ These are planned checks, not test results. Do not claim they have been implemen
 - Seed only explicitly configured synthetic users. Re-running setup must not reset an existing password or change user state or financial data.
 - This decision record creates no database, cloud resource, executable test or application behavior.
 
-## Implementation choices proposed with the F-01 PR
+## Implementation details verified in the F-01/F-02 PRs
 
-These values are used by the F-01 implementation (Issue #11). The 3600-second lifetime, HS256/`jose`, stateless-token limitations and key-management policy are accepted. Feature-specific API refinements are reviewed in their own PRs before dependent tests and implementation:
+These values are used by the F-01 implementation (Issue #11). The 3600-second lifetime, HS256/`jose`, stateless-token limitations and key-management policy are accepted. The baseline implementation is recorded in the reviewed F-01/F-02 PRs; future API refinements must be reviewed in their own PRs and reflected in the contract and tests:
 
 - JWT lifetime 3600 seconds (approved), no refresh; HS256 using the `jose` library (approved); `exp` and `sub` claims are required, so a correctly signed token without `exp` is rejected; fixed issuer `pocket-ledger` and audience `pocket-ledger-web` (configurable); the lifetime itself is not configurable, and a `JWT_TTL_SECONDS` value other than 3600 stops the server at start-up; current implementation reads a secret from `JWT_SECRET` (at least 32 bytes), with the approved source/rotation/retention policy recorded in D-05.
 - Passwords hashed with argon2id through the Bun runtime (`Bun.password`).
