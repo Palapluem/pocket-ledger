@@ -2,7 +2,7 @@
 
 PocketLedger is a personal finance application for tracking financial accounts, allocated transactions, balances and debt. It is the CPE334 group product for Wisit Suwannao and Natthawat Primsirikunawut, based on Theme 7: Personal Money and Expense Logging System.
 
-**Current stage: draft engineering baseline and Sprint 1 contract review.** The Better T Stack configuration is confirmed. PR #15 proposes runtime pins, Sprint 1 financial rules, feature ownership/scope and interface/verification choices; they remain pending Wisit's approval in [team decisions](docs/decisions.md). D-05 key management and request protection, plus the course section, remain open. On `sprint-1-staging`, F-01 identity (signed-JWT sign-in, current user, sign-out) is implemented with server API tests and repository CI (PR #12). The F-02 administrator user-management backend and its tests are merged (PR #14). No frontend, accepted `main` release or cloud deployment exists yet. LEB2 group name is **2-Nor**.
+**Current stage: the Sprint 1 decision baseline is agreed; financial implementation is next.** Natthawat proposed the D-01 to D-07 choices in PR #15, and Wisit accepted them on 15 November. Formal review and merge of PR #15 are still pending. The Better T Stack configuration is confirmed. The course section remains open; Origin/CSRF policy is deferred until deployment review. On `sprint-1-staging`, F-01 identity (signed-JWT sign-in, current user, sign-out) is implemented with server API tests and repository CI (PR #12). The F-02 administrator user-management backend and its tests are merged (PR #14). No frontend, accepted `main` release or cloud deployment exists yet. LEB2 group name is **2-Nor**.
 
 ## Product scope
 
@@ -22,7 +22,7 @@ Users access their own financial data. Administrators manage platform user accou
 - [System-Level SDS](docs/system-sds.md)
 - [Three-sprint plan and rotating work](docs/sprints/plan.md)
 - [Sprint 1 feature contracts](docs/sprints/sprint-1/contract.md) and [STS/results](docs/sprints/sprint-1/tests.md)
-- [Authentication and setup proposal](docs/sprints/sprint-1/auth-setup-proposal.md) — records the approved JWT model, 3600-second lifetime and HS256/`jose`; key source/rotation/retention and request-protection decisions remain open
+- [Authentication and setup decision](docs/sprints/sprint-1/auth-setup-proposal.md) — records the agreed JWT model and key handling; Origin/CSRF request protection is deferred until deployment review
 - [Financial vocabulary](GLOSSARY.md)
 - [Contribution and release workflow](CONTRIBUTING.md)
 - [Coordination and handoff](COORDINATION.md)
@@ -63,7 +63,7 @@ Use later sprint staging branches when those sprints begin. Keep related documen
 
 ## Running the application
 
-The team selected Better T Stack with TanStack Router, Elysia, Bun, PostgreSQL and Drizzle ORM. Docker is selected for local database setup and web/server packaging; Biome, Husky and Turborepo are included. API add-ons, payments and examples are disabled. Sprint 1 seeded-user authentication uses a first-party signed JWT instead of Better Auth. See [D-02](docs/decisions.md#d-02-stack-and-reproducible-runtime) and the [System SDS](docs/system-sds.md). On `sprint-1-staging` the server and database packages are scaffolded and F-01 is implemented; the frontend is not built yet. On this PR branch, Bun 1.4.4 is pinned in package metadata/CI and PostgreSQL `18.4` in CI/`scripts/test-db.sh`; these D-02 values remain proposed pending team approval. Container images follow in Lab 5.
+The team selected Better T Stack with TanStack Router, Elysia, Bun, PostgreSQL and Drizzle ORM. Docker is selected for local database setup and web/server packaging; Biome, Husky and Turborepo are included. API add-ons, payments and examples are disabled. Sprint 1 seeded-user authentication uses a first-party signed JWT instead of Better Auth. See [D-02](docs/decisions.md#d-02-stack-and-reproducible-runtime) and the [System SDS](docs/system-sds.md). On `sprint-1-staging` the server and database packages are scaffolded and F-01 is implemented; the frontend is not built yet. Bun 1.4.4 and PostgreSQL `18.4` are the agreed active pins. Bun was already pinned on the PR base; PR #15 applies PostgreSQL 18.4 in CI and `scripts/test-db.sh`. Container images follow in Lab 5.
 
 Do not run the TokTickIT example deploy scripts against a cloud project without adapting them and reviewing every resource, permission and database operation. The reference kit remains in the [course Lab 5 folder](https://github.com/Palapluem/cpe334-software-engineer-2026/tree/main/labs/Lab05).
 

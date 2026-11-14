@@ -1,13 +1,13 @@
 # Sprint 1 feature engineering contracts
 
-Draft 0.3, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-06. The Better T Stack and first-party signed-JWT authentication (D-02, D-05) are selected; a 3600-second token lifetime and HS256 with `jose` are approved (D-05); the D-02 runtime/image pins and D-03, D-04, D-06 and D-07 are proposed in [team decisions](../../decisions.md) (PR #15) pending Wisit's approval; D-05 key source/rotation/retention and request-protection policy remain open, as does the course section (D-01). F-01 and the F-02 backend are implemented on `sprint-1-staging`; F-03 to F-06 are not yet implemented. No product release is established by this document.
+Draft 0.5, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-06. Natthawat proposed the D-01 to D-07 choices in PR #15, and Wisit accepted them on 15 November; formal review and merge remain pending. This baseline includes the Better T Stack, first-party signed-JWT authentication, 3600-second lifetime, HS256/`jose`, active runtime pins, D-01 work split, D-03/D-04 rules, D-06 scope and D-07 baseline interfaces. D-05 key handling is agreed; Origin/CSRF policy is deferred until deployment review. The course section remains open. F-01 and the F-02 backend are implemented on `sprint-1-staging`; F-03 to F-06 are not yet implemented. No product release is established by this document.
 
 ## Contract identity and revision
 
 | Field | Value / evidence |
 | --- | --- |
 | Baseline and design | SRS, feature inventory, traceability and System-Level SDS in docs/ |
-| Decision work | Issue #1 financial/scope/interfaces; Issue #2 team/runtime/authentication; [auth/setup proposal](auth-setup-proposal.md) |
+| Decision work | Issue #1 financial/scope/interfaces; Issue #2 team/runtime/authentication; [auth/setup decision](auth-setup-proposal.md) |
 | Documentation review | PR #4 merged after N0TAW00D approval; PR #5 and #6 reviewed and merged by Palapluem; PR #7 approved by Palapluem and merged at `3e8bc5f`; PR #9 selected the JWT approach (D-02, D-05). No implementation or product tests are claimed |
 | Implementation Issue / branch / owner / reviewer | |
 | Approved contract revision and pre-code commit | |
@@ -16,12 +16,14 @@ Draft 0.3, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-
 | --- | --- | --- |
 | 0.1, 7 November 2026 | Establish actual PocketLedger draft contracts and STS instead of old TokTickIT report content | Team decisions/review pending; no retrospective approval claimed |
 | 0.2, 13 November 2026 | Align F-01 with the JWT approach selected in PR #9: no server-side session or revocation; spec-level outcomes only | Documentation only; implementation details stay open until recorded |
+| 0.4, 15 November 2026 | Record the agreed D-01 to D-07 Sprint 1 decisions, baseline routes/DTOs, financial boundaries, work ownership and explicit NOT RUN financial tests | Natthawat proposed the choices in PR #15; Wisit accepted them on 15 November. Formal PR review/merge is pending. F-03 to F-06 implementation and executable financial tests remain pending. |
+| 0.5, 15 November 2026 | Add the shared client-side transaction submission/no-auto-retry acceptance criterion and align the decision/review status | BR-13 / AC-28 / TEST-28 added; no server idempotency guarantee. PR #15 review/merge remains pending. |
 
 ## F-01 Identity and access
 
 User goal: sign in and use only the operations allowed by the signed-in identity's role. Preconditions are a seeded User or Administrator and an available persistent identity store. On valid credentials, issue the approved signed credential and return the current identity. Protected requests derive identity and role server-side from the verified credential. Logout clears the credential in the browser. Invalid credentials and disabled identities receive a safe response.
 
-Dependencies: D-02, D-05 and D-07. UI: Sign in and role-appropriate navigation, including ready/submitting/failure states. API: the three /api/session operations in the System SDS. Data: UserAccount; the credential is a signed token and has no server-side session record. Password hashing and backend access tests are required. D-05 records the accepted logout and account-change limits; the 3600-second lifetime and HS256 with `jose` are approved. Key management and the team's cookie/CSRF policy (including missing-`Origin` handling) must be recorded before these choices are treated as fully agreed.
+Dependencies: D-02, D-05 and D-07. UI: Sign in and role-appropriate navigation, including ready/submitting/failure states. API: the three /api/session operations in the System SDS. Data: UserAccount; the credential is a signed token and has no server-side session record. Password hashing and backend access tests are required. D-05 records the accepted logout/account-change limits, 3600-second lifetime, HS256/`jose`, and key-management policy. Origin/CSRF policy, including missing-`Origin` handling, is deferred until deployment review; the current Origin guard is optional hardening, not a team policy.
 
 | AC | Observable expected outcome | Requirements | STS |
 | --- | --- | --- | --- |
@@ -35,7 +37,7 @@ Dependencies: D-02, D-05 and D-07. UI: Sign in and role-appropriate navigation, 
 
 User goal: an Administrator controls platform access without seeing finances. Load a safe identity list, select a user, change enabled state, then retrieve the new state. A rejected safeguard leaves identities unchanged. No administrator financial overview or financial API exception is allowed.
 
-Dependencies: F-01 and D-05/D-07. UI: Platform users list and enabled-state action with loading/success/error feedback. API: GET/PATCH /api/admin/users. Data: update identity access only. Review self/last-administrator safeguards explicitly; they are not borrowed silently from TokTickIT.
+Dependencies: F-01 and accepted D-05/D-07. UI: Platform users list and enabled-state action with loading/success/error feedback. API: GET/PATCH /api/admin/users. Data: update identity access only. The agreed last-enabled-administrator safeguard is recorded in D-05; no financial data is exposed.
 
 | AC | Observable expected outcome | Requirements | STS |
 | --- | --- | --- | --- |
@@ -52,7 +54,7 @@ Dependencies: F-01, D-03/D-04/D-07. UI: Accounts/opening-balance form. API: owne
 | AC | Observable expected outcome | Requirements | STS |
 | --- | --- | --- | --- |
 | AC-09 | Synthetic identities/accounts are reproducible; rerunning seed preserves existing user financial activity | FR-03; BR-12; NFR-04 | TEST-09 |
-| AC-10 | User records and retrieves the proposed opening bank balance/date; account balance matches the independent expected value | FR-04; BR-05/08/10 | TEST-10 |
+| AC-10 | User records and retrieves the opening bank balance/date; balance matches the independent expected value. A transaction date cannot precede the opening date of any balance-bearing account it affects | FR-04; BR-05/08/10 | TEST-10/24 |
 | AC-11 | Opening balance does not appear as salary, income or expense in the selected summary | FR-04; BR-06 | TEST-11 |
 | AC-12 | User B cannot read/change User A's accounts or opening state; responses reveal no private values | BR-01; NFR-01 | TEST-12 |
 
@@ -85,6 +87,14 @@ Dependencies: F-01/F-03, D-03/D-04/D-07 and the shared transaction model with F-
 
 AC-15 and AC-16 also apply to payment/charge inputs, not only salary receipt.
 
+### Shared transaction submission behavior
+
+This criterion applies to the F-04 and F-05 transaction forms. It protects against accidental duplicate submissions in the browser; it does not make the server operation idempotent.
+
+| AC | Observable expected outcome | Requirements | STS |
+| --- | --- | --- | --- |
+| AC-28 | While a transaction POST is pending, rapid repeat activations do not send another request. The client does not automatically retry. If the outcome is ambiguous, the user is told to check transaction history before choosing to submit again; duplicate creation remains possible because Sprint 1 has no server idempotency key. | BR-13; D-04 | TEST-28 |
+
 ## F-06 Balances, summaries and history
 
 User goal: inspect the saved financial outcome and explain its sources. After opening balance, salary, split purchase and repayment, retrieve owned balances, income/expense summary and transaction history. The persisted detail exposes the correct allocation values. A later application restart must preserve these records. Summary period/date comparisons follow D-04.
@@ -96,7 +106,7 @@ Dependencies: F-01/F-03/F-04/F-05 and D-03/D-04/D-07. UI: Financial overview and
 | AC-22 | End-to-end fixture gives bank 29,500, card debt 700, Income 20,000 and Expense 1,200 under the D-03 THB convention | FR-07/08; BR-05/06 | TEST-22 |
 | AC-23 | Fresh history/detail reads return saved forms, totals and complete allocations in the approved stable order | FR-09; BR-01 | TEST-23 |
 | AC-24 | Records at the approved opening/reporting boundaries are included/excluded exactly under D-04; invalid ranges fail safely | FR-08/09; BR-08 | TEST-24 |
-| AC-25 | Required sign-in/transaction/history journeys have labelled keyboard-operable controls and usable loading/error/empty states at the proposed target widths | NFR-03 | TEST-25 |
+| AC-25 | Required sign-in/transaction/history journeys have labelled keyboard-operable controls and usable loading/error/empty states at the 390, 768 and 1280 px target widths | NFR-03 | TEST-25 |
 | AC-26 | The same saved identifiers and financial values survive an actual local application restart; Lab 5 additionally verifies redeployment | NFR-02 | TEST-26 |
 | AC-27 | Clean setup, safe seed, production build and documented tests work at an identified commit with placeholder configuration | NFR-04; BR-12 | TEST-27 |
 
