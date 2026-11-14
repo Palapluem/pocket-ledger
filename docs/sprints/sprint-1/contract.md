@@ -1,6 +1,6 @@
 # Sprint 1 feature engineering contracts
 
-Draft 0.2, prepared 7 November 2026 and updated 13 November. Includes F-01 to F-06. The Better T Stack and first-party signed-JWT authentication (D-02, D-05) are selected; a 3600-second token lifetime and HS256 with `jose` are approved (D-05); runtime/image pins, key rotation, request-protection (Origin/CSRF) details and D-01, D-03, D-04, D-06 and D-07 remain open. This is a reviewable pre-implementation contract. The authentication choices recorded above are approved; the other proposed product policies are not yet accepted by both students. No code, tests or product release are established by this document.
+Draft 0.2, prepared 7 November 2026 and updated 14 November. Includes F-01 to F-06. The Better T Stack and first-party signed-JWT authentication (D-02, D-05) are selected; a 3600-second token lifetime and HS256 with `jose` are approved (D-05); runtime/image pins, JWT key handling and D-03, D-04, D-06 and D-07 are recorded in [team decisions](../../decisions.md) (PR #15); the request-protection mechanism and the course section (D-01) remain open. F-01 and the F-02 backend are implemented on `sprint-1-staging`; F-03 to F-06 are not yet implemented. No product release is established by this document.
 
 ## Contract identity and revision
 
@@ -71,7 +71,7 @@ Dependencies: F-01/F-03, D-03/D-04/D-07. UI: New transaction, Receive form, edit
 
 ## F-05 Payment or charge
 
-User goal: record a 1,200 card purchase split between dining and groceries, then repay 500 from the bank. These are proposed fixture values. Purchase increases debt and Expense once; repayment reduces bank money and card debt without creating a second expense. Retrieve both records and their independent expected balances.
+User goal: record a 1,200 card purchase split between dining and groceries, then repay 500 from the bank. The purchase is a `PAYMENT` with the card (Loan Taken) as primary account; the repayment is a `PAYMENT` from the bank (Cash) allocated to the card. Purchase increases debt and Expense once; repayment reduces bank money and card debt without creating a second expense. Retrieve both records and their independent expected balances.
 
 Dependencies: F-01/F-03, D-03/D-04/D-07 and the shared transaction model with F-04. UI/API/data use the same approved transaction interfaces and preserve distinct form semantics. Validate the complete allocation before committing. Database failure must roll back every persisted part.
 
@@ -93,7 +93,7 @@ Dependencies: F-01/F-03/F-04/F-05 and D-03/D-04/D-07. UI: Financial overview and
 
 | AC | Observable expected outcome | Requirements | STS |
 | --- | --- | --- | --- |
-| AC-22 | End-to-end fixture gives bank 29,500, card debt 700, Income 20,000 and Expense 1,200 under the proposed THB convention | FR-07/08; BR-05/06 | TEST-22 |
+| AC-22 | End-to-end fixture gives bank 29,500, card debt 700, Income 20,000 and Expense 1,200 under the D-03 THB convention | FR-07/08; BR-05/06 | TEST-22 |
 | AC-23 | Fresh history/detail reads return saved forms, totals and complete allocations in the approved stable order | FR-09; BR-01 | TEST-23 |
 | AC-24 | Records at the approved opening/reporting boundaries are included/excluded exactly under D-04; invalid ranges fail safely | FR-08/09; BR-08 | TEST-24 |
 | AC-25 | Required sign-in/transaction/history journeys have labelled keyboard-operable controls and usable loading/error/empty states at agreed widths | NFR-03 | TEST-25 |

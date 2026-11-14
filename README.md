@@ -2,7 +2,7 @@
 
 PocketLedger is a personal finance application for tracking financial accounts, allocated transactions, balances and debt. It is the CPE334 group product for Wisit Suwannao and Natthawat Primsirikunawut, based on Theme 7: Personal Money and Expense Logging System.
 
-**Current stage: draft engineering baseline and Sprint 1 contract review.** The Better T Stack configuration is confirmed; exact runtime/image versions and financial policies remain open. On `sprint-1-staging`, F-01 identity (signed-JWT sign-in, current user, sign-out) is implemented with server API tests and repository CI (PR #12). The F-02 administrator user-management backend and its tests are in review (PR #14). No frontend, accepted `main` release or cloud deployment exists yet. LEB2 group name is **2-Nor**.
+**Current stage: draft engineering baseline and Sprint 1 contract review.** The Better T Stack configuration is confirmed; runtime/image pins and the Sprint 1 financial policies are recorded in [team decisions](docs/decisions.md) (PR #15). On `sprint-1-staging`, F-01 identity (signed-JWT sign-in, current user, sign-out) is implemented with server API tests and repository CI (PR #12). The F-02 administrator user-management backend and its tests are merged (PR #14). No frontend, accepted `main` release or cloud deployment exists yet. LEB2 group name is **2-Nor**.
 
 ## Product scope
 
@@ -22,7 +22,7 @@ Users access their own financial data. Administrators manage platform user accou
 - [System-Level SDS](docs/system-sds.md)
 - [Three-sprint plan and rotating work](docs/sprints/plan.md)
 - [Sprint 1 feature contracts](docs/sprints/sprint-1/contract.md) and [STS/results](docs/sprints/sprint-1/tests.md)
-- [Authentication and setup proposal](docs/sprints/sprint-1/auth-setup-proposal.md) — records the approved JWT choices; key rotation/retention and request-protection details remain open
+- [Authentication and setup proposal](docs/sprints/sprint-1/auth-setup-proposal.md) — records the approved JWT choices; only the request-protection mechanism remains open
 - [Financial vocabulary](GLOSSARY.md)
 - [Contribution and release workflow](CONTRIBUTING.md)
 - [Coordination and handoff](COORDINATION.md)
@@ -63,7 +63,7 @@ Use later sprint staging branches when those sprints begin. Keep related documen
 
 ## Running the application
 
-The team selected Better T Stack with TanStack Router, Elysia, Bun, PostgreSQL and Drizzle ORM. Docker is selected for local database setup and web/server packaging; Biome, Husky and Turborepo are included. API add-ons, payments and examples are disabled. Sprint 1 seeded-user authentication uses a first-party signed JWT instead of Better Auth. See [D-02](docs/decisions.md#d-02-stack-and-reproducible-runtime) and the [System SDS](docs/system-sds.md). On `sprint-1-staging` the server and database packages are scaffolded and F-01 is implemented; the frontend is not built yet. Exact runtime/image versions remain open (D-02).
+The team selected Better T Stack with TanStack Router, Elysia, Bun, PostgreSQL and Drizzle ORM. Docker is selected for local database setup and web/server packaging; Biome, Husky and Turborepo are included. API add-ons, payments and examples are disabled. Sprint 1 seeded-user authentication uses a first-party signed JWT instead of Better Auth. See [D-02](docs/decisions.md#d-02-stack-and-reproducible-runtime) and the [System SDS](docs/system-sds.md). On `sprint-1-staging` the server and database packages are scaffolded and F-01 is implemented; the frontend is not built yet. Bun 1.4.4 and `postgres:18.4` are pinned for local tests and CI; container images follow in Lab 5 (D-02).
 
 Do not run the TokTickIT example deploy scripts against a cloud project without adapting them and reviewing every resource, permission and database operation. The reference kit remains in the [course Lab 5 folder](https://github.com/Palapluem/cpe334-software-engineer-2026/tree/main/labs/Lab05).
 
