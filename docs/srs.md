@@ -1,6 +1,6 @@
 # Software Requirements Specification
 
-PocketLedger, draft 0.1, 7 November 2026. This baseline translates Theme 7 into identified requirements. Assignment-defined behavior is required; policy choices are agreed only where [team decisions](decisions.md) marks them agreed; anything still open requires team review before affected implementation.
+PocketLedger, draft 0.2, 15 November 2026. This baseline translates Theme 7 into identified requirements. Assignment-defined behavior is required; policy choices are agreed only where [team decisions](decisions.md) marks them agreed; anything still open requires team review before affected implementation.
 
 ## Context and actors
 
@@ -67,6 +67,6 @@ These proposed acceptance targets must be reviewed with the system design. They 
 
 ## Assumptions, decisions and acceptance boundary
 
-The team has selected Theme 7 and the PocketLedger name. LEB2 group name is 2-Nor. D-02 to D-07 in the decision register record each item's current status: confirmed choices, proposals pending approval in PR #15, and open items. The course section (D-01) and request-protection mechanism (D-05) remain open. The example fixture is team-chosen data, not an instructor-supplied calculation.
+The team has selected Theme 7 and the PocketLedger name. LEB2 group name is 2-Nor. D-02 to D-07 in the decision register record each item's current status: confirmed choices, proposals pending approval in PR #15, and open items. The course section (D-01), D-05 key-management policy and request-protection mechanism remain open. The example fixture is team-chosen data, not an instructor-supplied calculation.
 
 An accepted Sprint 1 requires the complete agreed journey, actual tests of rules/persistence/access, substantive teammate reviews and a tested release on main. A contract draft or a green documentation check does not establish working product behavior. Later requirements must remain allocated in the feature inventory even when not implemented in Sprint 1.
