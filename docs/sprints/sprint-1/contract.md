@@ -1,6 +1,6 @@
 # Sprint 1 feature engineering contracts
 
-Draft 0.2, prepared 7 November 2026 and updated 14 November. Includes F-01 to F-06. The Better T Stack and first-party signed-JWT authentication (D-02, D-05) are selected; a 3600-second token lifetime and HS256 with `jose` are approved (D-05); runtime/image pins, JWT key handling and D-03, D-04, D-06 and D-07 are recorded in [team decisions](../../decisions.md) (PR #15); the request-protection mechanism and the course section (D-01) remain open. F-01 and the F-02 backend are implemented on `sprint-1-staging`; F-03 to F-06 are not yet implemented. No product release is established by this document.
+Draft 0.2, prepared 7 November 2026 and updated 14 November. Includes F-01 to F-06. The Better T Stack and first-party signed-JWT authentication (D-02, D-05) are selected; a 3600-second token lifetime and HS256 with `jose` are approved (D-05); the D-02 runtime/image pins and D-03, D-04, D-06 and D-07 are proposed in [team decisions](../../decisions.md) (PR #15) pending Wisit's approval; agreed D-05 key handling is recorded there; the request-protection mechanism and the course section (D-01) remain open. F-01 and the F-02 backend are implemented on `sprint-1-staging`; F-03 to F-06 are not yet implemented. No product release is established by this document.
 
 ## Contract identity and revision
 
@@ -52,7 +52,7 @@ Dependencies: F-01, D-03/D-04/D-07. UI: Accounts/opening-balance form. API: owne
 | AC | Observable expected outcome | Requirements | STS |
 | --- | --- | --- | --- |
 | AC-09 | Synthetic identities/accounts are reproducible; rerunning seed preserves existing user financial activity | FR-03; BR-12; NFR-04 | TEST-09 |
-| AC-10 | User records and retrieves the agreed opening bank balance/date; account balance matches the independent expected value | FR-04; BR-05/08/10 | TEST-10 |
+| AC-10 | User records and retrieves the proposed opening bank balance/date; account balance matches the independent expected value | FR-04; BR-05/08/10 | TEST-10 |
 | AC-11 | Opening balance does not appear as salary, income or expense in the selected summary | FR-04; BR-06 | TEST-11 |
 | AC-12 | User B cannot read/change User A's accounts or opening state; responses reveal no private values | BR-01; NFR-01 | TEST-12 |
 
@@ -96,7 +96,7 @@ Dependencies: F-01/F-03/F-04/F-05 and D-03/D-04/D-07. UI: Financial overview and
 | AC-22 | End-to-end fixture gives bank 29,500, card debt 700, Income 20,000 and Expense 1,200 under the D-03 THB convention | FR-07/08; BR-05/06 | TEST-22 |
 | AC-23 | Fresh history/detail reads return saved forms, totals and complete allocations in the approved stable order | FR-09; BR-01 | TEST-23 |
 | AC-24 | Records at the approved opening/reporting boundaries are included/excluded exactly under D-04; invalid ranges fail safely | FR-08/09; BR-08 | TEST-24 |
-| AC-25 | Required sign-in/transaction/history journeys have labelled keyboard-operable controls and usable loading/error/empty states at agreed widths | NFR-03 | TEST-25 |
+| AC-25 | Required sign-in/transaction/history journeys have labelled keyboard-operable controls and usable loading/error/empty states at the proposed target widths | NFR-03 | TEST-25 |
 | AC-26 | The same saved identifiers and financial values survive an actual local application restart; Lab 5 additionally verifies redeployment | NFR-02 | TEST-26 |
 | AC-27 | Clean setup, safe seed, production build and documented tests work at an identified commit with placeholder configuration | NFR-04; BR-12 | TEST-27 |
 

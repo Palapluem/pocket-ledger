@@ -8,23 +8,23 @@ This is the single decision register for PocketLedger. Assignment requirements a
 - Team: Wisit Suwannao (Palapluem) and Natthawat Primsirikunawut (N0TAW00D).
 - LEB2 group name: **2-Nor**, clarified by the student on 7 November 2026. Do not infer a section or a separate group number from this name.
 - The product and course repositories are independent Git roots. The product uses reviewed integration into sprint-1-staging, followed by a reviewed release into main.
-- On 7 November the student requested preparation of the engineering documents and correction of the two report tabs. The student explicitly said that the stack and financial proposals below have **not** been agreed by the team.
+- On 7 November the student requested preparation of the engineering documents and correction of the two report tabs. At that time, the stack and financial proposals had not been agreed. PR #5 later confirmed the stack, and PR #9 recorded the first-party JWT choice. In open PR #15, the D-02 runtime pins and D-01 work split, plus D-03, D-04, D-06 and D-07, remain proposals pending Wisit's review and approval; the 2-Nor group name and D-05 JWT choices were confirmed separately.
 
 | Decision | Owners | Status | Work affected |
 | --- | --- | --- | --- |
-| D-01 Team identifiers and rotating work | Wisit + Natthawat | PARTIAL: group name and Sprint 1 work split agreed in this PR; section open | Submission identity and task ownership |
-| D-02 Stack and reproducible runtime | Wisit + Natthawat | STACK CONFIRMED; FIRST-PARTY JWT SELECTED FOR SPRINT 1; RUNTIME/IMAGE PINS AGREED | System SDS, setup and implementation |
-| D-03 Money, balance signs and account compatibility | Wisit + Natthawat | AGREED FOR SPRINT 1 | Financial contracts and expected values |
-| D-04 Dates, opening balances and correction boundary | Wisit + Natthawat | AGREED FOR SPRINT 1 | History, summaries and validation |
+| D-01 Team identifiers and rotating work | Wisit + Natthawat | PARTIAL: 2-Nor group name confirmed; Sprint 1 work split proposed in PR #15 pending Wisit's approval; section open | Submission identity and task ownership |
+| D-02 Stack and reproducible runtime | Wisit + Natthawat | STACK CONFIRMED; FIRST-PARTY JWT SELECTED FOR SPRINT 1; RUNTIME/IMAGE PINS PROPOSED IN PR #15 | System SDS, setup and implementation |
+| D-03 Money, balance signs and account compatibility | Wisit + Natthawat | PROPOSED FOR SPRINT 1 IN PR #15; PENDING WISIT'S APPROVAL | Financial contracts and expected values |
+| D-04 Dates, opening balances and correction boundary | Wisit + Natthawat | PROPOSED FOR SPRINT 1 IN PR #15; PENDING WISIT'S APPROVAL | History, summaries and validation |
 | D-05 Authentication and deactivation | Wisit + Natthawat | JWT MODEL AGREED; 3600 s + HS256/jose APPROVED; KEY SOURCE/ROTATION AGREED; REQUEST-PROTECTION MECHANISM OPEN | Identity, authorization and administrator contract |
-| D-06 Sprint 1 scope and feature ownership | Wisit + Natthawat | AGREED | Sprint plan and implementation Issues |
-| D-07 Public interfaces and verification | Wisit + Natthawat | AGREED FOR SPRINT 1 EXAMPLES; FEATURE INTERFACES REVIEWED PER FEATURE PR | API/data/UI contract and STS |
+| D-06 Sprint 1 scope and feature ownership | Wisit + Natthawat | PROPOSED IN PR #15; PENDING WISIT'S APPROVAL | Sprint plan and implementation Issues |
+| D-07 Public interfaces and verification | Wisit + Natthawat | EXAMPLE JOURNEY AND VERIFICATION APPROACH PROPOSED IN PR #15; PENDING WISIT'S APPROVAL; FEATURE INTERFACES REVIEWED PER FEATURE PR | API/data/UI contract and STS |
 
 ## D-01 Team identifiers and rotating work
 
 LEB2 group name is 2-Nor. Section and any separate team number remain blank in the report identity table until confirmed. Repository access for N0TAW00D was verified as write access on 7 November; this is access evidence, not a completed contribution.
 
-Both students must participate in design, tests, implementation, agent supervision, review and delivery. Assign bounded features or checks, then rotate. The suggested first work split is an identity/access slice and a financial-transaction slice, with the other student reviewing each. Sprint 1 assignment (agreed): Natthawat implemented F-01 and F-02 with Wisit reviewing; Wisit implements F-03 (accounts and opening balance) and F-04 (receive money) with Natthawat reviewing; Natthawat implements F-05 (split purchase and repayment) and F-06 (balances, history and summary) with Wisit reviewing. Pair work must name both participants in the relevant Issue or PR.
+Both students must participate in design, tests, implementation, agent supervision, review and delivery. Assign bounded features or checks, then rotate. The suggested first work split is an identity/access slice and a financial-transaction slice, with the other student reviewing each. Sprint 1 assignment (proposed in PR #15): Natthawat implemented F-01 and F-02 with Wisit reviewing; Wisit's proposed next work is F-03 (accounts and opening balance) and F-04 (receive money), while Natthawat's proposed next work is F-05 (split purchase and repayment) and F-06 (balances, history and summary), with cross-review by the other student. Wisit's approval of PR #15 will confirm this split. Pair work must name both participants in the relevant Issue or PR.
 
 ## D-02 Stack and reproducible runtime
 
@@ -34,11 +34,11 @@ The repository is a single product workspace. Keep the frontend and Elysia backe
 
 ## D-03 Money, balance signs and account compatibility
 
-Agreed for Sprint 1 (details below): THB only, integer satang, a maximum amount, non-negative opening balances and no overdraft or overpayment.
+Proposed for Sprint 1 in PR #15 (pending Wisit's approval): THB only, integer satang, a maximum amount, non-negative opening balances and no overdraft or overpayment.
 
 Normal balances: Cash is money held; Loan Given is money receivable; Loan Taken is debt owed; Income and Expense record their respective classifications. The effect table in the System SDS makes each sign explicit, including the `PAYMENT` form used both for a payment from Cash and a charge to Loan Taken. All referenced financial accounts must belong to the acting User. An Administrator never gains financial access. The two required transaction forms and their assignment-defined allocation categories must remain supported by the product baseline.
 
-The required property is atomicity: a rejected or failed transaction leaves no partial transaction, allocation or balance effect. Agreed for Sprint 1:
+The required property is atomicity: a rejected or failed transaction leaves no partial transaction, allocation or balance effect. Proposed for Sprint 1 in PR #15 (pending Wisit's approval):
 
 - Amounts: THB only; a transaction or allocation amount is a decimal string greater than 0 with at most two decimal places, parsed exactly into integer satang (no rounding; more decimals are rejected). Maximum single amount 1,000,000,000.00 THB; store satang as `bigint`.
 - Forms: `PAYMENT` has a Cash primary account (payment) or a Loan Taken primary account (charge, for example a credit-card purchase); `RECEIVE` has a Cash primary account. Any other primary type is rejected.
@@ -48,9 +48,9 @@ The required property is atomicity: a rejected or failed transaction leaves no p
 
 ## D-04 Dates, opening balances and correction boundary
 
-Agreed: dates are calendar dates in YYYY-MM-DD form, interpreted in Asia/Bangkok, with inclusive from/to ranges for history and summaries. an opening balance is an amount greater than or equal to 0 with an opening date. A transaction date must be on or after the primary account's opening date and not later than the current date in Asia/Bangkok; future dates are rejected. The opening balance and date may be changed after activity exists, because balances are derived; the change is rejected if it would make any later balance negative or place an existing transaction before the opening date.
+Proposed in PR #15 (pending Wisit's approval): dates are calendar dates in YYYY-MM-DD form, interpreted in Asia/Bangkok, with inclusive from/to ranges for history and summaries. An opening balance is an amount greater than or equal to 0 with an opening date. A transaction date must be on or after the primary account's opening date and not later than the current date in Asia/Bangkok; future dates are rejected. The opening balance and date may be changed after activity exists, because balances are derived; the change is rejected if it would make any later balance negative or place an existing transaction before the opening date.
 
-Agreed: Sprint 1 creates transactions only, with no idempotency key; the UI disables submission while a request is in flight. Sprint 2 adds transaction correction by edit with derived balances recalculated (its contract is written then). Sprint 3 adds the duplicate feature. This deferral must not remove correction from the product baseline.
+Proposed in PR #15 (pending Wisit's approval): Sprint 1 creates transactions only, with no idempotency key; the UI disables submission while a request is in flight. Sprint 2 adds transaction correction by edit with derived balances recalculated (its contract is written then). Sprint 3 adds the duplicate feature. This deferral must not remove correction from the product baseline.
 
 ## D-05 Authentication and deactivation
 
@@ -62,9 +62,9 @@ Use an adaptive one-way password hash from a trusted library, never reversible p
 
 ## D-06 Sprint 1 scope and feature ownership
 
-Agreed: F-01 to F-06 provide login/logout, minimal enable/disable administration, reproducible bank/card/income/expense accounts, opening bank balance, salary receipt, a split credit-card purchase, bank-to-card repayment, and balances/summary/history. The approved baseline must still allocate all five account types and later correction/search/favourite/duplicate behavior across the three sprints.
+Proposed in PR #15 (pending Wisit's approval): F-01 to F-06 provide login/logout, minimal enable/disable administration, reproducible bank/card/income/expense accounts, opening bank balance, salary receipt, a split credit-card purchase, bank-to-card repayment, and balances/summary/history. The approved baseline must still allocate all five account types and later correction/search/favourite/duplicate behavior across the three sprints.
 
-Seeded financial accounts are permitted by the assignment's Sprint 1 example. The UI for managing every account type belongs to Sprint 2; creating the opening bank balance remains a Sprint 1 user action. Agreed: this boundary and the assignment in D-01.
+Seeded financial accounts are permitted by the assignment's Sprint 1 example. The UI for managing every account type belongs to Sprint 2; creating the opening bank balance remains a proposed Sprint 1 user action. This boundary and the assignment in D-01 remain pending Wisit's approval of PR #15.
 
 ## D-07 Public interfaces and verification
 
@@ -74,14 +74,14 @@ Use unit checks for financial logic, API tests against an isolated real database
 
 ## Agreement and revision record
 
-| Decision | Agreed answer and rationale | Student confirmations / review link | Date / contract revision |
+| Decision | Proposed or agreed answer and rationale | Student confirmations / review link | Date / contract revision |
 | --- | --- | --- | --- |
-| D-01 remaining identifiers and work split | Sprint 1 split: F-01/F-02 Natthawat, F-03/F-04 Wisit, F-05/F-06 Natthawat; the other student reviews. Section remains open | Natthawat proposed; Wisit confirms by approving this PR (Issue #2) | 14 November 2026 |
-| D-02 | Better T Stack selected; first-party stateless JWT selected for Sprint 1 seeded-user authentication; pins Bun 1.4.4 (`oven/bun:1.4.4`) and `postgres:18.4` | Natthawat authored PR #5; Wisit approved the stack; both students accepted the JWT limits recorded in PR #9 | 13 November 2026; D-02 update in PR #9; pins proposed 14 November 2026, confirmed by Wisit's approval of this PR (Issue #2) |
+| D-01 remaining identifiers and work split | Proposed Sprint 1 split: F-01/F-02 were implemented by Natthawat with Wisit reviewing; proposed F-03/F-04 Wisit and F-05/F-06 Natthawat, each cross-reviewed. Section remains open | Natthawat proposed; Wisit confirms by approving this PR (Issue #2) | 14 November 2026 |
+| D-02 | Better T Stack selected; first-party stateless JWT selected for Sprint 1 seeded-user authentication; proposed pins are Bun 1.4.4 and `postgres:18.4` | Natthawat authored PR #5; Wisit approved the stack; both students accepted the JWT limits recorded in PR #9 | 13 November 2026; D-02 update in PR #9; pins proposed 14 November 2026, confirmed by Wisit's approval of this PR (Issue #2) |
 | D-03 | THB integer satang, 0 < amount ≤ 1,000,000,000.00, two decimals; PAYMENT from Cash or Loan Taken (charge), RECEIVE into Cash; exact allocation sum, owned and type-compatible accounts, one line per account, none on the primary, mixed types allowed, no negative Cash/debt/receivable balances, atomic rejection | Natthawat proposed; Wisit confirms by approving this PR (Issue #1) | 14 November 2026 |
 | D-04 | Opening ≥ 0 with date; transaction date between opening date and today (Asia/Bangkok); opening editable if no balance goes negative; correction S2, duplicate S3, no S1 idempotency | Natthawat proposed; Wisit confirms by approving this PR (Issue #1) | 14 November 2026 |
 | D-05 | Stateless JWT; logout clears the current browser cookie only; copied tokens and old role/account state remain usable until expiry while the signing key is accepted. Approved: 3600-second lifetime, HS256 with `jose`. Key from `JWT_SECRET`; manual rotation invalidates all tokens; no previous key retained. Request-protection mechanism remains open. | Both students accepted the stated limits; PR #9 records the behavior | 13 November 2026; D-05 update in PR #9; lifetime and algorithm approved by Palapluem in the PR #10 and #12 reviews |
 | D-06 | F-01 to F-06 Sprint 1 boundary with the D-01 assignment | Natthawat proposed; Wisit confirms by approving this PR (Issue #1) | 14 November 2026 |
 | D-07 | Sprint 1 journey and expected values are the STS fixture (opening bank 10,000; salary 20,000; card purchase 1,200 split 700/500; repayment 500). Each feature's routes and DTOs follow the System SDS and are reviewed in that feature's PR before its tests | Natthawat proposed; Wisit confirms by approving this PR (Issue #1) | 14 November 2026 |
 
-Draft preparation: 7 November 2026; status updated 12 November after PRs #5–#7 and 14 November in PR #15. Track D-01, D-05 and the D-02 runtime/image pin in Issue #2; track D-03, D-04, D-06 and D-07 in Issue #1. Keep both Issues open until their actual completion conditions are met. PR #4 established the documentation baseline, PR #5 recorded the selected stack, and PR #6 added an auth/setup proposal. PR #7 was approved by Palapluem and merged into `sprint-1-staging` at `3e8bc5f` as a session-policy/API proposal, later superseded by the JWT decision in PR #9. F-01 (PR #12) and the F-02 backend (PR #14) are implemented on `sprint-1-staging`; no `main` release exists.
+Draft preparation: 7 November 2026; status updated 12 November after PRs #5–#7 and 14 November in PR #15. PR #15 proposes the D-01 work split and D-02 pins for Issue #2, and D-03, D-04, D-06 and D-07 for Issue #1. Keep both Issues open until the proposals are approved and their completion conditions are met. PR #4 established the documentation baseline, PR #5 recorded the selected stack, and PR #6 added an auth/setup proposal. PR #7 was approved by Palapluem and merged into `sprint-1-staging` at `3e8bc5f` as a session-policy/API proposal, later superseded by the JWT decision in PR #9. F-01 (PR #12) and the F-02 backend (PR #14) are implemented on `sprint-1-staging`; no `main` release exists.

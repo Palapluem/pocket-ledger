@@ -1,6 +1,6 @@
 # System-Level Software Design Specification
 
-Draft 0.4, 14 November 2026. Better T Stack and first-party stateless JWT for Sprint 1 seeded-user authentication are selected; runtime/image pins are recorded in D-02. F-01 and the F-02 backend are implemented on `sprint-1-staging`; the financial features are not yet implemented. D-03 to D-07 in [team decisions](decisions.md) govern the remaining product choices. The SRS defines the required product behavior.
+Draft 0.4, 14 November 2026. Better T Stack and first-party stateless JWT for Sprint 1 seeded-user authentication are selected; runtime/image pins are recorded in D-02. F-01 and the F-02 backend are implemented on `sprint-1-staging`; the financial features are not yet implemented. D-02 runtime/image pins and D-03, D-04, D-06 and D-07 are proposed in open PR #15 and pending Wisit's approval; D-05 JWT choices were approved earlier, but its request-protection mechanism remains open. Treat the dependent financial rules, feature split and interfaces below as proposals until that review is complete. The SRS defines the required product behavior.
 
 ## Architecture and responsibilities
 
@@ -16,7 +16,7 @@ TanStack Router browser UI
 
 The browser owns input presentation and feedback. The Elysia application verifies the signed JWT, enforces product permissions and ownership, validates the complete transaction and controls the database transaction through Drizzle. PostgreSQL persists users, financial accounts, transactions and allocation lines. Client-supplied owner or role values never establish authority. Core claims are sub, displayName, role, iss, aud, iat and exp; confirm their exact names/types and verification settings in the implementation contract. D-05 approves a 3600-second lifetime, HS256 signing with `jose`, issuer `pocket-ledger` and audience `pocket-ledger-web`.
 
-Balances are proposed to be derived from opening balances and persisted transaction/allocation effects rather than maintained in a second mutable balance cache. A query must use the same agreed sign rules as the domain contract. Test expected values must be independently calculated. If the team chooses a cache or a different persistence model, document its atomicity and reconciliation before implementation.
+Balances are proposed to be derived from opening balances and persisted transaction/allocation effects rather than maintained in a second mutable balance cache. A query must use the same sign rules specified by the proposed D-03 domain contract. Test expected values must be independently calculated. If the team chooses a cache or a different persistence model, document its atomicity and reconciliation before implementation.
 
 ## Major data model
 
@@ -33,7 +33,7 @@ Use foreign keys and, where supported, owner/account composite references so cro
 
 ## Money representation and effect matrix
 
-D-03 records THB with two decimal places, amounts greater than 0 and at most 1,000,000,000.00, parsed exactly into integer satang (`bigint`); do not use binary floating-point arithmetic. Opening balances are at least 0, and a transaction that would make a Cash, Loan Taken or Loan Given balance negative is rejected atomically (D-03, D-04). The two transaction forms are `PAYMENT` ("Make a payment or record a charge") and `RECEIVE` ("Receive money"). A `PAYMENT` whose primary account is Cash is a payment; one whose primary account is Loan Taken (for example a credit card) is a charge. `RECEIVE` requires a Cash primary account. The following normal-balance convention defines each effect's sign.
+Proposed D-03 in PR #15 specifies THB with two decimal places, amounts greater than 0 and at most 1,000,000,000.00, parsed exactly into integer satang (`bigint`); do not use binary floating-point arithmetic. Opening balances are at least 0, and a transaction that would make a Cash, Loan Taken or Loan Given balance negative is rejected atomically (D-03, D-04). The two transaction forms are `PAYMENT` ("Make a payment or record a charge") and `RECEIVE` ("Receive money"). A `PAYMENT` whose primary account is Cash is a payment; one whose primary account is Loan Taken (for example a credit card) is a charge. `RECEIVE` requires a Cash primary account. The following normal-balance convention defines each effect's sign.
 
 | Form / side | Account type | Change to its normal balance |
 | --- | --- | --- |
@@ -49,7 +49,7 @@ D-03 records THB with two decimal places, amounts greater than 0 and at most 1,0
 | Receive allocation | Loan Taken | Plus allocation (new borrowing) |
 | Receive allocation | Cash | Minus allocation (transfer sent) |
 
-Income/expense summaries include only their relevant classification effects within the agreed date range. Opening balances, transfers, borrowing and debt repayments are excluded. The PAYMENT allocation rows apply to both a Cash and a Loan Taken primary account; for example, a card charge allocates to Expense, and a bank-to-card repayment is a PAYMENT from Cash allocated to the card (Loan Taken). Allocation rules (D-03): at least one line; each line references a different owned account; no line references the primary account; mixed lines of different allowed types in one transaction are allowed (for example Expense plus Loan Taken repayment); any other form/type combination, including an Income or Expense primary account, is rejected. Sprint 1 tests the salary, card-charge and repayment combinations; Sprint 2 completes tests for the remaining allowed combinations.
+Income/expense summaries include only their relevant classification effects within the selected date range proposed in D-04. Opening balances, transfers, borrowing and debt repayments are excluded. The PAYMENT allocation rows apply to both a Cash and a Loan Taken primary account; for example, a card charge allocates to Expense, and a bank-to-card repayment is a PAYMENT from Cash allocated to the card (Loan Taken). Allocation rules (D-03): at least one line; each line references a different owned account; no line references the primary account; mixed lines of different allowed types in one transaction are allowed (for example Expense plus Loan Taken repayment); any other form/type combination, including an Income or Expense primary account, is rejected. Sprint 1 tests the salary, card-charge and repayment combinations; Sprint 2 completes tests for the remaining allowed combinations.
 
 ## Role and ownership matrix
 
@@ -99,7 +99,7 @@ These are draft public interfaces, not existing endpoints. Monetary DTO fields a
 | PUT /api/accounts/:id/opening-balance | amount/date -> updated owned opening state | User only; safe 404 outside scope; opening/date/amount errors |
 | POST /api/transactions | form, primaryAccountId, date, total, allocations, optional memo -> 201 saved transaction | User only; reject mismatched total, incompatible/foreign accounts, invalid amount/date; atomic failure |
 | GET /api/transactions and /api/transactions/:id | -> owned history or saved transaction with allocations | User only; safe 404 for inaccessible detail; later search/pagination specified separately |
-| GET /api/summary?from=...&to=... | -> owned balances, income and expense for the agreed period | User only; validate range; no administrator/global aggregation |
+| GET /api/summary?from=...&to=... | -> owned balances, income and expense for the proposed reporting period | User only; validate range; no administrator/global aggregation |
 
 Card charge example (PAYMENT with a Loan Taken primary account, allocated to two Expense accounts):
 
