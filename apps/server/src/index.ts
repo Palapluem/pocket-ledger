@@ -1,4 +1,3 @@
-import { cors } from "@elysiajs/cors";
 import { createDb } from "@pocket-ledger/db";
 
 import { createApp } from "./app";
@@ -12,14 +11,6 @@ const app = createApp({
 	secureCookie: config.secureCookie,
 });
 
-app
-	.use(
-		cors({
-			origin: config.allowedOrigin,
-			methods: ["GET", "POST", "DELETE", "OPTIONS"],
-			credentials: true,
-		}),
-	)
-	.listen(config.port, () => {
-		console.log(`Server is running on port ${config.port}`);
-	});
+app.listen(config.port, () => {
+	console.log(`Server is running on port ${config.port}`);
+});

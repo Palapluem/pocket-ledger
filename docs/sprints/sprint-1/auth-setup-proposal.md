@@ -29,7 +29,7 @@ This is the team's product-design choice, not a course requirement. PD1 and Lab 
 - Use an HttpOnly, SameSite=Lax cookie and enable Secure under HTTPS. SameSite is one CSRF defense, not the only one. Because cookies are sent automatically, restrict credentialed requests to configured origins and protect unsafe requests against CSRF.
 - Do not log or publish bearer tokens. JWT signature validation protects integrity, not confidentiality.
 
-## Decisions to record before implementation
+## Decisions recorded for F-01
 
 | Decision | Review point |
 | --- | --- |
@@ -81,9 +81,10 @@ These values are used by the F-01 implementation (Issue #11). The 3600-second li
 - Test safety: integration tests refuse to run unless `TEST_DATABASE_URL` is the disposable database created by `scripts/test-db.sh`: a loopback host, port 55432 (or `TEST_DB_PORT`) and database `pocket_ledger_test`.
 - CI: `.github/workflows/ci.yml` runs type check, Biome and the integration tests against a PostgreSQL 18 service container on pull requests and pushes to `main` and `sprint-1-staging`. Required-check names are configured only after the jobs have run on GitHub.
 - Interface as proposed above: `POST/GET/DELETE /api/session`; no signup route.
+- Administration (F-02, Issue #13): `GET /api/admin/users` and `PATCH /api/admin/users/:id` with `{ "enabled": boolean }`, Administrator role claim required (`401 UNAUTHENTICATED`, `403 FORBIDDEN`). Approved safeguard: the last enabled administrator cannot be disabled. The server checks current database state inside one transaction (enabled administrator rows locked in id order), not the token's role snapshot, and rejects with `409 LAST_ADMIN_FORBIDDEN`. An administrator may disable their own account while another enabled administrator remains. CORS allows `GET, POST, PATCH, DELETE, OPTIONS` from the configured origin with credentials, verified by a preflight test. AC-08 is deferred until financial endpoints exist.
 
 Evidence for these choices comes only from the automated tests in the PR, not from this document.
 
 ## Implementation gate
 
-Before implementation, record the remaining open D-05 item (signing-key rotation/retention) and review the public interface in D-07; keep the System SDS, Sprint 1 contract and STS consistent with this decision. Then implement on a bounded branch from current staging and request the other teammate's review. Keep generated Better Auth routes and dependencies out of the Sprint 1 authentication path; inspect the actual scaffold before removing unused generated pieces.
+F-01 authentication is implemented and merged into `sprint-1-staging` (PR #12, merge `ed9bf57`). For future changes to authentication, record any change to the open D-05 items (signing-key rotation/retention and request-protection details) and the public interface in D-07 first, and keep the System SDS, Sprint 1 contract and STS consistent with this decision. Implement each change on a bounded branch from current staging and request the other teammate's review. Keep generated Better Auth routes and dependencies out of the Sprint 1 authentication path.
