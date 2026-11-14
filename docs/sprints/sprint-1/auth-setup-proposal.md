@@ -29,7 +29,7 @@ This is the team's product-design choice, not a course requirement. PD1 and Lab 
 - Use an HttpOnly, SameSite=Lax cookie and enable Secure under HTTPS. SameSite is one CSRF defense, not the only one. Because cookies are sent automatically, restrict credentialed requests to configured origins and protect unsafe requests against CSRF.
 - Do not log or publish bearer tokens. JWT signature validation protects integrity, not confidentiality.
 
-## Decisions to record before implementation
+## Decisions recorded for F-01
 
 | Decision | Review point |
 | --- | --- |
@@ -87,4 +87,4 @@ Evidence for these choices comes only from the automated tests in the PR, not fr
 
 ## Implementation gate
 
-Before implementation, record the remaining open D-05 item (signing-key rotation/retention) and review the public interface in D-07; keep the System SDS, Sprint 1 contract and STS consistent with this decision. Then implement on a bounded branch from current staging and request the other teammate's review. Keep generated Better Auth routes and dependencies out of the Sprint 1 authentication path; inspect the actual scaffold before removing unused generated pieces.
+F-01 authentication is implemented and merged into `sprint-1-staging` (PR #12, merge `ed9bf57`). For future changes to authentication, record any change to the open D-05 items (signing-key rotation/retention and request-protection details) and the public interface in D-07 first, and keep the System SDS, Sprint 1 contract and STS consistent with this decision. Implement each change on a bounded branch from current staging and request the other teammate's review. Keep generated Better Auth routes and dependencies out of the Sprint 1 authentication path.
