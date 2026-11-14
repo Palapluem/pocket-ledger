@@ -67,6 +67,6 @@ These proposed acceptance targets must be reviewed with the system design. They 
 
 ## Assumptions, decisions and acceptance boundary
 
-The team has selected Theme 7 and the PocketLedger name. LEB2 group name is 2-Nor. Section, runtime, financial/date rules, authentication token lifetime/signing details, public interfaces and feature ownership remain in D-01 to D-07. The example fixture is proposed data, not an instructor-supplied calculation.
+The team has selected Theme 7 and the PocketLedger name. LEB2 group name is 2-Nor. Section, runtime, financial/date rules, signing-key rotation/retention, public interfaces and feature ownership remain in D-01 to D-07. The example fixture is proposed data, not an instructor-supplied calculation.
 
 An accepted Sprint 1 requires the complete agreed journey, actual tests of rules/persistence/access, substantive teammate reviews and a tested release on main. A contract draft or a green documentation check does not establish working product behavior. Later requirements must remain allocated in the feature inventory even when not implemented in Sprint 1.
