@@ -14,9 +14,9 @@ This design has no server-side session table, refresh token or revocation list. 
 
 ### Accepted behavior and limits
 
-- **Logout:** clear the cookie in the current browser and return success. A copied token cannot be revoked by that action and remains usable until its expiry while its signing key is accepted. Retiring the signing key can invalidate outstanding tokens earlier; define key-retention/rotation behavior before implementation.
+- **Logout:** clear the cookie in the current browser and return success. A copied token cannot be revoked by that action and remains usable until its expiry while its signing key is accepted. Retiring the signing key can invalidate outstanding tokens earlier; the key rotation/retention behavior remains an open item.
 - **Role or account changes:** a role change or account disable does not invalidate an already-issued token while its signing key remains accepted. A new sign-in uses the current user record; a disabled user cannot receive a new token.
-- **Expiry:** the JWT expiry is the session limit. The duration must be agreed before implementation. No refresh token or idle-timeout mechanism is included in this small slice.
+- **Expiry:** the JWT expiry is the session limit. The approved duration is 3600 seconds. No refresh token or idle-timeout mechanism is included in this small slice.
 - **Recovery:** if account-disable or role changes must take effect immediately, load the current user state on each protected request (at the cost of a database read). If logout must revoke copied tokens immediately, replace this stateless design with a server-side session or revocation mechanism and update D-05 first.
 
 This is the team's product-design choice, not a course requirement. PD1 and Lab 5 do not prescribe Better Auth, JWT or a token-storage method. The team should check with the instructor only if given a separate stack instruction. Follow the [OWASP JWT guidance](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_Cheat_Sheet.html); signed JWT claims are readable, not encrypted ([RFC 7519](https://www.rfc-editor.org/rfc/rfc7519.html)).
@@ -53,7 +53,7 @@ Error responses use a stable code and safe message without account-existence or 
 
 ## Verification plan
 
-Before implementation, agree exact status codes, token lifetime, cookie settings and test interfaces. Then independently verify:
+The 3600-second lifetime and HS256 with `jose` are approved and implemented; exact status codes, cookie settings and test interfaces are reviewed in D-07. Then independently verify:
 
 1. Valid seeded credentials issue a token with the expected subject and role; invalid credentials and a disabled identity do not issue one.
 2. Missing, expired, tampered, wrong-algorithm, wrong-issuer and wrong-audience tokens are rejected.
@@ -86,4 +86,4 @@ Evidence for these choices comes only from the automated tests in the PR, not fr
 
 ## Implementation gate
 
-Before implementation, agree the remaining D-05 token-lifetime/signing values and review the public interface in D-07; keep the System SDS, Sprint 1 contract and STS consistent with this decision. Then implement on a bounded branch from current staging and request the other teammate's review. Keep generated Better Auth routes and dependencies out of the Sprint 1 authentication path; inspect the actual scaffold before removing unused generated pieces.
+Before implementation, record the remaining open D-05 item (signing-key rotation/retention) and review the public interface in D-07; keep the System SDS, Sprint 1 contract and STS consistent with this decision. Then implement on a bounded branch from current staging and request the other teammate's review. Keep generated Better Auth routes and dependencies out of the Sprint 1 authentication path; inspect the actual scaffold before removing unused generated pieces.
