@@ -4,7 +4,7 @@ Draft 0.3, 13 November 2026. Better T Stack and first-party stateless JWT for Sp
 
 ## Architecture and responsibilities
 
-Use a modular monolith with three logical layers. The team selected Better T Stack configured with TanStack Router for the frontend, Elysia for the backend, Bun as runtime and package manager, PostgreSQL with Drizzle ORM, Docker for local database setup and web/server deployment packaging, and Biome, Husky and Turborepo add-ons. Better Auth was part of the initial preset choice; for Sprint 1 seeded-user authentication, the team selected first-party stateless JWT instead. API add-ons, payments and examples are disabled. D-02 records the confirmed stack; exact supported runtime/image versions and implementation contracts remain open. The application has not been scaffolded. Three logical layers do not require three servers or microservices.
+Use a modular monolith with three logical layers. The team selected Better T Stack configured with TanStack Router for the frontend, Elysia for the backend, Bun as runtime and package manager, PostgreSQL with Drizzle ORM, Docker for local database setup and web/server deployment packaging, and Biome, Husky and Turborepo add-ons. Better Auth was part of the initial preset choice; for Sprint 1 seeded-user authentication, the team selected first-party stateless JWT instead. API add-ons, payments and examples are disabled. D-02 records the confirmed stack; exact supported runtime/image versions and implementation contracts remain open. The server and database packages are scaffolded on `sprint-1-staging`; the frontend is not yet built. Three logical layers do not require three servers or microservices.
 
 ```text
 TanStack Router browser UI
@@ -14,7 +14,7 @@ TanStack Router browser UI
            -> Drizzle ORM -> PostgreSQL
 ```
 
-The browser owns input presentation and feedback. The Elysia application verifies the signed JWT, enforces product permissions and ownership, validates the complete transaction and controls the database transaction through Drizzle. PostgreSQL persists users, financial accounts, transactions and allocation lines. Client-supplied owner or role values never establish authority. Core claims are sub, displayName, role, iss, aud, iat and exp; confirm their exact names/types and verification settings in the implementation contract. Expiry duration remains open.
+The browser owns input presentation and feedback. The Elysia application verifies the signed JWT, enforces product permissions and ownership, validates the complete transaction and controls the database transaction through Drizzle. PostgreSQL persists users, financial accounts, transactions and allocation lines. Client-supplied owner or role values never establish authority. Core claims are sub, displayName, role, iss, aud, iat and exp; confirm their exact names/types and verification settings in the implementation contract. D-05 approves a 3600-second lifetime, HS256 signing with `jose`, issuer `pocket-ledger` and audience `pocket-ledger-web`.
 
 Balances are proposed to be derived from opening balances and persisted transaction/allocation effects rather than maintained in a second mutable balance cache. A query must use the same agreed sign rules as the domain contract. Test expected values must be independently calculated. If the team chooses a cache or a different persistence model, document its atomicity and reconciliation before implementation.
 
@@ -64,9 +64,9 @@ Proposed error precedence: establish authentication; enforce role; validate stru
 
 ## Authentication and configuration
 
-D-05 records the selected first-party stateless signed JWT in an HttpOnly cookie for Sprint 1 seeded-user authentication. The JWT expiry duration remains open. Logout clears the browser cookie but cannot revoke a copied token before expiry while its signing key remains accepted; role changes and account disable likewise do not affect an existing token until expiry. Retiring a signing key can invalidate outstanding tokens earlier. Validate signature, fixed algorithm, issuer, audience and expiry. Use HttpOnly, SameSite=Lax and Secure under HTTPS; agree allowed origins and CSRF details for local/deployed use before implementation.
+D-05 records the selected first-party stateless signed JWT in an HttpOnly cookie for Sprint 1 seeded-user authentication. The approved lifetime is 3600 seconds, signed with HS256 using `jose`. Logout clears the browser cookie but cannot revoke a copied token before expiry while its signing key remains accepted; role changes and account disable likewise do not affect an existing token until expiry. Retiring a signing key can invalidate outstanding tokens earlier. Validate signature, fixed algorithm, issuer, audience and expiry. Use HttpOnly, SameSite=Lax and Secure under HTTPS; cookie-authenticated writes must be protected against cross-site requests; the exact mechanism, missing-`Origin` handling and signing-key rotation/retention remain open.
 
-The [auth/setup proposal](sprints/sprint-1/auth-setup-proposal.md) records the selected JWT scope and accepted logout/account-change limits. Expiry and signing details still require agreement before implementation.
+The [auth/setup proposal](sprints/sprint-1/auth-setup-proposal.md) records the selected JWT scope and accepted logout/account-change limits. The lifetime and signing choices are approved; only key rotation/retention and request-protection details remain open.
 
 Keep real credentials outside Git and the report. The first implementation supplies placeholder configuration for database connection, session/cookie settings, allowed origin, runtime port and any seed identity inputs. Actual variable names, defaults and required/secret classifications are recorded in .env.example and deployment.md when selected; no runtime command is invented in this draft.
 

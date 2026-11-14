@@ -2,7 +2,7 @@
 
 PocketLedger is a personal finance application for tracking financial accounts, allocated transactions, balances and debt. It is the CPE334 group product for Wisit Suwannao and Natthawat Primsirikunawut, based on Theme 7: Personal Money and Expense Logging System.
 
-**Current stage: draft engineering baseline and Sprint 1 contract review.** The Better T Stack configuration is confirmed; exact runtime/image versions and financial policies remain open. Application implementation, automated product tests, accepted sprint releases and cloud deployment have not started. LEB2 group name is **2-Nor**.
+**Current stage: draft engineering baseline and Sprint 1 contract review.** The Better T Stack configuration is confirmed; exact runtime/image versions and financial policies remain open. On `sprint-1-staging`, F-01 identity (signed-JWT sign-in, current user, sign-out) is implemented with server API tests and repository CI (PR #12). The F-02 administrator user-management backend and its tests are in review (PR #14). No frontend, accepted `main` release or cloud deployment exists yet. LEB2 group name is **2-Nor**.
 
 ## Product scope
 
@@ -22,7 +22,7 @@ Users access their own financial data. Administrators manage platform user accou
 - [System-Level SDS](docs/system-sds.md)
 - [Three-sprint plan and rotating work](docs/sprints/plan.md)
 - [Sprint 1 feature contracts](docs/sprints/sprint-1/contract.md) and [STS/results](docs/sprints/sprint-1/tests.md)
-- [Authentication and setup proposal](docs/sprints/sprint-1/auth-setup-proposal.md) — pending team decisions; not implementation approval
+- [Authentication and setup proposal](docs/sprints/sprint-1/auth-setup-proposal.md) — records the approved JWT choices; key rotation/retention and request-protection details remain open
 - [Financial vocabulary](GLOSSARY.md)
 - [Contribution and release workflow](CONTRIBUTING.md)
 - [Coordination and handoff](COORDINATION.md)
