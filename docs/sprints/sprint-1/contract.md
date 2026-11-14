@@ -29,7 +29,7 @@ Dependencies: D-02, D-05 and D-07. UI: Sign in and role-appropriate navigation, 
 | AC-02 | Wrong/unknown/disabled identity receives the approved safe login failure; no session or private data is returned | FR-01; BR-11; NFR-01 | TEST-02 |
 | AC-03 | Anonymous callers and callers with an invalid, tampered or expired credential cannot reach protected operations | FR-01; BR-01/02; NFR-01 | TEST-03 |
 | AC-04 | After logout the browser no longer holds a credential and cannot retrieve protected financial or administration data; copied-token reuse follows D-05 | FR-01; NFR-01 | TEST-04 |
-| AC-05 | Disabling a User blocks new login; the effect on an already-issued credential follows D-05 | FR-01/02; BR-11 | TEST-05 |
+| AC-05 | Disabling a User blocks new login; the effect on an already-issued credential follows D-05 (it remains usable until expiry while its signing key is accepted) | FR-01/02; BR-11 | TEST-05 |
 
 ## F-02 Platform user administration
 
