@@ -16,7 +16,7 @@ This is the single decision register for PocketLedger. Assignment requirements a
 | D-02 Stack and reproducible runtime | Wisit + Natthawat | STACK CONFIRMED; FIRST-PARTY JWT SELECTED FOR SPRINT 1; RUNTIME/IMAGE PIN OPEN | System SDS, setup and implementation |
 | D-03 Money, balance signs and account compatibility | Wisit + Natthawat | PROPOSED | Financial contracts and expected values |
 | D-04 Dates, opening balances and correction boundary | Wisit + Natthawat | PROPOSED | History, summaries and validation |
-| D-05 Authentication and deactivation | Wisit + Natthawat | JWT MODEL AGREED; EXPIRY/SIGNING DETAILS OPEN | Identity, authorization and administrator contract |
+| D-05 Authentication and deactivation | Wisit + Natthawat | JWT MODEL AGREED; 3600 s + HS256/jose APPROVED; KEY ROTATION AND REQUEST PROTECTION OPEN | Identity, authorization and administrator contract |
 | D-06 Sprint 1 scope and feature ownership | Wisit + Natthawat | PROPOSED | Sprint plan and implementation Issues |
 | D-07 Public interfaces and verification | Wisit + Natthawat | PROPOSED | API/data/UI contract and STS |
 
@@ -48,9 +48,9 @@ Proposal: Sprint 1 records the opening bank balance and permits new transactions
 
 ## D-05 Authentication and deactivation
 
-Agreed Sprint 1 model: first-party stateless signed JWT in an HttpOnly cookie for seeded-user sign-in. The JWT carries the user identifier, display name and role snapshot plus standard issuer, audience, issue-time and expiry claims. Its expiry duration, signing library and fixed algorithm remain open until recorded.
+Agreed Sprint 1 model: first-party stateless signed JWT in an HttpOnly cookie for seeded-user sign-in. The JWT carries the user identifier, display name and role snapshot plus standard issuer, audience, issue-time and expiry claims. Approved by Wisit: a 3600-second lifetime, HS256 as the fixed algorithm and the `jose` library. Signing-key rotation/retention and request-protection details (Origin/CSRF, including missing-`Origin` handling) remain open.
 
-This simple design has no server-side session row, refresh token or revocation list. Logout clears the current browser cookie; a copied token remains valid until expiry. A role change or account disable does not affect an existing token before expiry while its signing key remains accepted; new sign-ins use the current user record. Do not claim immediate revocation or current-account checks on every request. Both students accept these limits; record the token lifetime and signing details in D-05 before implementation. Change the design if immediate effect becomes necessary.
+This simple design has no server-side session row, refresh token or revocation list. Logout clears the current browser cookie; a copied token remains valid until expiry. A role change or account disable does not affect an existing token before expiry while its signing key remains accepted; new sign-ins use the current user record. Do not claim immediate revocation or current-account checks on every request. Both students accept these limits; Wisit approved a 3600-second lifetime and HS256 with the `jose` library. Key rotation and request-protection details (Origin/CSRF, including missing-`Origin` handling) remain open and are recorded in D-05 before they are relied on. Change the design if immediate effect becomes necessary.
 
 Use an adaptive one-way password hash from a trusted library, never reversible password encryption. Protect the JWT in an HttpOnly, SameSite=Lax cookie and enable Secure under HTTPS. Define signing-key rotation and retention. Validate signature, fixed algorithm, issuer, audience and expiry; protect cookie-authenticated writes against cross-site requests. Seeded identities are sufficient. Public signup, email delivery and password recovery are outside Sprint 1. This is the team's selected design, not a course requirement or an implementation result.
 
@@ -74,7 +74,7 @@ Use unit checks for financial logic, API tests against an isolated real database
 | D-02 | Better T Stack selected; first-party stateless JWT selected for Sprint 1 seeded-user authentication; runtime/image pins remain open | Natthawat authored PR #5; Wisit approved the stack; both students accepted the JWT limits recorded in PR #9 | 13 November 2026; D-02 update in PR #9 |
 | D-03 | | | |
 | D-04 | | | |
-| D-05 | Stateless JWT; logout clears the current browser cookie only; copied tokens and old role/account state remain usable until expiry while the signing key is accepted. Expiry and key-retention details remain open. | Both students accepted the stated limits; PR #9 records the behavior | 13 November 2026; D-05 update in PR #9 |
+| D-05 | Stateless JWT; logout clears the current browser cookie only; copied tokens and old role/account state remain usable until expiry while the signing key is accepted. Approved: 3600-second lifetime, HS256 with `jose`. Key rotation and request-protection details remain open. | Both students accepted the stated limits; PR #9 records the behavior | 13 November 2026; D-05 update in PR #9; lifetime and algorithm approved by Palapluem in the PR #10 and #12 reviews |
 | D-06 | | | |
 | D-07 | | | |
 

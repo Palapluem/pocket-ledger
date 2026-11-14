@@ -26,7 +26,7 @@ Draft 0.1, 7 November 2026. This is the single requirements coverage matrix. Pla
 | BR-08 | F-03 to F-07 | S1 AC-24; TEST-24 after D-04 | NOT RUN; policy open |
 | BR-09 | F-08 | S3 duplicate contract and original-record comparison | NOT SPECIFIED FOR IMPLEMENTATION |
 | BR-10 | F-03 to F-07 | S1 AC-16; TEST-16 after D-03 | NOT RUN; limits open |
-| BR-11 | F-01/02 | S1 AC-05/06; TEST-05/06 | NOT RUN; D-05 open |
+| BR-11 | F-01/02 | S1 AC-05/06; TEST-05/06 | NOT RUN; D-05 JWT limits accepted; 3600 s lifetime and HS256/`jose` approved; key rotation/retention open |
 | BR-12 | F-03 / setup | S1 AC-09/27; TEST-09/27 | NOT RUN |
 | NFR-01 | F-01/02; all protected interfaces | S1 AC-02/03/04/05/07/08/12/21; security regression each release | NOT RUN |
 | NFR-02 | F-03/04/05/06; delivery | S1 AC-26; TEST-26; Lab 5 C-05 restart and redeploy | NOT RUN |

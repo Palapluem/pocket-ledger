@@ -4,7 +4,7 @@ Draft 0.1, 7 November 2026. Sprint allocation is proposed under D-06. The invent
 
 | Feature | Requirement coverage | Sprint 1 increment | Later completion |
 | --- | --- | --- | --- |
-| F-01 Identity and access | FR-01; BR-01/02/11; NFR-01 | Login, logout, identity, session expiry and backend access checks | Final security/regression in Sprint 3 |
+| F-01 Identity and access | FR-01; BR-01/02/11; NFR-01 | Login, logout, identity, token expiry and backend access checks | Final security/regression in Sprint 3 |
 | F-02 Platform user administration | FR-02; BR-02/11; NFR-01 | User identity list and enable/disable with the agreed safeguards | Remaining approved access-management details in Sprint 2 |
 | F-03 Financial accounts and opening balances | FR-03/04; BR-01/05/06/08/10/12 | Safe seed of owned bank/card/income/expense accounts; user sets opening bank balance | Account management for all five types and full opening-balance policy in Sprint 2 |
 | F-04 Receive money | FR-06; BR-01/03/04/05/06/07/08/10 | Salary receipt into bank, saved allocations and rejection cases | Borrowing, repayment received and transfers in Sprint 2 |
