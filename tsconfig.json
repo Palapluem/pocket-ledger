@@ -1,0 +1,3 @@
+{
+	"extends": "@pocket-ledger/config/tsconfig.base.json"
+}
