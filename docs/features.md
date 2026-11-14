@@ -1,6 +1,6 @@
 # Feature inventory
 
-Draft 0.1, 7 November 2026. Sprint allocation and Sprint 1 ownership are recorded in D-06 and D-01. The inventory covers the whole baseline; F-01 and the F-02 backend are implemented on `sprint-1-staging`; no feature is accepted in a `main` release.
+Draft 0.2, 15 November 2026. Sprint allocation and Sprint 1 ownership are proposed in D-06 and D-01 (PR #15), pending Wisit's approval. The inventory covers the whole baseline; F-01 and the F-02 backend are implemented on `sprint-1-staging`; no feature is accepted in a `main` release.
 
 | Feature | Requirement coverage | Sprint 1 increment | Later completion |
 | --- | --- | --- | --- |
