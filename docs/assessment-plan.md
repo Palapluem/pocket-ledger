@@ -1,6 +1,6 @@
 # Engineering and delivery plan
 
-This plan covers one continuous PocketLedger product across all three sprints and six assessments. The draft SRS, System SDS, feature inventory, traceability, sprint plan and Sprint 1 contracts are available for team review. Their policies remain proposed, and no workflow has been implemented.
+This plan covers one continuous PocketLedger product across all three sprints and six assessments. The SRS, System SDS, feature inventory, traceability, sprint plan and Sprint 1 contracts record the D-01 to D-07 choices proposed by Natthawat in PR #15 and accepted by Wisit on 15 November; formal review and merge of that PR remain pending. Sprint 1 financial workflows and their executable tests have not yet been implemented or run.
 
 ## Sources and open source questions
 
@@ -23,7 +23,7 @@ All times below are Asia/Bangkok. Later work must retain the same team, reposito
 
 | Assessment | Due | Points / course weight | Completion gate | Current state |
 | --- | --- | --- | --- | --- |
-| Deliverable 1 | 8 Nov 2026, 23:59 | 80 / 8% | Accepted, tested local Sprint 1 on main; PDF A–F complete | Draft baseline/contracts; decisions and implementation pending |
+| Deliverable 1 | 8 Nov 2026, 23:59 | 80 / 8% | Accepted, tested local Sprint 1 on main; PDF A–F complete | Decision baseline agreed; formal PR #15 review/merge and financial implementation/tests remain pending |
 | Lab 5 | 15 Nov 2026, 23:59 | 100 / 5% | Docker, public GCP workflow, durable data, required CI and repeatable release | Not executed |
 | Lab 6 | 22 Nov 2026, 23:59 per master | 100 / 5% | Independent UAT, legitimate defect handling and independent re-test | Await detailed handout / deployed release |
 | Deliverable 2 | 29 Nov 2026, 23:59 (handout §4) | 70 / 7% | All Sprint 2 complete; meaningful tested Sprint 3 progress; deployed candidate | Not started |
@@ -47,7 +47,7 @@ The table is a review starting point. Do not mark Sprint 2 complete by silently 
 | F-07 Transaction correction | Policy specified before its implementation | Correct balances/history after approved corrections |
 | F-08 Favourites and duplicate | Allocated to later sprint in the complete inventory | Favourite list and a distinct editable duplicate transaction |
 
-Cover ownership on every referenced account and transaction path. Cash includes bank/wallet; card debt belongs to Loan Taken. Opening balances, transfers, borrowing and repayments do not become income or expenses. Amount precision/signs, date policy, correction behavior and retry rules remain in the [decision record](decisions.md).
+Cover ownership on every referenced account and transaction path. Cash includes bank/wallet; card debt belongs to Loan Taken. Opening balances, transfers, borrowing and repayments do not become income or expenses. Agreed amount precision/signs, date policy, correction behavior and retry limits are recorded in the [decision register](decisions.md); implementation and verification remain pending.
 
 Use [the SRS](srs.md), [feature inventory](features.md), [single traceability matrix](traceability.md), [System SDS](system-sds.md), [sprint plan](sprints/plan.md), [Sprint 1 contract](sprints/sprint-1/contract.md) and [STS/results](sprints/sprint-1/tests.md) as the working engineering documents. This assessment plan is navigation and assessment scope, not a second set of feature requirements.
 
