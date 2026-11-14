@@ -33,7 +33,7 @@ Use foreign keys and, where supported, owner/account composite references so cro
 
 ## Proposed money representation and effect matrix
 
-D-03 proposes THB and two decimal places. Parse decimal strings exactly into integer satang; do not use binary floating-point multiplication as the financial calculation. Agree maximum amounts, supported opening-balance signs, insufficient funds and overpayment rules before affected tests/code. The following normal-balance convention is a proposal to make the required examples reviewable.
+D-03 records THB with two decimal places, amounts greater than 0 and at most 1,000,000,000.00, parsed exactly into integer satang (`bigint`); do not use binary floating-point arithmetic. Opening balances are at least 0, and a transaction that would make a Cash, Loan Taken or Loan Given balance negative is rejected atomically (D-03, D-04). The following normal-balance convention defines each effect's sign.
 
 | Form / side | Account type | Change to its normal balance |
 | --- | --- | --- |
