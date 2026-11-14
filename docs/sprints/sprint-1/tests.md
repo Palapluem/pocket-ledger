@@ -1,6 +1,6 @@
 # Sprint 1 Software Test Specification and results
 
-Draft 0.2, prepared 7 November 2026 and updated 13 November. Test status is recorded in the actual results table: TEST-01 to TEST-04 and the user-seed part of TEST-09 have author-reported passing results on unmerged PR #12 head `120e83e`, and TEST-05 to TEST-07 have author-reported local results on unmerged PR #14 head `7aaf591` (GitHub Actions has not run on #14); every other test is planned and NOT RUN. Nothing here is a `main` or release result. Pin the D-02 runtime/image versions, record the remaining D-05 details (key rotation, request protection; lifetime 3600 s and HS256 with `jose` are approved) and agree D-01, D-03, D-04, D-06, D-07 and the public interfaces before implementing executable tests. Authentication follows the first-party signed-JWT approach in the [auth/setup proposal](auth-setup-proposal.md). Test IDs are stable. File names marked (exists) are present in PR #12; all other names are planned targets, not existing files.
+Draft 0.2, prepared 7 November 2026 and updated 13 November. Test status is recorded in the actual results table: TEST-01 to TEST-04 and the user-seed part of TEST-09 have author-reported passing results on PR #12 head `120e83e` (PR #12 is now merged into `sprint-1-staging`), and TEST-05 to TEST-07 have an author-reported local result on PR #14 head `7aaf591` plus a separate GitHub Actions run on PR #14 head `4badd5b` (run 43576608481, 34 server tests, type check and Biome pass); every other test is planned and NOT RUN. Nothing here is a `main` or release result. Pin the D-02 runtime/image versions, record the remaining D-05 details (key rotation, request protection; lifetime 3600 s and HS256 with `jose` are approved) and agree D-01, D-03, D-04, D-06, D-07 and the public interfaces before implementing executable tests. Authentication follows the first-party signed-JWT approach in the [auth/setup proposal](auth-setup-proposal.md). Test IDs are stable. File names marked (exists) are present in PR #12; all other names are planned targets, not existing files.
 
 ## Independent fixture and expected values
 
@@ -66,15 +66,16 @@ First select a meaningful allocation/financial rule and a role/ownership restric
 
 ## Actual verification results
 
-TEST-01 to TEST-04 and the user-seed part of TEST-09 have the author-reported results below, on unmerged PR #12 head `120e83e`; TEST-05 to TEST-07 have an author-reported local result on unmerged PR #14 head `7aaf591`. All other tests remain NOT RUN. Fill further results only after execution; this is not a completed passing result set and not a `main` or release result.
+TEST-01 to TEST-04 and the user-seed part of TEST-09 have the author-reported results below, on unmerged PR #12 head `120e83e`; TEST-05 to TEST-07 have an author-reported local result on PR #14 head `7aaf591` (historical, separate from CI) and a GitHub Actions result on PR #14 head `4badd5b` (run 43576608481). All other tests remain NOT RUN. Fill further results only after execution; this is not a completed passing result set and not a `main` or release result.
 
 | AC / TEST IDs and actual file/test | Tested commit and command / run | Actual result and evidence |
 | --- | --- | --- |
 | AC-01 to AC-04 / TEST-01 to TEST-04: `apps/server/tests/session.api.test.ts` | `120e83e`; `bun test apps/server` against the disposable PostgreSQL 18 database | Author-reported local run on the same tests at `c13c8df`: 22 pass, 0 fail across all server test files; GitHub Actions below |
 | User part of AC-09 / TEST-09: `apps/server/tests/seed.integration.test.ts` | `120e83e`; same command | Included in the 22 passing tests |
-| AC-05 to AC-07 / TEST-05 to TEST-07: `apps/server/tests/administration.api.test.ts` | `7aaf591` (PR #14); `bun test apps/server` against the disposable database | Author-reported local run: 34 pass, 0 fail across all server test files (F-01 and F-02 together); static checks pass; GitHub Actions has not run on this PR, and AC-08 is not covered |
+| AC-05 to AC-07 / TEST-05 to TEST-07: `apps/server/tests/administration.api.test.ts` | `7aaf591` (PR #14); `bun test apps/server` against the disposable database | Historical author-reported local run: 34 pass, 0 fail across all server test files (F-01 and F-02 together); static checks pass; AC-08 is not covered. This is a separate run from the CI row below |
 | Static checks | `120e83e`; `bun run check-types`; `bunx biome check apps packages scripts` | Pass (author-reported local; also run by CI) |
 | CI | `120e83e`; GitHub Actions `build-test`, run 43398550552 | Pass: type check, Biome, `bun test apps/server` against a PostgreSQL 18 service container, on an unmerged PR head |
+| CI (PR #14) | `4badd5b` (PR #14 head, includes merged `sprint-1-staging`); GitHub Actions `build-test`, run 43576608481 | Pass: 34 server tests, type check and Biome against a PostgreSQL 18 service container; a PR integration result, not a `main` or release result |
 
 ## Selected evidence for the report
 
