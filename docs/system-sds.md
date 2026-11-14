@@ -1,6 +1,6 @@
 # System-Level Software Design Specification
 
-Draft 0.3, 13 November 2026. Better T Stack and first-party stateless JWT for Sprint 1 seeded-user authentication are selected; exact runtime and image versions remain to be pinned. This is the agreed design direction, not an implemented architecture. D-03 to D-07 in [team decisions](decisions.md) govern the remaining product choices. The SRS defines the required product behavior.
+Draft 0.4, 14 November 2026. Better T Stack and first-party stateless JWT for Sprint 1 seeded-user authentication are selected; runtime/image pins are recorded in D-02. F-01 and the F-02 backend are implemented on `sprint-1-staging`; the financial features are not yet implemented. D-03 to D-07 in [team decisions](decisions.md) govern the remaining product choices. The SRS defines the required product behavior.
 
 ## Architecture and responsibilities
 
@@ -31,14 +31,14 @@ Balances are proposed to be derived from opening balances and persisted transact
 
 Use foreign keys and, where supported, owner/account composite references so cross-owner links cannot be introduced accidentally. A cross-row sum is validated inside the application/database transaction; do not claim that a simple per-row CHECK proves the allocation total. Record a migration and safe seed procedure with the first implementation. Re-running seed must preserve existing financial activity.
 
-## Proposed money representation and effect matrix
+## Money representation and effect matrix
 
-D-03 proposes THB and two decimal places. Parse decimal strings exactly into integer satang; do not use binary floating-point multiplication as the financial calculation. Agree maximum amounts, supported opening-balance signs, insufficient funds and overpayment rules before affected tests/code. The following normal-balance convention is a proposal to make the required examples reviewable.
+D-03 records THB with two decimal places, amounts greater than 0 and at most 1,000,000,000.00, parsed exactly into integer satang (`bigint`); do not use binary floating-point arithmetic. Opening balances are at least 0, and a transaction that would make a Cash, Loan Taken or Loan Given balance negative is rejected atomically (D-03, D-04). The two transaction forms are `PAYMENT` ("Make a payment or record a charge") and `RECEIVE` ("Receive money"). A `PAYMENT` whose primary account is Cash is a payment; one whose primary account is Loan Taken (for example a credit card) is a charge. `RECEIVE` requires a Cash primary account. The following normal-balance convention defines each effect's sign.
 
 | Form / side | Account type | Change to its normal balance |
 | --- | --- | --- |
-| Payment primary | Cash | Minus transaction total |
-| Charge primary | Loan Taken | Plus transaction total (debt grows) |
+| PAYMENT primary (payment) | Cash | Minus transaction total |
+| PAYMENT primary (charge) | Loan Taken | Plus transaction total (debt grows) |
 | Payment allocation | Expense | Plus allocation (expense grows) |
 | Payment allocation | Loan Taken | Minus allocation (debt repayment) |
 | Payment allocation | Loan Given | Plus allocation (receivable grows) |
@@ -49,7 +49,7 @@ D-03 proposes THB and two decimal places. Parse decimal strings exactly into int
 | Receive allocation | Loan Taken | Plus allocation (new borrowing) |
 | Receive allocation | Cash | Minus allocation (transfer sent) |
 
-Income/expense summaries include only their relevant classification effects within the agreed date range. Opening balances, transfers, borrowing and debt repayments are excluded. Reject unsupported form/type combinations; confirm detailed same-account and mixed allocation rules under D-03. Sprint 1 implements the reviewed example combinations; Sprint 2 completes the remaining baseline combinations.
+Income/expense summaries include only their relevant classification effects within the agreed date range. Opening balances, transfers, borrowing and debt repayments are excluded. The PAYMENT allocation rows apply to both a Cash and a Loan Taken primary account; for example, a card charge allocates to Expense, and a bank-to-card repayment is a PAYMENT from Cash allocated to the card (Loan Taken). Allocation rules (D-03): at least one line; each line references a different owned account; no line references the primary account; mixed lines of different allowed types in one transaction are allowed (for example Expense plus Loan Taken repayment); any other form/type combination, including an Income or Expense primary account, is rejected. Sprint 1 tests the salary, card-charge and repayment combinations; Sprint 2 completes tests for the remaining allowed combinations.
 
 ## Role and ownership matrix
 
@@ -64,9 +64,9 @@ Proposed error precedence: establish authentication; enforce role; validate stru
 
 ## Authentication and configuration
 
-D-05 records the selected first-party stateless signed JWT in an HttpOnly cookie for Sprint 1 seeded-user authentication. The approved lifetime is 3600 seconds, signed with HS256 using `jose`. Logout clears the browser cookie but cannot revoke a copied token before expiry while its signing key remains accepted; role changes and account disable likewise do not affect an existing token until expiry. Retiring a signing key can invalidate outstanding tokens earlier. Validate signature, fixed algorithm, issuer, audience and expiry. Use HttpOnly, SameSite=Lax and Secure under HTTPS; cookie-authenticated writes must be protected against cross-site requests; the exact mechanism, missing-`Origin` handling and signing-key rotation/retention remain open.
+D-05 records the selected first-party stateless signed JWT in an HttpOnly cookie for Sprint 1 seeded-user authentication. The approved lifetime is 3600 seconds, signed with HS256 using `jose`. Logout clears the browser cookie but cannot revoke a copied token before expiry while its signing key remains accepted; role changes and account disable likewise do not affect an existing token until expiry. Retiring a signing key can invalidate outstanding tokens earlier. Validate signature, fixed algorithm, issuer, audience and expiry. Use HttpOnly, SameSite=Lax and Secure under HTTPS; cookie-authenticated writes must be protected against cross-site requests. The key comes from `JWT_SECRET`; rotation is manual, invalidates all outstanding tokens, and no previous key is retained (D-05). The exact request-protection mechanism and missing-`Origin` handling remain open.
 
-The [auth/setup proposal](sprints/sprint-1/auth-setup-proposal.md) records the selected JWT scope and accepted logout/account-change limits. The lifetime and signing choices are approved; only key rotation/retention and request-protection details remain open.
+The [auth/setup proposal](sprints/sprint-1/auth-setup-proposal.md) records the selected JWT scope and accepted logout/account-change limits. The lifetime, signing and key-handling choices are recorded in D-05; only the request-protection mechanism remains open.
 
 Keep real credentials outside Git and the report. The first implementation supplies placeholder configuration for database connection, session/cookie settings, allowed origin, runtime port and any seed identity inputs. Actual variable names, defaults and required/secret classifications are recorded in .env.example and deployment.md when selected; no runtime command is invented in this draft.
 
@@ -101,7 +101,7 @@ These are draft public interfaces, not existing endpoints. Monetary DTO fields a
 | GET /api/transactions and /api/transactions/:id | -> owned history or saved transaction with allocations | User only; safe 404 for inaccessible detail; later search/pagination specified separately |
 | GET /api/summary?from=...&to=... | -> owned balances, income and expense for the agreed period | User only; validate range; no administrator/global aggregation |
 
-Proposed transaction example:
+Card charge example (PAYMENT with a Loan Taken primary account, allocated to two Expense accounts):
 
 ```json
 {"form":"PAYMENT","primaryAccountId":"owned-card-id","date":"2026-11-02","total":"1200.00","allocations":[{"accountId":"owned-dining-id","amount":"700.00"},{"accountId":"owned-groceries-id","amount":"500.00"}]}
@@ -111,6 +111,6 @@ The example identifiers are fixtures, not deployed resources. Confirm DTO fields
 
 ## Atomicity, failures and delivery
 
-Validate every allocation and ownership reference before committing. Save the transaction and allocation lines as one database transaction. Any rejected input or database failure leaves no partial financial record. For a balance-dependent limit that the team adopts, serialize the relevant decision or use a database constraint/lock so competing writes cannot bypass it. Do not add an unrequested overpayment/overdraft rule silently.
+Validate every allocation and ownership reference before committing. Save the transaction and allocation lines as one database transaction. Any rejected input or database failure leaves no partial financial record. D-03 rejects any transaction that would make a Cash, Loan Taken or Loan Given balance negative; lock the affected accounts and check their balances inside the same database transaction so competing writes cannot bypass the rule.
 
 Lab 5 packages this application with Docker, runs meaningful build/tests on staging and main PRs, requires the passing checks, and deploys accepted main releases to GCP with durable storage. The starter kit is reference material. The planned service/database/registry, credentials, migrations and exact release commands remain unconfigured until the team selects and reviews them. Identify commit, image and running revision separately.
