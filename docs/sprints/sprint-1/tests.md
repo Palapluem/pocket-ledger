@@ -13,7 +13,7 @@ Use User A, User B with separate financial accounts and one Administrator. Keep 
 | Charge 1,200 to card: dining 700 + groceries 500 | 30,000 / 1,200 | 20,000 / 1,200 |
 | Repay card 500 from bank | 29,500 / 700 | 20,000 / 1,200 |
 
-These expected values are written independently. Do not call the production balance helper to compute the expected side of an assertion. Invalid allocation 700 + 400 against total 1,200 must leave the entire pre-request state unchanged. Date, maximum amount, overpayment and insufficient-funds expectations remain tied to the relevant open decision.
+These expected values are written independently. Do not call the production balance helper to compute the expected side of an assertion. Invalid allocation 700 + 400 against total 1,200 must leave the entire pre-request state unchanged. D-03 and D-04 record the proposed date, amount-limit, overpayment and insufficient-funds policies in PR #15. Their executable boundary and atomicity tests remain NOT RUN pending implementation and approval of the decisions.
 
 ## Planned tests and AC coverage
 
@@ -51,7 +51,7 @@ U = domain unit; I = HTTP API with a real isolated test database; E = browser jo
 
 ## Test execution and isolation
 
-Use an owned disposable test database, selected and recorded before execution. It must be distinct from development/demo/cloud data. For the F-01 tests the owned disposable database is `pocket_ledger_test`, created by `scripts/test-db.sh` on loopback port 55432 (PostgreSQL 18, tmpfs storage), and the test helper refuses any other database. Use repeatable fixtures and safe cleanup; do not run parallel tasks against the same writable database.
+Use an owned disposable test database, selected and recorded before execution. It must be distinct from development/demo/cloud data. For current runs on this PR branch, the owned disposable database is `pocket_ledger_test`, created by `scripts/test-db.sh` on loopback port 55432 (PostgreSQL 18.4, tmpfs storage); the test helper refuses any other database. Earlier results below remain labelled with the PostgreSQL 18 image actually used at those commits and are historical; they do not prove a run on 18.4. Use repeatable fixtures and safe cleanup; do not run parallel tasks against the same writable database.
 
 Use selected E2E cases against the real API/database for the assessed financial journey. Label fixture-backed UI-only captures where needed. Inspect assertions, not just totals. TEST-20 can use controlled failure injection, but must verify rollback against the real database and fresh reads.
 
