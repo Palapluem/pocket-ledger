@@ -124,6 +124,15 @@ Document how either member repeats the procedure. Keep full-SHA tagging/digest d
 
 Record the same synthetic transaction identifier and financial values before/after the two events. State the actual restart mechanism and versions; a redeploy-only check does not establish both checks.
 
+## Credential rotation
+
+`deploy/gcp-setup.sh` is first-run only and exits without changes if the SQL user or any `pl-*` secret already exists. To rotate deliberately:
+
+1. Database password: in one maintenance window, run `gcloud sql users set-password`, immediately add a matching `pl-database-url` version, then redeploy so a new revision reads `latest`. New connections from the old revision fail between the password change and the new revision; check `/api/health` reports `database: ok` afterwards.
+2. JWT key: add a new `pl-jwt-secret` version and redeploy. Every outstanding token becomes invalid and users sign in again (accepted in D-05).
+
+Record who rotated, when, and the resulting revision. Do not rerun the setup script for rotation.
+
 ## Rollback / recovery, if exercised
 
 Document the prior image/version, compatibility prerequisites, exact pipeline procedure and observed recovery. Separate an app-image rollback from a database restore. Rollback/roll-forward is recommended rather than a separate scored requirement.

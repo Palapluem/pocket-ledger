@@ -5,6 +5,11 @@
 # SEED_FILE is a local, never-committed JSON array of {email, displayName, role, password}
 # synthetic demo users. Generated passwords and secrets go straight into Secret Manager
 # and are never printed.
+#
+# First-run only: the script stops before changing anything if the database user or any
+# runtime secret already exists, so a rerun can never change the live SQL password or
+# rotate the JWT key underneath a running revision. Rotation is a separate, coordinated
+# operation (see "Credential rotation" in docs/labs/lab-05/deployment.md).
 set -euo pipefail
 
 : "${PROJECT_ID:?set PROJECT_ID}"
@@ -22,6 +27,22 @@ POOL=github
 PROVIDER=pocket-ledger
 
 gcloud config set project "$PROJECT_ID"
+
+echo "== Refusing to run over existing credentials"
+existing=""
+for secret in pl-database-url pl-jwt-secret pl-seed-users; do
+  if gcloud secrets describe "$secret" >/dev/null 2>&1; then existing="$existing secret:$secret"; fi
+done
+if gcloud sql instances describe "$SQL_INSTANCE" >/dev/null 2>&1 &&
+  gcloud sql users list --instance="$SQL_INSTANCE" --format='value(name)' | grep -qx "$DB_USER"; then
+  existing="$existing sql-user:$DB_USER"
+fi
+if [ -n "$existing" ]; then
+  echo "Already set up:$existing" >&2
+  echo "Nothing was changed. This script is first-run only; rotate credentials with the documented procedure." >&2
+  exit 1
+fi
+
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
 
 echo "== APIs"
@@ -39,14 +60,13 @@ gcloud sql instances create "$SQL_INSTANCE" --database-version=POSTGRES_18 \
   --storage-size=10 --storage-auto-increase || true
 gcloud sql databases create "$DB_NAME" --instance="$SQL_INSTANCE" || true
 DB_PASSWORD=$(openssl rand -hex 24)
-gcloud sql users create "$DB_USER" --instance="$SQL_INSTANCE" --password="$DB_PASSWORD" \
-  || gcloud sql users set-password "$DB_USER" --instance="$SQL_INSTANCE" --password="$DB_PASSWORD"
+gcloud sql users create "$DB_USER" --instance="$SQL_INSTANCE" --password="$DB_PASSWORD"
 CONNECTION_NAME=$(gcloud sql instances describe "$SQL_INSTANCE" --format='value(connectionName)')
 
 echo "== Secrets (values are not printed)"
 put_secret() {
-  gcloud secrets describe "$1" >/dev/null 2>&1 || gcloud secrets create "$1" --replication-policy=automatic
-  gcloud secrets versions add "$1" --data-file=-
+  # Creates a new secret with its first version; fails if the secret already exists.
+  gcloud secrets create "$1" --replication-policy=automatic --data-file=-
 }
 printf '%s' "postgresql://${DB_USER}:${DB_PASSWORD}@localhost/${DB_NAME}?host=/cloudsql/${CONNECTION_NAME}" | put_secret pl-database-url
 openssl rand -hex 32 | tr -d '\n' | put_secret pl-jwt-secret
