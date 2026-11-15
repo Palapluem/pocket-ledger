@@ -67,7 +67,7 @@ describe("TEST-09 / AC-09 starter financial accounts (seed)", () => {
 		const url = testDatabaseUrl();
 		await seedUsers(url, seeds);
 		const first = await seedStarterAccounts(url);
-		const accounts = await db.select().from(schema.financialAccounts);
+		const accounts = await db.select().from(schema.accounts);
 		const users = await db
 			.select()
 			.from(schema.users)
@@ -81,42 +81,49 @@ describe("TEST-09 / AC-09 starter financial accounts (seed)", () => {
 		const bank = accounts.find((a) => a.name === "Bank");
 		if (!bank) throw new Error("starter Bank account missing");
 		await db
-			.update(schema.financialAccounts)
-			.set({ openingAmountMinor: 1_000_000n, openingDate: "2026-11-01" })
-			.where(eq(schema.financialAccounts.id, bank.id));
+			.update(schema.accounts)
+			.set({ openingAmountSatang: 1_000_000n, openingDate: "2026-11-01" })
+			.where(eq(schema.accounts.id, bank.id));
 		const dining = accounts.find(
 			(a) => a.ownerId === bank.ownerId && a.name === "Dining",
 		);
 		if (!dining) throw new Error("starter Dining account missing");
 		const [saved] = await db
-			.insert(schema.financialTransactions)
+			.insert(schema.transactions)
 			.values({
 				ownerId: bank.ownerId,
 				form: "PAYMENT",
 				primaryAccountId: bank.id,
-				date: "2026-11-02",
-				totalMinor: 10_000n,
+				occurredOn: "2026-11-02",
+				totalSatang: 10_000n,
 			})
 			.returning();
 		if (!saved) throw new Error("transaction not saved");
-		await db.insert(schema.allocationLines).values({
+		await db.insert(schema.transactionAllocations).values({
+			ownerId: bank.ownerId,
 			transactionId: saved.id,
 			accountId: dining.id,
-			amountMinor: 10_000n,
+			amountSatang: 10_000n,
 			position: 0,
 		});
 
 		expect(await seedStarterAccounts(url)).toBe(0);
 		const [bankAfter] = await db
 			.select()
-			.from(schema.financialAccounts)
-			.where(eq(schema.financialAccounts.id, bank.id));
-		expect(bankAfter?.openingAmountMinor).toBe(1_000_000n);
-		expect(bankAfter?.openingDate).toBe("2026-11-01");
-		expect(await db.select().from(schema.financialTransactions)).toHaveLength(
+			.from(schema.accounts)
+			.where(eq(schema.accounts.id, bank.id));
+		expect(bankAfter?.openingAmountSatang).toBe(1_000_000n);
+		// Bun SQL returns `date` as a Date at UTC midnight; compare the calendar day.
+		const opening = bankAfter?.openingDate as unknown as Date | string;
+		expect(
+			typeof opening === "string"
+				? opening
+				: opening.toISOString().slice(0, 10),
+		).toBe("2026-11-01");
+		expect(await db.select().from(schema.transactions)).toHaveLength(1);
+		expect(await db.select().from(schema.transactionAllocations)).toHaveLength(
 			1,
 		);
-		expect(await db.select().from(schema.allocationLines)).toHaveLength(1);
 	});
 });
 

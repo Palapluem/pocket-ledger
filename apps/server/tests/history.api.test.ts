@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
+import { schema } from "@pocket-ledger/db";
+import { eq } from "drizzle-orm";
 
 import { bangkokToday } from "../src/money";
 import {
@@ -93,6 +95,17 @@ describe("TEST-24 / AC-24 opening and reporting date boundaries (D-04)", () => {
 		});
 		expect(before.status).toBe(422);
 		expect(await before.json()).toMatchObject({ code: "INVALID_DATE" });
+	});
+
+	test("a balance account without an opening date cannot be used yet", async () => {
+		await f.db
+			.update(schema.accounts)
+			.set({ openingDate: null })
+			.where(eq(schema.accounts.id, f.accounts.userA["Credit card"]));
+		const res = await post(cardCharge(f.accounts.userA));
+		expect(res.status).toBe(422);
+		expect(await res.json()).toMatchObject({ code: "INVALID_DATE" });
+		expect(await f.counts()).toEqual({ transactions: 0, lines: 0 });
 	});
 
 	test("Income/Expense classification accounts impose no opening-date cutoff", async () => {

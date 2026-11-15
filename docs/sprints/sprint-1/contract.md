@@ -113,8 +113,8 @@ Dependencies: F-01/F-03/F-04/F-05 and D-03/D-04/D-07. UI: Financial overview and
 
 ## F-05/F-06 implemented interface (Issue #21, revision 0.7)
 
-- Shared model: `financial_accounts`, `financial_transactions`, `allocation_lines` as in the System SDS data model. Money is satang `bigint`; dates are `YYYY-MM-DD`. Balances are derived, never stored.
-- Seed: every User gets the starter accounts Bank (Cash), Credit card (Loan Taken), Salary (Income), Dining and Groceries (Expense), opening 0 on the seed date. Reseeding inserts only missing accounts and never changes existing accounts or activity.
+- Shared model: the canonical schema from PR #23 (Issue #20): `accounts`, `transactions`, `transaction_allocations`, `*_satang` columns and owner-scoped composite foreign keys. Dates are `YYYY-MM-DD`. Balances are derived, never stored. A balance account without an opening date cannot be used in a transaction yet (`422 INVALID_DATE`).
+- Seed: every User gets the starter accounts (account keys `bank`, `credit-card`, `salary`, `dining`, `groceries`): Bank (Cash), Credit card (Loan Taken), Salary (Income), Dining and Groceries (Expense), opening 0 on the seed date. Reseeding inserts only missing account keys and never changes existing accounts or activity.
 - `GET /api/accounts` → owned accounts `{id, name, type, currency, openingAmount, openingDate, balance}` ordered Cash, Loan Taken, Loan Given, Income, Expense, then name.
 - `POST /api/transactions` → `201` with `{id, form, primaryAccountId, date, total, memo, createdAt, allocations: [{accountId, amount}]}`; allocations keep their submitted order. One service applies the System SDS effect matrix to both forms, so the F-04 receive path uses it too.
 - `GET /api/transactions` → owned history, newest date first, then newest created; `GET /api/transactions/:id` → the same DTO.

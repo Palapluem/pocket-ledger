@@ -30,10 +30,11 @@ export async function financeFixture() {
 			.where(eq(schema.users.email, FIXTURE[key].email));
 		if (!owner) throw new Error(`fixture user ${key} missing`);
 		const rows = await db
-			.insert(schema.financialAccounts)
+			.insert(schema.accounts)
 			.values(
 				STARTER_ACCOUNTS.map((a) => ({
 					ownerId: owner.id,
+					key: a.key,
 					name: a.name,
 					type: a.type,
 					openingDate: OPENING_DATE,
@@ -67,15 +68,15 @@ export async function financeFixture() {
 	};
 	const setOpening = (accountId: string, minor: bigint, date = OPENING_DATE) =>
 		db
-			.update(schema.financialAccounts)
-			.set({ openingAmountMinor: minor, openingDate: date })
-			.where(eq(schema.financialAccounts.id, accountId));
+			.update(schema.accounts)
+			.set({ openingAmountSatang: minor, openingDate: date })
+			.where(eq(schema.accounts.id, accountId));
 	/** Row counts read straight from the database, independent of the API. */
 	const counts = async () => {
-		const [t] = await db
+		const [t] = await db.select({ n: count() }).from(schema.transactions);
+		const [l] = await db
 			.select({ n: count() })
-			.from(schema.financialTransactions);
-		const [l] = await db.select({ n: count() }).from(schema.allocationLines);
+			.from(schema.transactionAllocations);
 		return { transactions: t?.n ?? -1, lines: l?.n ?? -1 };
 	};
 	/** Balances by account name from the public API. */

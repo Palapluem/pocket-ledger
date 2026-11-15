@@ -12,8 +12,29 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1794758696994,
-      "tag": "0001_finance",
+      "when": 1794745881562,
+      "tag": "0001_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794746000588,
+      "tag": "0002_account_constraints",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794746189589,
+      "tag": "0003_bigint_opening",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794746735929,
+      "tag": "0004_transactions",
       "breakpoints": true
     }
   ]

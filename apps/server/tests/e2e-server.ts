@@ -18,14 +18,24 @@ const port = Number(process.env.E2E_PORT ?? 4173);
 const db = createDb(url);
 await assertOwnedTestDatabase(db);
 await runMigrations(url);
-// Remove only the E2E-owned fixture users (their financial records cascade), then recreate
-// them with known passwords and fresh starter accounts.
-await db.delete(schema.users).where(
-	inArray(
-		schema.users.email,
-		Object.values(E2E_USERS).map((u) => u.email),
-	),
-);
+// Remove only the E2E-owned fixture users and their financial records, then recreate them
+// with known passwords and fresh starter accounts.
+const e2eUserIds = db
+	.select({ id: schema.users.id })
+	.from(schema.users)
+	.where(
+		inArray(
+			schema.users.email,
+			Object.values(E2E_USERS).map((u) => u.email),
+		),
+	);
+await db
+	.delete(schema.transactions)
+	.where(inArray(schema.transactions.ownerId, e2eUserIds));
+await db
+	.delete(schema.accounts)
+	.where(inArray(schema.accounts.ownerId, e2eUserIds));
+await db.delete(schema.users).where(inArray(schema.users.id, e2eUserIds));
 await seedUsers(url, Object.values(E2E_USERS));
 await seedStarterAccounts(
 	url,

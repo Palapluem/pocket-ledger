@@ -69,7 +69,7 @@ Record exact commands for the selected stack, required working directory and pre
 | Migrate an external database with the image | `docker run --rm -e DATABASE_URL=… [-e SEED_USERS_JSON='[…]'] pocket-ledger migrate` | reachable PostgreSQL; migrator credential | `Migrations applied`; seed only if `SEED_USERS_JSON` is set |
 | Serve against a pre-migrated database | `docker run -p 8080:8080 -e DATABASE_URL=… -e JWT_SECRET=… -e CORS_ORIGIN=http://localhost:8080 pocket-ledger` (default `serve`, no migration) | database already migrated | server on 8080; `/api/health` is `ok` |
 
-Tests refuse any database except `pocket_ledger_test` on a loopback port (`assertDisposableTestDatabase`). The seed inserts users with `ON CONFLICT (email) DO NOTHING` and starter accounts with `ON CONFLICT (owner_id, name) DO NOTHING`, so rerunning it (each migration job run or Compose start) never changes an existing user, password, role, enabled state or (future) financial record.
+Tests refuse any database except `pocket_ledger_test` on a loopback port (`assertDisposableTestDatabase`). The seed inserts users with `ON CONFLICT (email) DO NOTHING` and starter accounts with `ON CONFLICT (owner_id, account_key) DO NOTHING`, so rerunning it (each migration job run or Compose start) never changes an existing user, password, role, enabled state or (future) financial record.
 
 ## GCP resource inventory
 

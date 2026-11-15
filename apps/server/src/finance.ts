@@ -19,8 +19,8 @@ type Identity = { id: string; displayName: string; role: string };
 type Failure = (status: number, code: string, message: string) => Response;
 type Query = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
 
-const { financialAccounts: accounts, financialTransactions: txns } = schema;
-const lines = schema.allocationLines;
+const { accounts, transactions: txns } = schema;
+const lines = schema.transactionAllocations;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TYPE_ORDER: AccountType[] = [
@@ -31,6 +31,13 @@ const TYPE_ORDER: AccountType[] = [
 	"EXPENSE",
 ];
 const MAX_LINES = 50;
+
+/**
+ * The Bun SQL driver returns PostgreSQL `date` values as Date objects at UTC midnight even
+ * in Drizzle's string mode; normalise them to the D-04 YYYY-MM-DD form.
+ */
+const calendar = (value: string | Date) =>
+	typeof value === "string" ? value : value.toISOString().slice(0, 10);
 const MAX_MEMO = 200;
 
 /** A domain rejection: thrown inside the database transaction so nothing is written. */
@@ -58,7 +65,7 @@ async function loadLedger(q: Query, ownerId: string) {
 		.select()
 		.from(txns)
 		.where(eq(txns.ownerId, ownerId))
-		.orderBy(desc(txns.date), desc(txns.createdAt), desc(txns.id));
+		.orderBy(desc(txns.occurredOn), desc(txns.createdAt), desc(txns.id));
 	const lineRows = transactionRows.length
 		? await q
 				.select()
@@ -89,10 +96,10 @@ const asLedger = (
 ): LedgerTransaction => ({
 	form: t.form,
 	primaryAccountId: t.primaryAccountId,
-	totalMinor: t.totalMinor,
+	totalSatang: t.totalSatang,
 	allocations: t.lines.map((l) => ({
 		accountId: l.accountId,
-		amountMinor: l.amountMinor,
+		amountSatang: l.amountSatang,
 	})),
 });
 
@@ -100,13 +107,13 @@ const transactionDto = (t: TransactionRow & { lines: LineRow[] }) => ({
 	id: t.id,
 	form: t.form,
 	primaryAccountId: t.primaryAccountId,
-	date: t.date,
-	total: formatAmount(t.totalMinor),
+	date: calendar(t.occurredOn),
+	total: formatAmount(t.totalSatang),
 	memo: t.memo,
 	createdAt: t.createdAt.toISOString(),
 	allocations: t.lines.map((l) => ({
 		accountId: l.accountId,
-		amount: formatAmount(l.amountMinor),
+		amount: formatAmount(l.amountSatang),
 	})),
 });
 
@@ -126,8 +133,8 @@ function accountDtos(ledger: Awaited<ReturnType<typeof loadLedger>>) {
 			name: a.name,
 			type: a.type,
 			currency: a.currency,
-			openingAmount: formatAmount(a.openingAmountMinor),
-			openingDate: a.openingDate,
+			openingAmount: formatAmount(a.openingAmountSatang),
+			openingDate: a.openingDate === null ? null : calendar(a.openingDate),
 			balance: formatAmount(balances.get(a.id) ?? 0n),
 		}));
 }
@@ -136,9 +143,9 @@ type TransactionInput = {
 	form: "PAYMENT" | "RECEIVE";
 	primaryAccountId: string;
 	date: string;
-	totalMinor: bigint;
+	totalSatang: bigint;
 	memo: string | null;
-	allocations: { accountId: string; amountMinor: bigint }[];
+	allocations: { accountId: string; amountSatang: bigint }[];
 };
 
 /** Structural validation only (shape, exact amounts, real dates). */
@@ -150,8 +157,8 @@ function parseTransaction(
 	if (typeof b.primaryAccountId !== "string" || !UUID.test(b.primaryAccountId))
 		return { field: "primaryAccountId" };
 	if (!isCalendarDate(b.date)) return { field: "date" };
-	const totalMinor = parseAmount(b.total);
-	if (totalMinor === null) return { field: "total" };
+	const totalSatang = parseAmount(b.total);
+	if (totalSatang === null) return { field: "total" };
 	if (
 		b.memo !== undefined &&
 		b.memo !== null &&
@@ -167,18 +174,18 @@ function parseTransaction(
 	const allocations: TransactionInput["allocations"] = [];
 	for (const [i, raw] of b.allocations.entries()) {
 		const line = (raw ?? {}) as Record<string, unknown>;
-		const amountMinor = parseAmount(line.amount);
+		const amountSatang = parseAmount(line.amount);
 		if (typeof line.accountId !== "string" || !UUID.test(line.accountId))
 			return { field: `allocations[${i}].accountId` };
-		if (amountMinor === null) return { field: `allocations[${i}].amount` };
-		allocations.push({ accountId: line.accountId, amountMinor });
+		if (amountSatang === null) return { field: `allocations[${i}].amount` };
+		allocations.push({ accountId: line.accountId, amountSatang });
 	}
 	return {
 		input: {
 			form: b.form,
 			primaryAccountId: b.primaryAccountId,
 			date: b.date,
-			totalMinor,
+			totalSatang,
 			memo: typeof b.memo === "string" && b.memo.trim() ? b.memo.trim() : null,
 			allocations,
 		},
@@ -226,8 +233,8 @@ async function saveTransaction(
 				"INVALID_ALLOCATION",
 				"Each allocation must use a different account other than the primary account.",
 			);
-		const sum = input.allocations.reduce((s, l) => s + l.amountMinor, 0n);
-		if (sum !== input.totalMinor)
+		const sum = input.allocations.reduce((s, l) => s + l.amountSatang, 0n);
+		if (sum !== input.totalSatang)
 			throw new Rejection(
 				422,
 				"ALLOCATION_MISMATCH",
@@ -258,7 +265,11 @@ async function saveTransaction(
 				"The date cannot be later than today.",
 			);
 		if (
-			locked.some((a) => isBalanceAccount(a.type) && input.date < a.openingDate)
+			locked.some(
+				(a) =>
+					isBalanceAccount(a.type) &&
+					(a.openingDate === null || input.date < calendar(a.openingDate)),
+			)
 		)
 			throw new Rejection(
 				422,
@@ -272,7 +283,7 @@ async function saveTransaction(
 			{
 				form: input.form,
 				primaryAccountId: input.primaryAccountId,
-				totalMinor: input.totalMinor,
+				totalSatang: input.totalSatang,
 				allocations: input.allocations,
 			},
 		]);
@@ -293,8 +304,8 @@ async function saveTransaction(
 				ownerId,
 				form: input.form,
 				primaryAccountId: input.primaryAccountId,
-				date: input.date,
-				totalMinor: input.totalMinor,
+				occurredOn: input.date,
+				totalSatang: input.totalSatang,
 				memo: input.memo,
 			})
 			.returning();
@@ -303,9 +314,10 @@ async function saveTransaction(
 			.insert(lines)
 			.values(
 				input.allocations.map((l, position) => ({
+					ownerId,
 					transactionId: saved.id,
 					accountId: l.accountId,
-					amountMinor: l.amountMinor,
+					amountSatang: l.amountSatang,
 					position,
 				})),
 			)
@@ -418,14 +430,15 @@ export function financeRoutes(deps: {
 			let income = 0n;
 			let expense = 0n;
 			for (const t of ledger.transactions) {
-				if (bounded && (t.date < (from as string) || t.date > (to as string)))
+				const day = calendar(t.occurredOn);
+				if (bounded && (day < (from as string) || day > (to as string)))
 					continue;
 				for (const l of t.lines) {
 					const type = types.get(l.accountId);
 					if (t.form === "RECEIVE" && type === "INCOME")
-						income += l.amountMinor;
+						income += l.amountSatang;
 					if (t.form === "PAYMENT" && type === "EXPENSE")
-						expense += l.amountMinor;
+						expense += l.amountSatang;
 				}
 			}
 			return json(200, {

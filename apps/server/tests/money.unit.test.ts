@@ -87,33 +87,33 @@ describe("System SDS effect matrix", () => {
 describe("TEST-22 / AC-22 derived balances (unit, independent expected values)", () => {
 	test("opening 10,000, salary 20,000, card charge 700+500, repayment 500", () => {
 		const accounts = [
-			{ id: "bank", type: "CASH" as const, openingAmountMinor: 1_000_000n },
-			{ id: "card", type: "LOAN_TAKEN" as const, openingAmountMinor: 0n },
-			{ id: "salary", type: "INCOME" as const, openingAmountMinor: 0n },
-			{ id: "dining", type: "EXPENSE" as const, openingAmountMinor: 0n },
-			{ id: "groceries", type: "EXPENSE" as const, openingAmountMinor: 0n },
+			{ id: "bank", type: "CASH" as const, openingAmountSatang: 1_000_000n },
+			{ id: "card", type: "LOAN_TAKEN" as const, openingAmountSatang: 0n },
+			{ id: "salary", type: "INCOME" as const, openingAmountSatang: 0n },
+			{ id: "dining", type: "EXPENSE" as const, openingAmountSatang: 0n },
+			{ id: "groceries", type: "EXPENSE" as const, openingAmountSatang: 0n },
 		];
 		const balances = deriveBalances(accounts, [
 			{
 				form: "RECEIVE",
 				primaryAccountId: "bank",
-				totalMinor: 2_000_000n,
-				allocations: [{ accountId: "salary", amountMinor: 2_000_000n }],
+				totalSatang: 2_000_000n,
+				allocations: [{ accountId: "salary", amountSatang: 2_000_000n }],
 			},
 			{
 				form: "PAYMENT",
 				primaryAccountId: "card",
-				totalMinor: 120_000n,
+				totalSatang: 120_000n,
 				allocations: [
-					{ accountId: "dining", amountMinor: 70_000n },
-					{ accountId: "groceries", amountMinor: 50_000n },
+					{ accountId: "dining", amountSatang: 70_000n },
+					{ accountId: "groceries", amountSatang: 50_000n },
 				],
 			},
 			{
 				form: "PAYMENT",
 				primaryAccountId: "bank",
-				totalMinor: 50_000n,
-				allocations: [{ accountId: "card", amountMinor: 50_000n }],
+				totalSatang: 50_000n,
+				allocations: [{ accountId: "card", amountSatang: 50_000n }],
 			},
 		]);
 		expect(Object.fromEntries(balances)).toEqual({

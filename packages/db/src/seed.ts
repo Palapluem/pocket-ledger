@@ -1,7 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
-
+import type { AccountType } from "./index";
 import { createDb, schema } from "./index";
-import type { AccountType } from "./schema";
 
 export type SeedUser = {
 	email: string;
@@ -39,19 +38,23 @@ export async function seedUsers(databaseUrl: string, seeds: SeedUser[]) {
 
 /** Sprint 1 starter accounts for every User (D-06): seeded, opening balance zero. */
 export const STARTER_ACCOUNTS = [
-	{ name: "Bank", type: "CASH" },
-	{ name: "Credit card", type: "LOAN_TAKEN" },
-	{ name: "Salary", type: "INCOME" },
-	{ name: "Dining", type: "EXPENSE" },
-	{ name: "Groceries", type: "EXPENSE" },
-] as const satisfies readonly { name: string; type: AccountType }[];
+	{ key: "bank", name: "Bank", type: "CASH" },
+	{ key: "credit-card", name: "Credit card", type: "LOAN_TAKEN" },
+	{ key: "salary", name: "Salary", type: "INCOME" },
+	{ key: "dining", name: "Dining", type: "EXPENSE" },
+	{ key: "groceries", name: "Groceries", type: "EXPENSE" },
+] as const satisfies readonly {
+	key: string;
+	name: string;
+	type: AccountType;
+}[];
 
 /** Today's calendar date in Asia/Bangkok (D-04), as YYYY-MM-DD. */
 export const bangkokToday = (now = new Date()) =>
 	new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(now);
 
 /**
- * Idempotent: gives every User any missing starter account (matched by owner and name).
+ * Idempotent: gives every User any missing starter account (matched by owner and account key).
  * Existing accounts, opening balances and transactions are never changed.
  */
 export async function seedStarterAccounts(
@@ -74,22 +77,20 @@ export async function seedStarterAccounts(
 			);
 		for (const owner of owners) {
 			const rows = await db
-				.insert(schema.financialAccounts)
+				.insert(schema.accounts)
 				.values(
 					STARTER_ACCOUNTS.map((a) => ({
 						ownerId: owner.id,
+						key: a.key,
 						name: a.name,
 						type: a.type,
 						openingDate: bangkokToday(),
 					})),
 				)
 				.onConflictDoNothing({
-					target: [
-						schema.financialAccounts.ownerId,
-						schema.financialAccounts.name,
-					],
+					target: [schema.accounts.ownerId, schema.accounts.key],
 				})
-				.returning({ id: schema.financialAccounts.id });
+				.returning({ id: schema.accounts.id });
 			inserted += rows.length;
 		}
 	} finally {

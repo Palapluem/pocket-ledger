@@ -60,13 +60,13 @@ export const isBalanceAccount = (type: AccountType) =>
 export type LedgerAccount = {
 	id: string;
 	type: AccountType;
-	openingAmountMinor: bigint;
+	openingAmountSatang: bigint;
 };
 export type LedgerTransaction = {
 	form: TransactionForm;
 	primaryAccountId: string;
-	totalMinor: bigint;
-	allocations: { accountId: string; amountMinor: bigint }[];
+	totalSatang: bigint;
+	allocations: { accountId: string; amountSatang: bigint }[];
 };
 
 /** Derives each account's balance from its opening amount and every saved effect. */
@@ -75,7 +75,7 @@ export function deriveBalances(
 	transactions: LedgerTransaction[],
 ): Map<string, bigint> {
 	const types = new Map(accounts.map((a) => [a.id, a.type]));
-	const balances = new Map(accounts.map((a) => [a.id, a.openingAmountMinor]));
+	const balances = new Map(accounts.map((a) => [a.id, a.openingAmountSatang]));
 	const apply = (id: string, sign: Sign | null, amount: bigint) => {
 		const current = balances.get(id);
 		if (current === undefined || sign === null) return;
@@ -87,12 +87,16 @@ export function deriveBalances(
 			apply(
 				t.primaryAccountId,
 				primaryEffect(t.form, primaryType),
-				t.totalMinor,
+				t.totalSatang,
 			);
 		for (const line of t.allocations) {
 			const type = types.get(line.accountId);
 			if (type)
-				apply(line.accountId, allocationEffect(t.form, type), line.amountMinor);
+				apply(
+					line.accountId,
+					allocationEffect(t.form, type),
+					line.amountSatang,
+				);
 		}
 	}
 	return balances;

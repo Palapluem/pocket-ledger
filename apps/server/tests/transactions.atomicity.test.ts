@@ -13,13 +13,13 @@ beforeEach(async () => {
 		create or replace function test_fail_line() returns trigger language plpgsql as $$
 		begin raise exception 'injected persistence failure'; end $$`);
 	await f.db.execute(sql`
-		create trigger test_fail_line before insert on allocation_lines
-		for each row when (new.amount_minor = 50001) execute function test_fail_line()`);
+		create trigger test_fail_line before insert on transaction_allocations
+		for each row when (new.amount_satang = 50001) execute function test_fail_line()`);
 });
 
 afterEach(async () => {
 	await f.db.execute(
-		sql`drop trigger if exists test_fail_line on allocation_lines`,
+		sql`drop trigger if exists test_fail_line on transaction_allocations`,
 	);
 	await f.db.execute(sql`drop function if exists test_fail_line()`);
 });
