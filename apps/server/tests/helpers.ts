@@ -1,5 +1,6 @@
 import { createDb, schema } from "@pocket-ledger/db";
 import { runMigrations } from "@pocket-ledger/db/migrate";
+import { sql } from "drizzle-orm";
 
 export const TEST_JWT = {
 	secret: "test-only-secret-that-is-at-least-32-characters-long",
@@ -67,6 +68,23 @@ export function assertDisposableTestDatabase(
 	return url;
 }
 
+/** Set by scripts/test-db.sh (and the CI service step) on the database it creates. */
+export const TEST_DATABASE_MARKER = "pocket-ledger disposable test database";
+
+/**
+ * Second, data-level guard: the URL shape alone could match a persistent database behind
+ * a local proxy, so cleanup also requires the ownership comment on the database itself.
+ */
+export async function assertOwnedTestDatabase(db: ReturnType<typeof createDb>) {
+	const rows = (await db.execute(
+		sql`select shobj_description(oid, 'pg_database') as marker from pg_database where datname = current_database()`,
+	)) as unknown as { marker: string | null }[];
+	if (rows[0]?.marker !== TEST_DATABASE_MARKER)
+		throw new Error(
+			"Refusing to modify data: the database is not marked as the disposable test database (run scripts/test-db.sh).",
+		);
+}
+
 export function testDatabaseUrl() {
 	const url = process.env.TEST_DATABASE_URL;
 	if (!url)
@@ -84,6 +102,7 @@ export async function resetDatabase() {
 	await migrated;
 	shared ??= createDb(url);
 	const db = shared;
+	await assertOwnedTestDatabase(db);
 	await db.delete(schema.users);
 	for (const [key, u] of Object.entries(FIXTURE)) {
 		await db.insert(schema.users).values({
