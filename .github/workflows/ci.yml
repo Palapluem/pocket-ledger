@@ -40,3 +40,5 @@ jobs:
         run: bun test apps/server
       - name: Build web client
         run: bun run build:web
+      - name: Build production Docker image
+        run: docker build --build-arg GIT_COMMIT=${{ github.sha }} -t pocket-ledger:ci .
