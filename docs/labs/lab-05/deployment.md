@@ -75,11 +75,11 @@ Tests refuse any database except `pocket_ledger_test` on a loopback port (`asser
 
 | Resource | Actual non-secret name / ID | Region | Purpose | Access / secret references |
 | --- | --- | --- | --- | --- |
-| GCP project | | asia-southeast1 | all resources | owner: Natthawat |
-| Application service | Cloud Run `pocket-ledger` | asia-southeast1 | UI + API | runtime SA `pl-runtime` |
-| Persistent database | Cloud SQL `pocket-ledger-db` (PostgreSQL 18, db-f1-micro), database `pocket_ledger` | asia-southeast1 | durable data | login roles `pocket_ledger_app` (service, in `pl-database-url`) and `pocket_ledger_migrator` (job, in `pl-migration-database-url`); `pocket_ledger` is only the database name |
-| Image registry | Artifact Registry `pocket-ledger` (docker) | asia-southeast1 | images tagged with full SHA, deployed by digest | `pl-deployer` writes |
-| Migration mechanism / job | Cloud Run job `pocket-ledger-migrate` (same image, `migrate` mode), run by the deploy workflow before the service update; migrations also hold a PostgreSQL advisory lock | asia-southeast1 | migrate + idempotent seed once per release | `pl-migrator` SA; `pl-migration-database-url`, `pl-seed-users` |
+| GCP project | `exalted-stage-316316` (number 468473091761) | asia-southeast3 (Bangkok) | all resources | owner: Natthawat |
+| Application service | Cloud Run `pocket-ledger` | asia-southeast3 | UI + API | runtime SA `pl-runtime` |
+| Persistent database | Cloud SQL `pocket-ledger-db` (PostgreSQL 18, db-f1-micro; connection `exalted-stage-316316:asia-southeast3:pocket-ledger-db`), database `pocket_ledger` | asia-southeast3 | durable data | login roles `pocket_ledger_app` (service, in `pl-database-url`) and `pocket_ledger_migrator` (job, in `pl-migration-database-url`); `pocket_ledger` is only the database name |
+| Image registry | Artifact Registry `pocket-ledger` (docker) | asia-southeast3 | images tagged with full SHA, deployed by digest | `pl-deployer` writes |
+| Migration mechanism / job | Cloud Run job `pocket-ledger-migrate` (same image, `migrate` mode), run by the deploy workflow before the service update; migrations also hold a PostgreSQL advisory lock | asia-southeast3 | migrate + idempotent seed once per release | `pl-migrator` SA; `pl-migration-database-url`, `pl-seed-users` |
 | Runtime identity | `pl-runtime@<project>.iam.gserviceaccount.com` | — | Cloud SQL Client (project); Secret Accessor on `pl-database-url` and `pl-jwt-secret` only | DB role `pocket_ledger_app` (DML only) |
 | Migration identity | `pl-migrator@<project>.iam.gserviceaccount.com` | — | Cloud SQL Client (project); Secret Accessor on `pl-migration-database-url` and `pl-seed-users` only | DB role `pocket_ledger_migrator` (owns the schema; no CREATEDB/CREATEROLE) |
 | Deployment identity / WIF provider if used | `pl-deployer@…`; pool `github`, provider `pocket-ledger` limited to `Palapluem/pocket-ledger` on `refs/heads/main` | global | GitHub Actions deploy without keys | Cloud Run Admin, Artifact Registry Writer, Service Account User on `pl-runtime` and `pl-migrator` only |
@@ -130,10 +130,10 @@ Record the same synthetic transaction identifier and financial values before/aft
 
 ## GCP setup runbook (manual, one time)
 
-Run by the project owner in the Cloud Console and Cloud Shell, region `asia-southeast1`. Every step is a first-time creation; if a resource already exists, stop and inspect it instead of recreating or overwriting it (see Credential rotation). Never paste secret values into chat, Issues, logs or the report.
+Run by the project owner in the Cloud Console and Cloud Shell, region `asia-southeast3`. Every step is a first-time creation; if a resource already exists, stop and inspect it instead of recreating or overwriting it (see Credential rotation). Never paste secret values into chat, Issues, logs or the report.
 
 1. Enable APIs: Cloud Run Admin, Cloud SQL Admin, Artifact Registry, Secret Manager, IAM, IAM Service Account Credentials, Security Token Service.
-2. Artifact Registry: create Docker repository `pocket-ledger` in `asia-southeast1`.
+2. Artifact Registry: create Docker repository `pocket-ledger` in `asia-southeast3`.
 3. Cloud SQL: create PostgreSQL 18 instance `pocket-ledger-db` (Enterprise, shared core `db-f1-micro`, 10 GB) with a strong `postgres` password kept outside Git. Create database `pocket_ledger`. Do not create application users through the console (console/gcloud built-in users get `cloudsqlsuperuser`). Copy the connection name.
 4. Database roles: in Cloud Shell, `gcloud sql connect pocket-ledger-db --user=postgres --database=pocket_ledger`, then run (substituting two new generated passwords):
 
@@ -172,7 +172,7 @@ Run by the project owner in the Cloud Console and Cloud Shell, region `asia-sout
 
    If either create command reports that the pool or provider already exists, do not continue: run `gcloud iam workload-identity-pools providers describe pocket-ledger --location=global --workload-identity-pool=github` and confirm the issuer, the mapping and the exact `refs/heads/main` condition before adding the binding.
 8. Budget alert (recommended): Billing → Budgets & alerts, for example 10 USD with alerts at 50/90/100%. An alert does not cap spending.
-9. GitHub (repository admin): Actions variables `GCP_PROJECT_ID`, `GCP_REGION=asia-southeast1`, `ARTIFACT_REPOSITORY=pocket-ledger`, `CLOUD_RUN_SERVICE=pocket-ledger`, `CLOUD_SQL_CONNECTION_NAME`, `GCP_RUNTIME_SERVICE_ACCOUNT`, `GCP_MIGRATOR_SERVICE_ACCOUNT`, `GCP_DEPLOY_SERVICE_ACCOUNT`, `GCP_WIF_PROVIDER=projects/<PN>/locations/global/workloadIdentityPools/github/providers/pocket-ledger`, `PUBLIC_URL=https://pocket-ledger-<PN>.asia-southeast1.run.app`; environment `production` (optional required reviewer); ruleset on `main` and `sprint-1-staging` requiring `build-test` and one approving review.
+9. GitHub (repository admin): Actions variables `GCP_PROJECT_ID`, `GCP_REGION=asia-southeast3`, `ARTIFACT_REPOSITORY=pocket-ledger`, `CLOUD_RUN_SERVICE=pocket-ledger`, `CLOUD_SQL_CONNECTION_NAME`, `GCP_RUNTIME_SERVICE_ACCOUNT`, `GCP_MIGRATOR_SERVICE_ACCOUNT`, `GCP_DEPLOY_SERVICE_ACCOUNT`, `GCP_WIF_PROVIDER=projects/<PN>/locations/global/workloadIdentityPools/github/providers/pocket-ledger`, `PUBLIC_URL=https://pocket-ledger-<PN>.asia-southeast3.run.app`; environment `production` (optional required reviewer); ruleset on `main` and `sprint-1-staging` requiring `build-test` and one approving review.
 
 The deploy workflow creates the Cloud Run job and service on the first `main` release.
 
