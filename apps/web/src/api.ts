@@ -12,6 +12,49 @@ export type ManagedUser = {
 	enabled: boolean;
 };
 
+export type AccountType =
+	| "CASH"
+	| "LOAN_TAKEN"
+	| "LOAN_GIVEN"
+	| "INCOME"
+	| "EXPENSE";
+
+export type Account = {
+	id: string;
+	name: string;
+	type: AccountType;
+	currency: string;
+	openingAmount: string;
+	openingDate: string;
+	balance: string;
+};
+
+export type Transaction = {
+	id: string;
+	form: "PAYMENT" | "RECEIVE";
+	primaryAccountId: string;
+	date: string;
+	total: string;
+	memo: string | null;
+	createdAt: string;
+	allocations: { accountId: string; amount: string }[];
+};
+
+export type NewTransaction = Omit<Transaction, "id" | "createdAt" | "memo"> & {
+	memo?: string;
+};
+
+export type Summary = {
+	from: string | null;
+	to: string | null;
+	income: string;
+	expense: string;
+	accounts: Account[];
+};
+
+/** The request may or may not have been saved (network failure or timeout). */
+export class UncertainOutcome extends Error {}
+
 export class ApiError extends Error {
 	constructor(
 		readonly status: number,
@@ -66,5 +109,29 @@ export const api = {
 			method: "PATCH",
 			body: JSON.stringify({ enabled }),
 		}),
+	accounts: () => request<Account[]>("/api/accounts"),
+	transactions: () => request<Transaction[]>("/api/transactions"),
+	summary: () => request<Summary>("/api/summary"),
+	/**
+	 * Sent once and never retried automatically (D-04, AC-28): a network failure or
+	 * timeout may have happened after the server saved it.
+	 */
+	createTransaction: async (input: NewTransaction) => {
+		try {
+			return await request<Transaction>("/api/transactions", {
+				method: "POST",
+				body: JSON.stringify(input),
+				signal: AbortSignal.timeout(15_000),
+			});
+		} catch (error) {
+			// Our own 500 means the database rolled back; a proxy/gateway 5xx does not say.
+			if (
+				error instanceof ApiError &&
+				(error.status < 500 || error.code === "INTERNAL_ERROR")
+			)
+				throw error;
+			throw new UncertainOutcome();
+		}
+	},
 	health: () => request<{ status: string; commit: string }>("/api/health"),
 };

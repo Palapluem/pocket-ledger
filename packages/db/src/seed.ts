@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import { createDb, schema } from "./index";
 import type { AccountType } from "./schema";
@@ -54,14 +54,24 @@ export const bangkokToday = (now = new Date()) =>
  * Idempotent: gives every User any missing starter account (matched by owner and name).
  * Existing accounts, opening balances and transactions are never changed.
  */
-export async function seedStarterAccounts(databaseUrl: string) {
+export async function seedStarterAccounts(
+	databaseUrl: string,
+	onlyEmails?: string[],
+) {
 	const db = createDb(databaseUrl);
 	let inserted = 0;
 	try {
 		const owners = await db
 			.select({ id: schema.users.id })
 			.from(schema.users)
-			.where(eq(schema.users.role, "user"));
+			.where(
+				onlyEmails
+					? and(
+							eq(schema.users.role, "user"),
+							inArray(schema.users.email, onlyEmails),
+						)
+					: eq(schema.users.role, "user"),
+			);
 		for (const owner of owners) {
 			const rows = await db
 				.insert(schema.financialAccounts)

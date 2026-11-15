@@ -11,4 +11,16 @@ export const E2E_USERS = {
 		role: "user" as const,
 		password: "e2e-user-pass",
 	},
+	payer: {
+		email: "pat@e2e.test",
+		displayName: "Pat",
+		role: "user" as const,
+		password: "e2e-payer-pass",
+	},
+	retry: {
+		email: "rae@e2e.test",
+		displayName: "Rae",
+		role: "user" as const,
+		password: "e2e-retry-pass",
+	},
 };

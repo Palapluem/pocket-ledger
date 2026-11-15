@@ -1,7 +1,7 @@
 // Starts the production server for browser tests on the disposable test database only.
 import { createDb, schema } from "@pocket-ledger/db";
 import { runMigrations } from "@pocket-ledger/db/migrate";
-import { seedUsers } from "@pocket-ledger/db/seed";
+import { seedStarterAccounts, seedUsers } from "@pocket-ledger/db/seed";
 import { inArray } from "drizzle-orm";
 import { E2E_USERS } from "../../../e2e/fixtures";
 import { createApp } from "../src/app";
@@ -18,7 +18,8 @@ const port = Number(process.env.E2E_PORT ?? 4173);
 const db = createDb(url);
 await assertOwnedTestDatabase(db);
 await runMigrations(url);
-// Remove only the E2E-owned fixture users, then recreate them with known passwords.
+// Remove only the E2E-owned fixture users (their financial records cascade), then recreate
+// them with known passwords and fresh starter accounts.
 await db.delete(schema.users).where(
 	inArray(
 		schema.users.email,
@@ -26,6 +27,10 @@ await db.delete(schema.users).where(
 	),
 );
 await seedUsers(url, Object.values(E2E_USERS));
+await seedStarterAccounts(
+	url,
+	Object.values(E2E_USERS).map((u) => u.email),
+);
 
 createApp({
 	db,

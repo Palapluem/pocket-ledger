@@ -13,6 +13,7 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { ApiError, api, type ManagedUser } from "./api";
+import { MoneyOverview, PaymentForm } from "./finance";
 import "./styles.css";
 
 function Footer() {
@@ -125,6 +126,12 @@ const overviewRoute = createRoute({
 		if (!me) throw redirect({ to: "/login" });
 		return { me };
 	},
+	loader: async ({ context }) =>
+		context.me.role === "user"
+			? {
+					money: await Promise.all([api.summary(), api.transactions()]),
+				}
+			: { money: null },
 	component: OverviewPage,
 });
 
@@ -146,8 +153,9 @@ function SignOutButton() {
 
 function OverviewPage() {
 	const { me } = overviewRoute.useRouteContext();
+	const { money } = overviewRoute.useLoaderData();
 	return (
-		<section className="card">
+		<section className={money ? "card wide" : "card"}>
 			<h1>Signed in</h1>
 			<p>
 				{me.displayName} ·{" "}
@@ -157,8 +165,12 @@ function OverviewPage() {
 				{me.role === "administrator" && (
 					<Link to="/admin/users">Manage users</Link>
 				)}
+				{money && (
+					<Link to="/transactions/new">Make a payment or record a charge</Link>
+				)}
 				<SignOutButton />
 			</nav>
+			{money && <MoneyOverview summary={money[0]} transactions={money[1]} />}
 		</section>
 	);
 }
@@ -261,12 +273,37 @@ function AdminUsersPage() {
 	);
 }
 
+const newPaymentRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/transactions/new",
+	beforeLoad: async () => {
+		const me = await api.currentIdentity();
+		if (!me) throw redirect({ to: "/login" });
+		if (me.role !== "user") throw redirect({ to: "/overview" });
+		return { me };
+	},
+	loader: async () => ({ accounts: await api.accounts() }),
+	component: NewPaymentPage,
+});
+
+function NewPaymentPage() {
+	const { accounts } = newPaymentRoute.useLoaderData();
+	const navigate = useNavigate();
+	return (
+		<PaymentForm
+			accounts={accounts}
+			onSaved={() => navigate({ to: "/overview" })}
+		/>
+	);
+}
+
 const router = createRouter({
 	routeTree: rootRoute.addChildren([
 		indexRoute,
 		loginRoute,
 		overviewRoute,
 		adminRoute,
+		newPaymentRoute,
 	]),
 });
 
