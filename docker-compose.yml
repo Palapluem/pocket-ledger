@@ -26,6 +26,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       CORS_ORIGIN: http://localhost:8080
       COOKIE_SECURE: "false"
+      RUN_MIGRATIONS: "true"
       SEED_USERS_JSON: ${SEED_USERS_JSON:-}
     ports:
       - "8080:8080"

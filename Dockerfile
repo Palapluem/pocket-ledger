@@ -30,3 +30,4 @@ ENV GIT_COMMIT=$GIT_COMMIT WEB_DIST_DIR=/app/apps/web/dist PORT=8080
 USER bun
 EXPOSE 8080
 ENTRYPOINT ["scripts/docker-entrypoint.sh"]
+CMD ["serve"]

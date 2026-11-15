@@ -40,6 +40,16 @@ jobs:
           DIGEST=$(gcloud artifacts docker images describe "${IMAGE}:${GITHUB_SHA}" --format='value(image_summary.digest)')
           echo "DIGEST=${DIGEST}" >> "$GITHUB_ENV"
           echo "Image: ${IMAGE}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Apply migrations and seed once, as a job with the migration credential
+        run: |
+          gcloud run jobs deploy pocket-ledger-migrate \
+            --region "${REGION}" \
+            --image "${IMAGE}@${DIGEST}" \
+            --args migrate \
+            --service-account "${{ vars.GCP_MIGRATOR_SERVICE_ACCOUNT }}" \
+            --set-cloudsql-instances "${{ vars.CLOUD_SQL_CONNECTION_NAME }}" \
+            --set-secrets "DATABASE_URL=pl-migration-database-url:latest,SEED_USERS_JSON=pl-seed-users:latest" \
+            --max-retries 0 --task-timeout 300 --execute-now --wait
       - name: Deploy the image digest to Cloud Run
         run: |
           gcloud run deploy "${SERVICE}" \
@@ -48,7 +58,7 @@ jobs:
             --service-account "${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
             --add-cloudsql-instances "${{ vars.CLOUD_SQL_CONNECTION_NAME }}" \
             --set-env-vars "CORS_ORIGIN=${{ vars.PUBLIC_URL }},COOKIE_SECURE=true" \
-            --set-secrets "DATABASE_URL=pl-database-url:latest,JWT_SECRET=pl-jwt-secret:latest,SEED_USERS_JSON=pl-seed-users:latest" \
+            --set-secrets "DATABASE_URL=pl-database-url:latest,JWT_SECRET=pl-jwt-secret:latest" \
             --allow-unauthenticated --max-instances 2 --quiet
           REVISION=$(gcloud run services describe "${SERVICE}" --region "${REGION}" --format='value(status.latestReadyRevisionName)')
           echo "Revision: ${REVISION}" >> "$GITHUB_STEP_SUMMARY"

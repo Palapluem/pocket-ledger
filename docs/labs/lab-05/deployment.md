@@ -13,7 +13,6 @@
 | Sprint staging branch | `sprint-1-staging` |
 | How the live service exposes or identifies its source commit (implemented) | `GET /api/health` returns `commit` (the full SHA passed as the `GIT_COMMIT` build arg); the page footer shows it |
 | Public URL | |
-| How the live service exposes or identifies its source commit | |
 
 ## Stack and deviations from the starter kit
 
@@ -34,18 +33,20 @@ List every variable the application, seed and relevant delivery steps read. Incl
 
 | Variable | Purpose | Build / runtime / seed / pipeline | Required / default | Secret? | Source of value / secret reference | Example file |
 | --- | --- | --- | --- | --- | --- | --- |
-| `DATABASE_URL` | PostgreSQL connection | runtime, migrate, seed | required | yes | Secret Manager `pl-database-url` | `.env.example` |
+| `DATABASE_URL` | PostgreSQL connection. Cloud Run service: limited app role; migration job: migrator role | runtime, migrate, seed | required | yes | Secret Manager `pl-database-url` (service, `pocket_ledger_app`) and `pl-migration-database-url` (job, `pocket_ledger_migrator`) | `.env.example` |
 | `JWT_SECRET` | HS256 signing key, at least 32 bytes | runtime | required | yes | Secret Manager `pl-jwt-secret` | `.env.example` |
 | `JWT_ISSUER` / `JWT_AUDIENCE` | token claims | runtime | default `pocket-ledger` / `pocket-ledger-web` | no | defaults | `.env.example` |
+| `JWT_TTL_SECONDS` | guard only: the lifetime is fixed at 3600 by D-05; any other value stops startup | runtime | leave unset (or `3600`) | no | not set | `.env.example` (comment) |
+| `RUN_MIGRATIONS` | `serve` mode runs migrate + seed before starting; only local compose sets it | runtime | default `false`; compose `true` | no | `docker-compose.yml` | `.env.example` |
 | `CORS_ORIGIN` | the one allowed browser origin for unsafe requests | runtime | required | no | GitHub variable `PUBLIC_URL` | `.env.example` |
 | `COOKIE_SECURE` | add `Secure` to the cookie | runtime | default false; `true` on Cloud Run | no | deploy workflow | `.env.example` |
 | `PORT` | listen port | runtime | default 3000; image sets 8080; Cloud Run injects | no | image / platform | `.env.example` |
 | `GIT_COMMIT` | commit reported by `/api/health` | build arg → runtime | default `unknown` | no | deploy workflow (`github.sha`) | `.env.example` |
 | `WEB_DIST_DIR` | built client directory | runtime | image sets `/app/apps/web/dist` | no | image | `.env.example` |
-| `SEED_USERS_JSON` | synthetic users inserted if missing | entrypoint seed | optional | yes (passwords) | Secret Manager `pl-seed-users` | `.env.example` |
+| `SEED_USERS_JSON` | synthetic users inserted if missing | `migrate` mode / seed | optional | yes (passwords) | Secret Manager `pl-seed-users` (migration job only) | `.env.example` |
 | `TEST_DATABASE_URL` | disposable test database | tests | required for tests | yes (local) | local only / CI throwaway | `.env.example` |
 | `POSTGRES_PASSWORD` | local compose database password | compose | required for compose | yes (local) | local `.env` | `.env.example` |
-| `GCP_*`, `ARTIFACT_REPOSITORY`, `CLOUD_RUN_SERVICE`, `CLOUD_SQL_CONNECTION_NAME`, `PUBLIC_URL` | deploy targets and identities | pipeline | required for deploy | no | GitHub repository variables (printed by `deploy/gcp-setup.sh`) | — |
+| `GCP_PROJECT_ID`, `GCP_REGION`, `ARTIFACT_REPOSITORY`, `CLOUD_RUN_SERVICE`, `CLOUD_SQL_CONNECTION_NAME`, `GCP_RUNTIME_SERVICE_ACCOUNT`, `GCP_MIGRATOR_SERVICE_ACCOUNT`, `GCP_DEPLOY_SERVICE_ACCOUNT`, `GCP_WIF_PROVIDER`, `PUBLIC_URL` | deploy targets and identities | pipeline | required for deploy | no | GitHub repository variables (values from the GCP setup runbook below) | — |
 
 ## Reproduction commands
 
@@ -76,10 +77,11 @@ Tests refuse any database except `pocket_ledger_test` on a loopback port (`asser
 | Application service | Cloud Run `pocket-ledger` | asia-southeast1 | UI + API | runtime SA `pl-runtime` |
 | Persistent database | Cloud SQL `pocket-ledger-db` (PostgreSQL 18, db-f1-micro), database `pocket_ledger` | asia-southeast1 | durable data | user `pocket_ledger`; password only in `pl-database-url` |
 | Image registry | Artifact Registry `pocket-ledger` (docker) | asia-southeast1 | images tagged with full SHA, deployed by digest | `pl-deployer` writes |
-| Migration mechanism / job | container entrypoint (`scripts/docker-entrypoint.sh`) | — | migrate + idempotent seed at start | — |
-| Runtime identity | `pl-runtime@<project>.iam.gserviceaccount.com` | — | Cloud SQL client, Secret accessor | — |
-| Deployment identity / WIF provider if used | `pl-deployer@…`; pool `github`, provider `pocket-ledger` limited to `Palapluem/pocket-ledger` on `refs/heads/main` | global | GitHub Actions deploy without keys | Run admin, Artifact Registry writer |
-| Secret Manager references if used | `pl-database-url`, `pl-jwt-secret`, `pl-seed-users` | — | runtime secrets | `pl-runtime` reads |
+| Migration mechanism / job | Cloud Run job `pocket-ledger-migrate` (same image, `migrate` mode), run by the deploy workflow before the service update; migrations also hold a PostgreSQL advisory lock | asia-southeast1 | migrate + idempotent seed once per release | `pl-migrator` SA; `pl-migration-database-url`, `pl-seed-users` |
+| Runtime identity | `pl-runtime@<project>.iam.gserviceaccount.com` | — | Cloud SQL Client (project); Secret Accessor on `pl-database-url` and `pl-jwt-secret` only | DB role `pocket_ledger_app` (DML only) |
+| Migration identity | `pl-migrator@<project>.iam.gserviceaccount.com` | — | Cloud SQL Client (project); Secret Accessor on `pl-migration-database-url` and `pl-seed-users` only | DB role `pocket_ledger_migrator` (owns the schema; no CREATEDB/CREATEROLE) |
+| Deployment identity / WIF provider if used | `pl-deployer@…`; pool `github`, provider `pocket-ledger` limited to `Palapluem/pocket-ledger` on `refs/heads/main` | global | GitHub Actions deploy without keys | Cloud Run Admin, Artifact Registry Writer, Service Account User on `pl-runtime` and `pl-migrator` only |
+| Secret Manager references if used | `pl-database-url`, `pl-jwt-secret` (service); `pl-migration-database-url`, `pl-seed-users` (job) | — | runtime secrets | per-secret IAM bindings only |
 
 Document chosen cost controls, budget alerts, service availability during grading and when pause/teardown is permitted. Do not include billing credentials or secret values.
 
@@ -124,14 +126,62 @@ Document how either member repeats the procedure. Keep full-SHA tagging/digest d
 
 Record the same synthetic transaction identifier and financial values before/after the two events. State the actual restart mechanism and versions; a redeploy-only check does not establish both checks.
 
+## GCP setup runbook (manual, one time)
+
+Run by the project owner in the Cloud Console and Cloud Shell, region `asia-southeast1`. Every step is a first-time creation; if a resource already exists, stop and inspect it instead of recreating or overwriting it (see Credential rotation). Never paste secret values into chat, Issues, logs or the report.
+
+1. Enable APIs: Cloud Run Admin, Cloud SQL Admin, Artifact Registry, Secret Manager, IAM, IAM Service Account Credentials, Security Token Service.
+2. Artifact Registry: create Docker repository `pocket-ledger` in `asia-southeast1`.
+3. Cloud SQL: create PostgreSQL 18 instance `pocket-ledger-db` (Enterprise, shared core `db-f1-micro`, 10 GB) with a strong `postgres` password kept outside Git. Create database `pocket_ledger`. Do not create application users through the console (console/gcloud built-in users get `cloudsqlsuperuser`). Copy the connection name.
+4. Database roles: in Cloud Shell, `gcloud sql connect pocket-ledger-db --user=postgres --database=pocket_ledger`, then run (substituting two new generated passwords):
+
+   ```sql
+   CREATE ROLE pocket_ledger_migrator LOGIN PASSWORD '<migrator password>' NOSUPERUSER NOCREATEDB NOCREATEROLE;
+   CREATE ROLE pocket_ledger_app LOGIN PASSWORD '<app password>' NOSUPERUSER NOCREATEDB NOCREATEROLE;
+   GRANT pocket_ledger_migrator TO CURRENT_USER;
+   REVOKE ALL ON DATABASE pocket_ledger FROM PUBLIC;
+   GRANT CONNECT, CREATE ON DATABASE pocket_ledger TO pocket_ledger_migrator;
+   GRANT CONNECT ON DATABASE pocket_ledger TO pocket_ledger_app;
+   ALTER SCHEMA public OWNER TO pocket_ledger_migrator;
+   GRANT USAGE ON SCHEMA public TO pocket_ledger_app;
+   ALTER DEFAULT PRIVILEGES FOR ROLE pocket_ledger_migrator IN SCHEMA public
+     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO pocket_ledger_app;
+   ALTER DEFAULT PRIVILEGES FOR ROLE pocket_ledger_migrator IN SCHEMA public
+     GRANT USAGE, SELECT ON SEQUENCES TO pocket_ledger_app;
+   ```
+
+   Verified locally on `postgres:18.4` with the production image: the migrator applied migrations and seeded; the app role served sign-in and user updates but was refused `CREATE TABLE`, `DROP TABLE users` and `CREATE DATABASE`.
+5. Secret Manager (create each once): `pl-database-url` = `postgresql://pocket_ledger_app:<app password>@localhost/pocket_ledger?host=/cloudsql/<connection name>`; `pl-migration-database-url` = the same with `pocket_ledger_migrator:<migrator password>`; `pl-jwt-secret` = `openssl rand -hex 32`; `pl-seed-users` = JSON array of synthetic `{email, displayName, role, password}` including one administrator. URL-encode special characters in passwords.
+6. Service accounts: `pl-runtime`, `pl-migrator`, `pl-deployer`. Project roles: `pl-runtime` and `pl-migrator` get Cloud SQL Client; `pl-deployer` gets Cloud Run Admin and Artifact Registry Writer. Secret access per secret only (each secret's Permissions tab, role Secret Manager Secret Accessor): `pl-runtime` on `pl-database-url` and `pl-jwt-secret`; `pl-migrator` on `pl-migration-database-url` and `pl-seed-users`. On `pl-runtime` and `pl-migrator` (Principals with access), grant `pl-deployer` the Service Account User role.
+7. Workload Identity Federation (Cloud Shell):
+
+   ```bash
+   PROJECT_ID=<project id>; PN=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+   gcloud iam workload-identity-pools create github --location=global --project=$PROJECT_ID
+   gcloud iam workload-identity-pools providers create-oidc pocket-ledger --location=global \
+     --workload-identity-pool=github --project=$PROJECT_ID \
+     --issuer-uri=https://token.actions.githubusercontent.com \
+     --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref" \
+     --attribute-condition="assertion.repository=='Palapluem/pocket-ledger' && assertion.ref=='refs/heads/main'"
+   gcloud iam service-accounts add-iam-policy-binding pl-deployer@$PROJECT_ID.iam.gserviceaccount.com \
+     --project=$PROJECT_ID --role=roles/iam.workloadIdentityUser \
+     --member="principalSet://iam.googleapis.com/projects/$PN/locations/global/workloadIdentityPools/github/attribute.repository/Palapluem/pocket-ledger"
+   ```
+
+   If either create command reports that the pool or provider already exists, do not continue: run `gcloud iam workload-identity-pools providers describe pocket-ledger --location=global --workload-identity-pool=github` and confirm the issuer, the mapping and the exact `refs/heads/main` condition before adding the binding.
+8. Budget alert (recommended): Billing → Budgets & alerts, for example 10 USD with alerts at 50/90/100%. An alert does not cap spending.
+9. GitHub (repository admin): Actions variables `GCP_PROJECT_ID`, `GCP_REGION=asia-southeast1`, `ARTIFACT_REPOSITORY=pocket-ledger`, `CLOUD_RUN_SERVICE=pocket-ledger`, `CLOUD_SQL_CONNECTION_NAME`, `GCP_RUNTIME_SERVICE_ACCOUNT`, `GCP_MIGRATOR_SERVICE_ACCOUNT`, `GCP_DEPLOY_SERVICE_ACCOUNT`, `GCP_WIF_PROVIDER=projects/<PN>/locations/global/workloadIdentityPools/github/providers/pocket-ledger`, `PUBLIC_URL=https://pocket-ledger-<PN>.asia-southeast1.run.app`; environment `production` (optional required reviewer); ruleset on `main` and `sprint-1-staging` requiring `build-test` and one approving review.
+
+The deploy workflow creates the Cloud Run job and service on the first `main` release.
+
 ## Credential rotation
 
-`deploy/gcp-setup.sh` is first-run only and exits without changes if the SQL user or any `pl-*` secret already exists. To rotate deliberately:
+The runbook is first-time only; never recreate an existing user or secret to "reset" it. To rotate deliberately:
 
-1. Database password: in one maintenance window, run `gcloud sql users set-password`, immediately add a matching `pl-database-url` version, then redeploy so a new revision reads `latest`. New connections from the old revision fail between the password change and the new revision; check `/api/health` reports `database: ok` afterwards.
+1. Database password (app or migrator role): in one maintenance window, `ALTER ROLE … PASSWORD …` through `gcloud sql connect`, immediately add a matching version of `pl-database-url` or `pl-migration-database-url`, then redeploy so a new revision (or the next job run) reads `latest`. Connections from the old revision fail between the password change and the new revision; check `/api/health` reports `database: ok` afterwards.
 2. JWT key: add a new `pl-jwt-secret` version and redeploy. Every outstanding token becomes invalid and users sign in again (accepted in D-05).
 
-Record who rotated, when, and the resulting revision. Do not rerun the setup script for rotation.
+Record who rotated, when, and the resulting revision.
 
 ## Rollback / recovery, if exercised
 
