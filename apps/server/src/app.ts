@@ -275,7 +275,9 @@ export function createApp(config: AppConfig) {
 				const file = Bun.file(target);
 				if (await file.exists()) return new Response(file);
 			}
-			// Client-side routes (for example /login) load the single-page app.
+			// A missing file (any path with an extension, e.g. /assets/app-1.js) is a 404;
+			// only extension-less client routes (for example /login) load the single-page app.
+			if (/\.[^/]+$/.test(path)) return failure(404, "NOT_FOUND", "Not found.");
 			return new Response(Bun.file(resolve(root, "index.html")), {
 				headers: { "content-type": "text/html; charset=utf-8" },
 			});

@@ -2,18 +2,29 @@
 import { createDb, schema } from "@pocket-ledger/db";
 import { runMigrations } from "@pocket-ledger/db/migrate";
 import { seedUsers } from "@pocket-ledger/db/seed";
+import { inArray } from "drizzle-orm";
 import { E2E_USERS } from "../../../e2e/fixtures";
 import { createApp } from "../src/app";
-import { assertDisposableTestDatabase } from "./helpers";
+import {
+	assertDisposableTestDatabase,
+	assertOwnedTestDatabase,
+} from "./helpers";
 
 const url = process.env.TEST_DATABASE_URL;
 if (!url) throw new Error("TEST_DATABASE_URL is required");
 assertDisposableTestDatabase(url);
 const port = Number(process.env.E2E_PORT ?? 4173);
 
-await runMigrations(url);
 const db = createDb(url);
-await db.delete(schema.users);
+await assertOwnedTestDatabase(db);
+await runMigrations(url);
+// Remove only the E2E-owned fixture users, then recreate them with known passwords.
+await db.delete(schema.users).where(
+	inArray(
+		schema.users.email,
+		Object.values(E2E_USERS).map((u) => u.email),
+	),
+);
 await seedUsers(url, Object.values(E2E_USERS));
 
 createApp({

@@ -11,6 +11,8 @@ case "${1:-}" in
       -e POSTGRES_PASSWORD="$TEST_DB_PASSWORD" -e POSTGRES_DB=pocket_ledger_test \
       --tmpfs /var/lib/postgresql postgres:18.4 >/dev/null
     for _ in $(seq 1 60); do docker exec "$NAME" pg_isready -U postgres -d pocket_ledger_test >/dev/null 2>&1 && break; sleep 1; done; docker ps --filter name="$NAME" -q | grep -q . || { echo "container not running" >&2; exit 1; }
+    docker exec "$NAME" psql -U postgres -d pocket_ledger_test -qc \
+      "COMMENT ON DATABASE pocket_ledger_test IS 'pocket-ledger disposable test database'"
     echo "ready: postgresql://postgres:***@127.0.0.1:$PORT/pocket_ledger_test" ;;
   down) docker stop "$NAME" >/dev/null && echo stopped ;;
   *) echo "usage: $0 up|down" >&2; exit 2 ;;

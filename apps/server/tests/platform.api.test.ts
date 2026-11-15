@@ -93,6 +93,21 @@ describe("serving the built web client from the same origin", () => {
 			expect(await page.text()).toContain("<title>PL</title>");
 		}
 	});
+	test("a missing asset is a 404, while a deep client route still loads the app", async () => {
+		const app = appWithWeb();
+		for (const path of [
+			"/assets/missing-abc123.js",
+			"/missing.css",
+			"/logo.png",
+		]) {
+			const res = await get(app, path);
+			expect(res.status).toBe(404);
+			expect(await res.text()).not.toContain("<title>PL</title>");
+		}
+		const deep = await get(app, "/admin/users/some-id");
+		expect(deep.status).toBe(200);
+		expect(deep.headers.get("content-type")).toContain("text/html");
+	});
 	test("unknown API paths stay JSON 404 and never return the client page", async () => {
 		const res = await get(appWithWeb(), "/api/nope");
 		expect(res.status).toBe(404);
