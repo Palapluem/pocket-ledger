@@ -534,6 +534,16 @@ export function createApp(config: AppConfig) {
 					);
 				allocations.push({ accountId: line.accountId, amountSatang, position });
 			}
+			const allocatedSatang = allocations.reduce(
+				(sum, allocation) => sum + allocation.amountSatang,
+				0n,
+			);
+			if (allocatedSatang !== totalSatang)
+				return failure(
+					422,
+					"RULE_VIOLATION",
+					"Allocation amounts must equal the transaction total.",
+				);
 			const accountIds = [
 				input.primaryAccountId,
 				...allocations.map((allocation) => allocation.accountId),
