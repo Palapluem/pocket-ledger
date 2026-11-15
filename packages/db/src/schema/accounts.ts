@@ -33,17 +33,20 @@ export const accounts = pgTable(
 		type: accountType("type").notNull(),
 		currency: text("currency").notNull().default("THB"),
 		openingAmountSatang: bigint("opening_amount_satang", {
-			mode: "number",
+			mode: "bigint",
 		})
 			.notNull()
-			.default(0),
+			.default(sql`0`),
 		openingDate: date("opening_date", { mode: "string" }),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
 	(table) => [
 		unique().on(table.ownerId, table.key),
-		check("accounts_opening_amount_nonnegative", sql`${table.openingAmountSatang} >= 0`),
+		check(
+			"accounts_opening_amount_nonnegative",
+			sql`${table.openingAmountSatang} >= 0`,
+		),
 		check("accounts_currency_thb", sql`${table.currency} = 'THB'`),
 	],
 );

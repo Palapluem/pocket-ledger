@@ -1,5 +1,5 @@
-import { createDb, schema, type Database } from "./index";
 import { and, eq } from "drizzle-orm";
+import { createDb, type Database, schema } from "./index";
 
 const DEFAULT_FINANCIAL_ACCOUNTS = [
 	{ key: "bank", name: "Bank", type: "CASH" },
@@ -26,7 +26,7 @@ export async function seedFinancialAccounts(db: Database) {
 					name: account.name,
 					type: account.type,
 					currency: "THB",
-					openingAmountSatang: 0,
+					openingAmountSatang: 0n,
 				})
 				.onConflictDoNothing({
 					target: [schema.accounts.ownerId, schema.accounts.key],

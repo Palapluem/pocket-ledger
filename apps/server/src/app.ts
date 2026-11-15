@@ -110,17 +110,41 @@ export function createApp(config: AppConfig) {
 			};
 		return { identity };
 	};
-	const formatMoney = (satang: number) =>
-		`${Math.floor(satang / 100)}.${(satang % 100).toString().padStart(2, "0")}`;
-	const accountDto = (account: typeof schema.accounts.$inferSelect) => ({
-		id: account.id,
-		name: account.name,
-		type: account.type,
-		currency: account.currency,
-		openingBalance: formatMoney(account.openingAmountSatang),
-		openingDate: account.openingDate,
-		balance: formatMoney(account.openingAmountSatang),
-	});
+	const formatMoney = (satang: bigint) =>
+		`${satang / 100n}.${(satang % 100n).toString().padStart(2, "0")}`;
+	const parseMoney = (value: unknown) => {
+		if (typeof value !== "string") return null;
+		const match = /^(0|[1-9]\d*)(?:\.(\d{1,2}))?$/.exec(value);
+		if (!match) return null;
+		const whole = match[1];
+		if (whole === undefined) return null;
+		return (
+			BigInt(whole) * 100n + BigInt((match[2] ?? "").padEnd(2, "0") || "0")
+		);
+	};
+	const isCalendarDate = (value: unknown): value is string => {
+		if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))
+			return false;
+		const date = new Date(`${value}T00:00:00.000Z`);
+		return (
+			!Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value
+		);
+	};
+	const accountDto = (account: typeof schema.accounts.$inferSelect) => {
+		const openingDate = account.openingDate as string | Date | null;
+		return {
+			id: account.id,
+			name: account.name,
+			type: account.type,
+			currency: account.currency,
+			openingBalance: formatMoney(account.openingAmountSatang),
+			openingDate:
+				openingDate instanceof Date
+					? openingDate.toISOString().slice(0, 10)
+					: openingDate,
+			balance: formatMoney(account.openingAmountSatang),
+		};
+	};
 	const safeUser = (u: typeof schema.users.$inferSelect) => ({
 		id: u.id,
 		email: u.email,
@@ -180,6 +204,55 @@ export function createApp(config: AppConfig) {
 				.limit(1);
 			return account
 				? json(200, accountDto(account))
+				: failure(404, "NOT_FOUND", "Account not found.");
+		})
+		.put("/api/accounts/:id/opening-balance", async ({ request, params }) => {
+			const guard = await requireUser(request);
+			if (guard.error) return guard.error;
+			let body: unknown;
+			try {
+				body = await request.json();
+			} catch {
+				body = undefined;
+			}
+			const input = (body ?? {}) as Record<string, unknown>;
+			const amount = parseMoney(input.amount);
+			if (amount === null || !isCalendarDate(input.date))
+				return failure(
+					400,
+					"INVALID_INPUT",
+					"Enter a non-negative amount with up to two decimal places and a valid date.",
+				);
+			if (!UUID.test(params.id))
+				return failure(404, "NOT_FOUND", "Account not found.");
+			const [account] = await config.db
+				.select()
+				.from(schema.accounts)
+				.where(
+					and(
+						eq(schema.accounts.id, params.id),
+						eq(schema.accounts.ownerId, guard.identity.id),
+					),
+				)
+				.limit(1);
+			if (!account) return failure(404, "NOT_FOUND", "Account not found.");
+			if (account.type === "INCOME" || account.type === "EXPENSE")
+				return failure(
+					422,
+					"RULE_VIOLATION",
+					"Opening balances are only available for balance-bearing accounts.",
+				);
+			const [updated] = await config.db
+				.update(schema.accounts)
+				.set({
+					openingAmountSatang: amount,
+					openingDate: input.date,
+					updatedAt: new Date(),
+				})
+				.where(eq(schema.accounts.id, account.id))
+				.returning();
+			return updated
+				? json(200, accountDto(updated))
 				: failure(404, "NOT_FOUND", "Account not found.");
 		})
 		.post("/api/session", async ({ request }) => {
