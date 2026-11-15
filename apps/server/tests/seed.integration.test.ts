@@ -84,7 +84,9 @@ describe("migrations under concurrent container starts", () => {
 			const fresh = createDb(scratch.href);
 			try {
 				const rows = (await fresh.execute(
-					sql.raw("select count(*)::int as n from drizzle.__drizzle_migrations"),
+					sql.raw(
+						"select count(*)::int as n from drizzle.__drizzle_migrations",
+					),
 				)) as unknown as { n: number }[];
 				expect(rows[0]?.n).toBe(1);
 			} finally {
