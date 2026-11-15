@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 
 import {
 	ApiError,
@@ -211,6 +211,7 @@ export function ReceiveMoneyPage() {
 	const [memo, setMemo] = useState("");
 	const [loading, setLoading] = useState(true);
 	const [submitting, setSubmitting] = useState(false);
+	const submittingRef = useRef(false);
 	const [loadError, setLoadError] = useState<string>();
 	const [error, setError] = useState<string>();
 	const [status, setStatus] = useState<string>();
@@ -262,6 +263,8 @@ export function ReceiveMoneyPage() {
 
 	const submit = async (event: FormEvent) => {
 		event.preventDefault();
+		if (submittingRef.current) return;
+		submittingRef.current = true;
 		setError(undefined);
 		setStatus(undefined);
 		setSaved(undefined);
@@ -283,6 +286,7 @@ export function ReceiveMoneyPage() {
 				setError(
 					"We could not confirm whether the request was saved. Check transaction history before submitting again; automatic retry is disabled.",
 				);
+			submittingRef.current = false;
 			setSubmitting(false);
 			return;
 		}
@@ -304,6 +308,7 @@ export function ReceiveMoneyPage() {
 				"The server accepted the receipt, but a fresh history or balance read failed. Check transaction history before submitting again.",
 			);
 		} finally {
+			submittingRef.current = false;
 			setSubmitting(false);
 		}
 	};

@@ -43,6 +43,7 @@ main {
 	align-items: flex-start;
 }
 .card {
+	box-sizing: border-box;
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: 8px;

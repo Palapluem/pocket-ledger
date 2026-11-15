@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
 
 import { createApp } from "../src/app";
+import { bangkokToday } from "../src/finance";
 import { ALLOWED_ORIGIN, FIXTURE, resetDatabase, TEST_JWT } from "./helpers";
 
 type Db = Awaited<ReturnType<typeof resetDatabase>>;
@@ -304,6 +305,51 @@ describe("TEST-13 / AC-13 salary receipt", () => {
 		}
 		const history = await send("GET", "/api/transactions", { cookie });
 		expect(await readJson(history)).toEqual([]);
+	});
+
+	test("TEST-24 / AC-24 includes the opening date and Bangkok today, but rejects dates outside", async () => {
+		const { cookie } = await signIn();
+		const { accounts } = await loadAccounts(cookie);
+		const bank = accounts.find((account) => account.type === "CASH");
+		const salary = accounts.find((account) => account.type === "INCOME");
+		if (!bank || !salary)
+			throw new Error("Required seeded accounts are missing.");
+		const opening = await send(
+			"PUT",
+			`/api/accounts/${bank.id}/opening-balance`,
+			{ cookie, body: { amount: "10000.00", date: "2026-11-01" } },
+		);
+		expect(opening.status).toBe(200);
+
+		for (const date of ["2026-11-01", bangkokToday()]) {
+			const accepted = await send("POST", "/api/transactions", {
+				cookie,
+				body: salaryReceipt(bank.id, salary.id, { date, total: "1.00" }),
+			});
+			expect(accepted.status).toBe(201);
+		}
+
+		const beforeOpening = await send("POST", "/api/transactions", {
+			cookie,
+			body: salaryReceipt(bank.id, salary.id, {
+				date: "2026-10-31",
+				total: "1.00",
+			}),
+		});
+		expect(beforeOpening.status).toBe(422);
+
+		const afterToday = await send("POST", "/api/transactions", {
+			cookie,
+			body: salaryReceipt(bank.id, salary.id, {
+				date: "2099-01-01",
+				total: "1.00",
+			}),
+		});
+		expect(afterToday.status).toBe(422);
+
+		const history = await send("GET", "/api/transactions", { cookie });
+		expect(history.status).toBe(200);
+		expect(await readJson<TransactionDto[]>(history)).toHaveLength(2);
 	});
 
 	test("TEST-10 / AC-10 preserves activity when an opening balance is edited", async () => {
