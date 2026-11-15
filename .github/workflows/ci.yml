@@ -35,8 +35,12 @@ jobs:
       - name: Type check
         run: bun run check-types
       - name: Lint (Biome, read-only)
-        run: bunx biome check apps packages scripts
+        run: bunx biome check apps packages scripts e2e playwright.config.ts
       - name: Integration tests (real PostgreSQL)
         run: bun test apps/server
       - name: Build web client
         run: bun run build:web
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+      - name: Browser E2E (real server, built client, PostgreSQL)
+        run: bun run test:e2e
