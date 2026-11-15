@@ -16,7 +16,7 @@ This is the single decision register for PocketLedger. Assignment requirements a
 | D-02 Stack and reproducible runtime | Wisit + Natthawat | STACK CONFIRMED; FIRST-PARTY JWT SELECTED; Bun 1.4.4 and PostgreSQL 18.4 pins agreed; deployment images remain Lab 5 work | System SDS, setup and implementation |
 | D-03 Money, balance signs and account compatibility | Wisit + Natthawat | AGREED FOR SPRINT 1; policy and independent fixture recorded in PR #15 | Financial contracts and expected values |
 | D-04 Dates, opening balances and correction boundary | Wisit + Natthawat | AGREED FOR SPRINT 1; balance-account opening-date rule and retry limitation recorded in PR #15 | History, summaries and validation |
-| D-05 Authentication and deactivation | Wisit + Natthawat | JWT model, 3600 s, HS256/`jose`, and key source/rotation/retention AGREED; Origin/CSRF policy DEFERRED pending deployment review | Identity, authorization and administrator contract |
+| D-05 Authentication and deactivation | Wisit + Natthawat | JWT model, 3600 s, HS256/`jose`, and key source/rotation/retention AGREED; Origin/CSRF policy PROPOSED for the deployment review (exact-Origin guard + SameSite=Lax), awaiting acceptance | Identity, authorization and administrator contract |
 | D-06 Sprint 1 scope and feature ownership | Wisit + Natthawat | AGREED: F-03/F-04 Wisit, F-05/F-06 Natthawat, with cross-review | Sprint plan and implementation Issues |
 | D-07 Public interfaces and verification | Wisit + Natthawat | Sprint 1 example journey, baseline routes/DTOs and verification approach AGREED; feature-specific changes remain reviewed in their PRs | API/data/UI contract and STS |
 
@@ -55,6 +55,13 @@ Agreed by Wisit on 15 November: Sprint 1 creates transactions without a server i
 ## D-05 Authentication and deactivation
 
 Agreed Sprint 1 model: first-party stateless signed JWT in an HttpOnly cookie for seeded-user sign-in. The JWT carries the user identifier, display name and role snapshot plus standard issuer, audience, issue-time and expiry claims. Approved by Wisit: a 3600-second lifetime, HS256 as the fixed algorithm and the `jose` library. The current implementation reads its key from `JWT_SECRET` (at least 32 bytes). Agreed by Wisit on 15 November: keep a cryptographically random key of at least 32 bytes in an ignored local `.env` or deployment secret store, never in Git; rotate it manually by replacing the secret and restarting; invalidate all outstanding tokens on rotation; and retain no previous key. The Origin/CSRF request-protection policy is deferred for now, as Wisit requested; the current Origin check is optional implementation hardening, not an agreed team policy or a blocker to this PR. Revisit and agree the production protection before public deployment.
+
+**Proposed for the Lab 5 deployment review (Natthawat, 16 November; awaiting Wisit's acceptance):** adopt the implemented behavior as the production request-protection policy.
+- The browser client and API are served from one origin (`PUBLIC_URL`), so no cross-site browser call is needed.
+- The session cookie stays HttpOnly and SameSite=Lax, with Secure on Cloud Run (`COOKIE_SECURE=true`).
+- Every unsafe request (POST/PUT/PATCH/DELETE) must carry an `Origin` header exactly equal to `CORS_ORIGIN`. A different or missing `Origin` returns `403 FORBIDDEN_ORIGIN` before any handler runs. This one global guard covers the session, administration and transaction routes.
+- CORS allows only that origin, with credentials.
+- Accepted limit: non-browser clients must send the configured `Origin`; there is no separate CSRF token. SameSite=Lax plus the exact Origin check covers the Sprint 1 threat model (a malicious site making a signed-in browser submit a request).
 
 This simple design has no server-side session row, refresh token or revocation list. Logout clears the current browser cookie; a copied token remains valid until expiry. A role change or account disable does not affect an existing token before expiry while its signing key remains accepted; new sign-ins use the current user record. Do not claim immediate revocation or current-account checks on every request. Both students accept these token limitations. The lifetime, algorithm, library and key-management policy above are agreed. Request protection remains deferred until deployment review; do not treat the current Origin check as a settled policy. Change the design if immediate revocation becomes necessary.
 
