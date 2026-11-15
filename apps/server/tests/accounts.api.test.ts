@@ -4,6 +4,15 @@ import { createApp } from "../src/app";
 import { ALLOWED_ORIGIN, FIXTURE, resetDatabase, TEST_JWT } from "./helpers";
 
 type Db = Awaited<ReturnType<typeof resetDatabase>>;
+type AccountDto = {
+	id: string;
+	name: string;
+	type: string;
+	currency: string;
+	openingBalance: string;
+	openingDate: string | null;
+	balance: string;
+};
 let db: Db;
 let app: ReturnType<typeof createApp>;
 
@@ -35,6 +44,8 @@ const send = (
 		}),
 	);
 
+const readJson = async <T>(response: Response) => (await response.json()) as T;
+
 async function signIn() {
 	const response = await send("POST", "/api/session", {
 		body: { email: FIXTURE.userA.email, password: FIXTURE.userA.password },
@@ -50,7 +61,7 @@ describe("TEST-09 / AC-09 through AC-12 account foundation", () => {
 
 		const response = await send("GET", "/api/accounts", { cookie });
 		expect(response.status).toBe(200);
-		const accounts = await response.json();
+		const accounts = await readJson<AccountDto[]>(response);
 		expect(accounts).toHaveLength(6);
 		expect(
 			accounts.map(({ name, type }: { name: string; type: string }) => [
@@ -79,8 +90,8 @@ describe("TEST-09 / AC-09 through AC-12 account foundation", () => {
 		const userAResponse = await send("GET", "/api/accounts", {
 			cookie: userACookie,
 		});
-		const userAIds = (await userAResponse.json()).map(
-			(account: { id: string }) => account.id,
+		const userAIds = (await readJson<AccountDto[]>(userAResponse)).map(
+			(account) => account.id,
 		);
 
 		const userBLogin = await send("POST", "/api/session", {
@@ -91,8 +102,8 @@ describe("TEST-09 / AC-09 through AC-12 account foundation", () => {
 		const userBResponse = await send("GET", "/api/accounts", {
 			cookie: userBCookie,
 		});
-		const userBIds = (await userBResponse.json()).map(
-			(account: { id: string }) => account.id,
+		const userBIds = (await readJson<AccountDto[]>(userBResponse)).map(
+			(account) => account.id,
 		);
 		expect(userBIds).toHaveLength(6);
 		expect(userBIds.some((id: string) => userAIds.includes(id))).toBe(false);
@@ -134,7 +145,9 @@ describe("TEST-09 / AC-09 through AC-12 account foundation", () => {
 		const userAAccounts = await send("GET", "/api/accounts", {
 			cookie: userACookie,
 		});
-		const [userAAccount] = await userAAccounts.json();
+		const userAAccount = (await readJson<AccountDto[]>(userAAccounts))[0];
+		if (!userAAccount)
+			throw new Error("User A bank account fixture is missing.");
 		const own = await send("GET", `/api/accounts/${userAAccount.id}`, {
 			cookie: userACookie,
 		});
@@ -157,11 +170,16 @@ describe("TEST-09 / AC-09 through AC-12 account foundation", () => {
 	test("a User saves and re-reads an exact opening bank balance and date", async () => {
 		const { cookie } = await signIn();
 		const accountsResponse = await send("GET", "/api/accounts", { cookie });
-		const [bank] = await accountsResponse.json();
-		const saved = await send("PUT", `/api/accounts/${bank.id}/opening-balance`, {
-			cookie,
-			body: { amount: "10000.00", date: "2026-11-01" },
-		});
+		const bank = (await readJson<AccountDto[]>(accountsResponse))[0];
+		if (!bank) throw new Error("Bank account fixture is missing.");
+		const saved = await send(
+			"PUT",
+			`/api/accounts/${bank.id}/opening-balance`,
+			{
+				cookie,
+				body: { amount: "10000.00", date: "2026-11-01" },
+			},
+		);
 		expect(saved.status).toBe(200);
 		expect(await saved.json()).toMatchObject({
 			id: bank.id,
@@ -176,6 +194,36 @@ describe("TEST-09 / AC-09 through AC-12 account foundation", () => {
 			openingBalance: "10000.00",
 			openingDate: "2026-11-01",
 			balance: "10000.00",
+		});
+	});
+
+	test("invalid opening amounts and dates are rejected without changing the account", async () => {
+		const { cookie } = await signIn();
+		const response = await send("GET", "/api/accounts", { cookie });
+		const bank = (await readJson<AccountDto[]>(response))[0];
+		if (!bank) throw new Error("Bank account fixture is missing.");
+		const invalid = [
+			{ amount: "-1.00", date: "2026-11-01" },
+			{ amount: "10.001", date: "2026-11-01" },
+			{ amount: "1e3", date: "2026-11-01" },
+			{ amount: "100000000000000000000000000000.00", date: "2026-11-01" },
+			{ amount: "100.00", date: "2026-02-30" },
+			{ amount: "100.00", date: "2026-11-1" },
+		];
+		for (const body of invalid) {
+			const saved = await send(
+				"PUT",
+				`/api/accounts/${bank.id}/opening-balance`,
+				{ cookie, body },
+			);
+			expect(saved.status).toBe(400);
+			expect(await saved.json()).toMatchObject({ code: "INVALID_INPUT" });
+		}
+		const freshRead = await send("GET", `/api/accounts/${bank.id}`, { cookie });
+		expect(await freshRead.json()).toMatchObject({
+			openingBalance: "0.00",
+			openingDate: null,
+			balance: "0.00",
 		});
 	});
 });
