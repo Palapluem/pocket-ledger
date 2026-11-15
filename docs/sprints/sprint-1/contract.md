@@ -1,6 +1,6 @@
 # Sprint 1 feature engineering contracts
 
-Draft 0.6, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-06. The D-01 to D-07 decisions were accepted by both students and integrated through PR #15 (`98afb3b`). This baseline includes the Better T Stack, first-party signed-JWT authentication, 3600-second lifetime, HS256/`jose`, active runtime pins, D-01 work split, D-03/D-04 rules, D-06 scope and D-07 baseline interfaces. D-05 key handling is agreed; Origin/CSRF policy is deferred until deployment review. The course section remains open. F-01 and the F-02 backend are implemented on `sprint-1-staging`; the F-02 UI and F-03 to F-06 are not yet implemented. No product release is established by this document.
+Draft 0.7, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-06. The D-01 to D-07 decisions were accepted by both students and integrated through PR #15 (`98afb3b`). This baseline includes the Better T Stack, first-party signed-JWT authentication, 3600-second lifetime, HS256/`jose`, active runtime pins, D-01 work split, D-03/D-04 rules, D-06 scope and D-07 baseline interfaces. D-05 key handling is agreed; Origin/CSRF policy is deferred until deployment review. The course section remains open. F-01 and the F-02 backend are implemented on `sprint-1-staging`. Issue #21 implements F-05/F-06 and the shared account/transaction model on its PR branch (not yet integrated); F-03 opening-balance and F-04 receive work remain in Issue #20. No product release is established by this document.
 
 ## Contract identity and revision
 
@@ -18,6 +18,7 @@ Draft 0.6, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-
 | 0.2, 13 November 2026 | Align F-01 with the JWT approach selected in PR #9: no server-side session or revocation; spec-level outcomes only | Documentation only; implementation details stay open until recorded |
 | 0.4, 15 November 2026 | Record the agreed D-01 to D-07 Sprint 1 decisions, baseline routes/DTOs, financial boundaries, work ownership and explicit NOT RUN financial tests | Integrated through PR #15 at `98afb3b`; F-03 to F-06 implementation and executable financial tests remain pending. |
 | 0.5, 15 November 2026 | Add the shared client-side transaction submission/no-auto-retry acceptance criterion | BR-13 / AC-28 / TEST-28 added; no server idempotency guarantee. Included in PR #15 at `98afb3b`. |
+| 0.7, 15 November 2026 | Issue #21 refines the F-05/F-06 interface within D-03/D-04/D-07: response DTOs, error codes, history order and the summary range (see "F-05/F-06 implemented interface") | Implementation PR for #21; Wisit reviews. No financial rule changes |
 
 ## F-01 Identity and access
 
@@ -109,6 +110,17 @@ Dependencies: F-01/F-03/F-04/F-05 and D-03/D-04/D-07. UI: Financial overview and
 | AC-25 | Required sign-in/transaction/history journeys have labelled keyboard-operable controls and usable loading/error/empty states at the 390, 768 and 1280 px target widths | NFR-03 | TEST-25 |
 | AC-26 | The same saved identifiers and financial values survive an actual local application restart; Lab 5 additionally verifies redeployment | NFR-02 | TEST-26 |
 | AC-27 | Clean setup, safe seed, production build and documented tests work at an identified commit with placeholder configuration | NFR-04; BR-12 | TEST-27 |
+
+## F-05/F-06 implemented interface (Issue #21, revision 0.7)
+
+- Shared model: `financial_accounts`, `financial_transactions`, `allocation_lines` as in the System SDS data model. Money is satang `bigint`; dates are `YYYY-MM-DD`. Balances are derived, never stored.
+- Seed: every User gets the starter accounts Bank (Cash), Credit card (Loan Taken), Salary (Income), Dining and Groceries (Expense), opening 0 on the seed date. Reseeding inserts only missing accounts and never changes existing accounts or activity.
+- `GET /api/accounts` → owned accounts `{id, name, type, currency, openingAmount, openingDate, balance}` ordered Cash, Loan Taken, Loan Given, Income, Expense, then name.
+- `POST /api/transactions` → `201` with `{id, form, primaryAccountId, date, total, memo, createdAt, allocations: [{accountId, amount}]}`; allocations keep their submitted order. One service applies the System SDS effect matrix to both forms, so the F-04 receive path uses it too.
+- `GET /api/transactions` → owned history, newest date first, then newest created; `GET /api/transactions/:id` → the same DTO.
+- `GET /api/summary` → `{from, to, income, expense, accounts}`; without `from`/`to` it covers all dates; with both it is inclusive; one bound, an invalid date or `from > to` is `400 INVALID_RANGE`. Balances are current.
+- Errors, in precedence order: `401 UNAUTHENTICATED`; `403 FORBIDDEN` for an Administrator; `400 INVALID_INPUT` with `field` (shape, form, exact amount, real date, 1 to 50 lines, memo ≤ 200); `404 NOT_FOUND` for any account or transaction outside the caller's scope; `422 INVALID_ALLOCATION` (repeated account or the primary account on a line), `422 ALLOCATION_MISMATCH`, `422 INCOMPATIBLE_ACCOUNT`, `422 INVALID_DATE` (after today in Asia/Bangkok, or before an affected balance account's opening date), `422 INSUFFICIENT_BALANCE`; `500 INTERNAL_ERROR` after a rollback, without internal details.
+- UI: the overview shows balances, income/expense and history for a User; "Make a payment or record a charge" saves one `PAYMENT`, blocks repeat activation while pending, never retries, and tells the User to check history after an uncertain outcome (AC-28).
 
 ## Product Definition of Done
 
