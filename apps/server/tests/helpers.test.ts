@@ -1,6 +1,13 @@
 import { describe, expect, test } from "bun:test";
+import { createDb } from "@pocket-ledger/db";
+import { sql } from "drizzle-orm";
 
-import { assertDisposableTestDatabase } from "./helpers";
+import {
+	assertDisposableTestDatabase,
+	assertOwnedTestDatabase,
+	TEST_DATABASE_MARKER,
+	testDatabaseUrl,
+} from "./helpers";
 
 const OWNED = "postgresql://postgres:pw@127.0.0.1:55432/pocket_ledger_test";
 
@@ -46,6 +53,29 @@ describe("test database safety guard", () => {
 			throw new Error("should have thrown");
 		} catch (e) {
 			expect(String(e)).not.toContain("s3cret-pw");
+		}
+	});
+});
+
+describe("ownership marker on the disposable database", () => {
+	test("a database that only matches the URL shape is refused before any cleanup", async () => {
+		const url = testDatabaseUrl();
+		const db = createDb(url);
+		try {
+			await expect(assertOwnedTestDatabase(db)).resolves.toBeUndefined();
+			await db.execute(
+				sql.raw("COMMENT ON DATABASE pocket_ledger_test IS NULL"),
+			);
+			await expect(assertOwnedTestDatabase(db)).rejects.toThrow(
+				/not marked as the disposable/,
+			);
+		} finally {
+			await db.execute(
+				sql.raw(
+					`COMMENT ON DATABASE pocket_ledger_test IS '${TEST_DATABASE_MARKER}'`,
+				),
+			);
+			await db.$client.close();
 		}
 	});
 });
