@@ -10,7 +10,7 @@ Draft 0.6, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-
 | Decision work | Issue #1 financial/scope/interfaces; Issue #2 team/runtime/authentication; [auth/setup decision](auth-setup-proposal.md) |
 | Documentation review | PR #4 merged after N0TAW00D approval; PR #5 and #6 reviewed and merged by Palapluem; PR #7 approved by Palapluem and merged at `3e8bc5f`; PR #9 selected the JWT approach (D-02, D-05). No implementation or product tests are claimed |
 | Implementation Issue / branch / owner / reviewer | Issue #20 / `feature/20-accounts-receive` / Wisit / Natthawat (review pending) |
-| Contract revision and pre-code commit | |
+| Contract revision and pre-code commit | Revision 0.6, commit `90aeab6`; implementation and executable financial tests had not started at that commit |
 
 | Revision | Reason | Approval and implementation impact |
 | --- | --- | --- |
