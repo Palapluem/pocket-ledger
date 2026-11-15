@@ -34,7 +34,32 @@ test("seed creates users once and rerunning changes nothing", async () => {
 		.where(eq(schema.users.email, "seed.user@example.test"));
 	if (!firstRow) throw new Error("seeded user missing");
 	const first = firstRow;
+	const [bank] = await db
+		.select()
+		.from(schema.accounts)
+		.where(eq(schema.accounts.ownerId, first.id));
+	if (!bank) throw new Error("seeded user's financial accounts missing");
+	const userAccounts = await db
+		.select()
+		.from(schema.accounts)
+		.where(eq(schema.accounts.ownerId, first.id));
+	expect(userAccounts).toHaveLength(6);
+	const [admin] = await db
+		.select()
+		.from(schema.users)
+		.where(eq(schema.users.email, "seed.admin@example.test"));
+	if (!admin) throw new Error("seeded Administrator missing");
+	expect(
+		await db
+			.select()
+			.from(schema.accounts)
+			.where(eq(schema.accounts.ownerId, admin.id)),
+	).toHaveLength(0);
 	// Simulate later changes that a rerun must not reset.
+	await db
+		.update(schema.accounts)
+		.set({ openingAmountSatang: 1_000_000n, openingDate: "2026-11-01" })
+		.where(eq(schema.accounts.id, bank.id));
 	await db
 		.update(schema.users)
 		.set({ enabled: false, displayName: "Changed" })
@@ -52,5 +77,26 @@ test("seed creates users once and rerunning changes nothing", async () => {
 		displayName: "Changed",
 		passwordHash: first.passwordHash,
 	});
+	const [sameBank] = await db
+		.select()
+		.from(schema.accounts)
+		.where(eq(schema.accounts.id, bank.id));
+	if (!sameBank) throw new Error("seeded bank account was removed");
+	expect(sameBank).toMatchObject({
+		id: bank.id,
+		openingAmountSatang: 1_000_000n,
+	});
+	const openingDate = sameBank.openingDate as unknown as string | Date | null;
+	expect(
+		openingDate instanceof Date
+			? openingDate.toISOString().slice(0, 10)
+			: openingDate,
+	).toBe("2026-11-01");
+	expect(
+		await db
+			.select()
+			.from(schema.accounts)
+			.where(eq(schema.accounts.ownerId, first.id)),
+	).toHaveLength(6);
 	expect(first.passwordHash.startsWith("$argon2id$")).toBe(true);
 });
