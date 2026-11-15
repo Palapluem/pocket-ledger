@@ -92,8 +92,9 @@ describe("TEST-13 / AC-13 salary receipt", () => {
 		});
 		expect(saved.status).toBe(201);
 		const created = await readJson<TransactionDto>(saved);
+		const transactionId = created.id;
+		expect(typeof transactionId).toBe("string");
 		expect(created).toMatchObject({
-			id: expect.any(String),
 			form: "RECEIVE",
 			primaryAccountId: bank.id,
 			date: "2026-11-02",
@@ -101,7 +102,7 @@ describe("TEST-13 / AC-13 salary receipt", () => {
 			allocations: [{ accountId: salary.id, amount: "20000.00" }],
 		});
 
-		const detail = await send("GET", `/api/transactions/${created.id}`, {
+		const detail = await send("GET", `/api/transactions/${transactionId}`, {
 			cookie,
 		});
 		expect(detail.status).toBe(200);
@@ -114,6 +115,52 @@ describe("TEST-13 / AC-13 salary receipt", () => {
 		);
 		expect(balances.find((account) => account.id === salary.id)?.balance).toBe(
 			"20000.00",
+		);
+	});
+
+	test("TEST-14 / AC-14 rejects a salary allocation total mismatch without any effect", async () => {
+		const { response: login, cookie } = await signIn();
+		expect(login.status).toBe(200);
+		const listed = await send("GET", "/api/accounts", { cookie });
+		const accounts = await readJson<AccountDto[]>(listed);
+		const bank = accounts.find((account) => account.name === "Bank");
+		const salary = accounts.find((account) => account.name === "Salary");
+		if (!bank || !salary)
+			throw new Error("Required seeded accounts are missing.");
+
+		const opening = await send(
+			"PUT",
+			`/api/accounts/${bank.id}/opening-balance`,
+			{ cookie, body: { amount: "10000.00", date: "2026-11-01" } },
+		);
+		expect(opening.status).toBe(200);
+
+		const rejected = await send("POST", "/api/transactions", {
+			cookie,
+			body: {
+				form: "RECEIVE",
+				primaryAccountId: bank.id,
+				date: "2026-11-02",
+				total: "20000.00",
+				allocations: [{ accountId: salary.id, amount: "19999.99" }],
+			},
+		});
+		expect(rejected.status).toBe(422);
+		expect(await readJson(rejected)).toMatchObject({
+			code: "RULE_VIOLATION",
+		});
+
+		const history = await send("GET", "/api/transactions", { cookie });
+		expect(history.status).toBe(200);
+		expect(await readJson(history)).toEqual([]);
+
+		const freshAccounts = await send("GET", "/api/accounts", { cookie });
+		const balances = await readJson<AccountDto[]>(freshAccounts);
+		expect(balances.find((account) => account.id === bank.id)?.balance).toBe(
+			"10000.00",
+		);
+		expect(balances.find((account) => account.id === salary.id)?.balance).toBe(
+			"0.00",
 		);
 	});
 });
