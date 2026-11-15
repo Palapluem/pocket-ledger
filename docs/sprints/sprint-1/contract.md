@@ -1,6 +1,6 @@
 # Sprint 1 feature engineering contracts
 
-Draft 0.9, prepared 7 November 2026 and updated 16 November. Includes F-01 to F-06. The D-01 to D-07 decisions were accepted by both students and integrated through PR #15 (`98afb3b`). PR #23's canonical shared financial schema is integrated into `sprint-1-staging` at `6048593`. PR #22 implements F-05/F-06 on that schema and is open after approval and CI; Issue #20 owns F-03/F-04 and is being reconciled with that shared service. The combined Issue #20/PR #22 candidate still requires final checks and teammate review. D-05 key handling is agreed; the Origin/CSRF policy remains deferred unless the team accepts the separate proposal. The course section remains open. No accepted product release exists on `main`.
+Draft 0.9, prepared 7 November 2026 and updated 16 November. Includes F-01 to F-06. The D-01 to D-07 decisions were accepted by both students and integrated through PR #15 (`98afb3b`). PR #23's canonical shared financial schema is integrated into `sprint-1-staging` at `6048593`. PR #22 implements F-05/F-06 on that schema and is open after approval and CI. The Issue #20 F-03/F-04 candidate `0b478aa` is stacked on PR #22; its local verification passed, while teammate review and staging integration remain pending. D-05 key handling is agreed; the Origin/CSRF policy remains deferred unless the team accepts the separate proposal. The course section remains open. No accepted product release exists on `main`.
 
 ## Contract identity and revision
 
