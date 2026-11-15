@@ -38,13 +38,13 @@ export async function seedUsers(databaseUrl: string, seeds: SeedUser[]) {
 }
 
 /** Sprint 1 starter accounts for every User (D-06): seeded, opening balance zero. */
-export const STARTER_ACCOUNTS: { name: string; type: AccountType }[] = [
+export const STARTER_ACCOUNTS = [
 	{ name: "Bank", type: "CASH" },
 	{ name: "Credit card", type: "LOAN_TAKEN" },
 	{ name: "Salary", type: "INCOME" },
 	{ name: "Dining", type: "EXPENSE" },
 	{ name: "Groceries", type: "EXPENSE" },
-];
+] as const satisfies readonly { name: string; type: AccountType }[];
 
 /** Today's calendar date in Asia/Bangkok (D-04), as YYYY-MM-DD. */
 export const bangkokToday = (now = new Date()) =>

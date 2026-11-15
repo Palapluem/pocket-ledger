@@ -2,7 +2,7 @@ import { sql } from "drizzle-orm";
 import {
 	bigint,
 	check,
-	date,
+	customType,
 	index,
 	integer,
 	pgEnum,
@@ -14,6 +14,16 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { users } from "./users";
+
+/**
+ * A PostgreSQL `date` exposed as a YYYY-MM-DD string (D-04). The Bun SQL driver returns
+ * dates as Date objects at UTC midnight, so they are converted back without time zones.
+ */
+const calendarDate = customType<{ data: string; driverData: string | Date }>({
+	dataType: () => "date",
+	fromDriver: (value) =>
+		typeof value === "string" ? value : value.toISOString().slice(0, 10),
+});
 
 /** The five Theme 7 account types (System SDS data model). */
 export const accountType = pgEnum("account_type", [
@@ -42,7 +52,7 @@ export const financialAccounts = pgTable(
 		openingAmountMinor: bigint("opening_amount_minor", { mode: "bigint" })
 			.notNull()
 			.default(sql`0`),
-		openingDate: date("opening_date", { mode: "string" }).notNull(),
+		openingDate: calendarDate("opening_date").notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
 			.defaultNow(),
@@ -68,7 +78,7 @@ export const financialTransactions = pgTable(
 		primaryAccountId: uuid("primary_account_id")
 			.notNull()
 			.references(() => financialAccounts.id, { onDelete: "cascade" }),
-		date: date("date", { mode: "string" }).notNull(),
+		date: calendarDate("date").notNull(),
 		totalMinor: bigint("total_minor", { mode: "bigint" }).notNull(),
 		memo: text("memo"),
 		createdAt: timestamp("created_at", { withTimezone: true })

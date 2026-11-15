@@ -7,6 +7,7 @@ import { Elysia } from "elysia";
 import { jwtVerify, SignJWT } from "jose";
 
 import { TOKEN_TTL_SECONDS } from "./config";
+import { financeRoutes } from "./finance";
 
 export type AppConfig = {
 	db: Database;
@@ -110,10 +111,25 @@ export function createApp(config: AppConfig) {
 		.use(
 			cors({
 				origin: config.allowedOrigin,
-				methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+				methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 				credentials: true,
 			}),
 		)
+		.onError(({ code, error }) => {
+			if (code === "NOT_FOUND") return failure(404, "NOT_FOUND", "Not found.");
+			// Never echo internal error text (SQL, constraint or stack details) to clients.
+			// Log the database/driver cause only, not the failed query and its parameters.
+			const cause = error instanceof Error ? (error.cause ?? error) : error;
+			console.error(
+				"request failed:",
+				cause instanceof Error ? cause.message : String(cause),
+			);
+			return failure(
+				500,
+				"INTERNAL_ERROR",
+				"The request could not be completed. Nothing was saved.",
+			);
+		})
 		.onRequest(({ request }) => {
 			const origin = request.headers.get("origin");
 			if (UNSAFE.has(request.method) && origin !== config.allowedOrigin) {
@@ -252,6 +268,9 @@ export function createApp(config: AppConfig) {
 				? failure(404, "NOT_FOUND", "User not found.")
 				: json(200, safeUser(outcome));
 		})
+		.use(
+			financeRoutes({ db: config.db, identify: identityFrom, failure, json }),
+		)
 		.get("/api/health", async () => {
 			const commit = config.commit || "unknown";
 			try {
