@@ -226,4 +226,53 @@ describe("TEST-09 / AC-09 through AC-12 account foundation", () => {
 			balance: "0.00",
 		});
 	});
+
+	test("opening state is owner-scoped and classification accounts cannot have one", async () => {
+		const { cookie: userACookie } = await signIn();
+		const accountsResponse = await send("GET", "/api/accounts", {
+			cookie: userACookie,
+		});
+		const userAAccounts = await readJson<AccountDto[]>(accountsResponse);
+		const bank = userAAccounts[0];
+		const salary = userAAccounts.find((account) => account.type === "INCOME");
+		if (!bank || !salary) throw new Error("Account fixtures are incomplete.");
+
+		const userBLogin = await send("POST", "/api/session", {
+			body: { email: FIXTURE.userB.email, password: FIXTURE.userB.password },
+		});
+		const userBCookie =
+			userBLogin.headers.get("set-cookie")?.split(";")[0] ?? "";
+		const foreignUpdate = await send(
+			"PUT",
+			`/api/accounts/${bank.id}/opening-balance`,
+			{
+				cookie: userBCookie,
+				body: { amount: "10000.00", date: "2026-11-01" },
+			},
+		);
+		expect(foreignUpdate.status).toBe(404);
+		expect(await foreignUpdate.json()).toMatchObject({ code: "NOT_FOUND" });
+
+		const classificationUpdate = await send(
+			"PUT",
+			`/api/accounts/${salary.id}/opening-balance`,
+			{
+				cookie: userACookie,
+				body: { amount: "100.00", date: "2026-11-01" },
+			},
+		);
+		expect(classificationUpdate.status).toBe(422);
+		expect(await classificationUpdate.json()).toMatchObject({
+			code: "RULE_VIOLATION",
+		});
+		const invalidId = await send(
+			"PUT",
+			"/api/accounts/not-an-id/opening-balance",
+			{
+				cookie: userACookie,
+				body: { amount: "100.00", date: "2026-11-01" },
+			},
+		);
+		expect(invalidId.status).toBe(404);
+	});
 });
