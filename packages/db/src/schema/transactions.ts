@@ -2,7 +2,6 @@ import { sql } from "drizzle-orm";
 import {
 	bigint,
 	check,
-	date,
 	foreignKey,
 	index,
 	integer,
@@ -15,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { accounts } from "./accounts";
+import { calendarDate } from "./calendar-date";
 import { users } from "./users";
 
 export const transactionForm = pgEnum("transaction_form", [
@@ -31,7 +31,7 @@ export const transactions = pgTable(
 			.references(() => users.id, { onDelete: "cascade" }),
 		form: transactionForm("form").notNull(),
 		primaryAccountId: uuid("primary_account_id").notNull(),
-		occurredOn: date("occurred_on", { mode: "string" }).notNull(),
+		occurredOn: calendarDate("occurred_on").notNull(),
 		totalSatang: bigint("total_satang", { mode: "bigint" }).notNull(),
 		memo: text("memo"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -49,7 +49,7 @@ export const transactions = pgTable(
 			name: "transactions_owner_primary_account_fk",
 			columns: [table.ownerId, table.primaryAccountId],
 			foreignColumns: [accounts.ownerId, accounts.id],
-		}).onDelete("restrict"),
+		}).onDelete("no action"),
 	],
 );
 
@@ -89,7 +89,7 @@ export const transactionAllocations = pgTable(
 			name: "transaction_allocations_owner_account_fk",
 			columns: [table.ownerId, table.accountId],
 			foreignColumns: [accounts.ownerId, accounts.id],
-		}).onDelete("restrict"),
+		}).onDelete("no action"),
 	],
 );
 
