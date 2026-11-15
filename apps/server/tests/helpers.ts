@@ -1,5 +1,6 @@
 import { createDb, schema } from "@pocket-ledger/db";
 import { runMigrations } from "@pocket-ledger/db/migrate";
+import { seedFinancialAccounts } from "@pocket-ledger/db/seed";
 import { sql } from "drizzle-orm";
 
 export const TEST_JWT = {
@@ -113,5 +114,6 @@ export async function resetDatabase() {
 			passwordHash: await Bun.password.hash(u.password, "argon2id"),
 		});
 	}
+	await seedFinancialAccounts(db);
 	return db;
 }

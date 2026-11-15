@@ -96,6 +96,31 @@ export function createApp(config: AppConfig) {
 		}
 		return { identity };
 	};
+	const requireUser = async (request: Request) => {
+		const identity = await identityFrom(request);
+		if (!identity)
+			return { error: failure(401, "UNAUTHENTICATED", "Sign in to continue.") };
+		if (identity.role !== "user")
+			return {
+				error: failure(
+					403,
+					"FORBIDDEN",
+					"You do not have access to this operation.",
+				),
+			};
+		return { identity };
+	};
+	const formatMoney = (satang: number) =>
+		`${Math.floor(satang / 100)}.${(satang % 100).toString().padStart(2, "0")}`;
+	const accountDto = (account: typeof schema.accounts.$inferSelect) => ({
+		id: account.id,
+		name: account.name,
+		type: account.type,
+		currency: account.currency,
+		openingBalance: formatMoney(account.openingAmountSatang),
+		openingDate: account.openingDate,
+		balance: formatMoney(account.openingAmountSatang),
+	});
 	const safeUser = (u: typeof schema.users.$inferSelect) => ({
 		id: u.id,
 		email: u.email,
@@ -123,6 +148,20 @@ export function createApp(config: AppConfig) {
 					"Request origin is not allowed.",
 				);
 			}
+		})
+		.get("/api/accounts", async ({ request }) => {
+			const guard = await requireUser(request);
+			if (guard.error) return guard.error;
+			const rows = await config.db
+				.select()
+				.from(schema.accounts)
+				.where(eq(schema.accounts.ownerId, guard.identity.id))
+				.orderBy(
+					asc(schema.accounts.type),
+					asc(schema.accounts.name),
+					asc(schema.accounts.id),
+				);
+			return json(200, rows.map(accountDto));
 		})
 		.post("/api/session", async ({ request }) => {
 			let body: unknown;
