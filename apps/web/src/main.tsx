@@ -13,6 +13,11 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { ApiError, api, type ManagedUser } from "./api";
+import {
+	AccountsPage,
+	ReceiveMoneyPage,
+	TransactionHistoryPage,
+} from "./finance-pages";
 import "./styles.css";
 
 function Footer() {
@@ -157,11 +162,48 @@ function OverviewPage() {
 				{me.role === "administrator" && (
 					<Link to="/admin/users">Manage users</Link>
 				)}
+				{me.role === "user" && (
+					<>
+						<Link to="/accounts">Accounts</Link>
+						<Link to="/transactions/new">Receive money</Link>
+						<Link to="/transactions">Transaction history</Link>
+					</>
+				)}
 				<SignOutButton />
 			</nav>
 		</section>
 	);
 }
+
+const accountsRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/accounts",
+	beforeLoad: async () => {
+		const me = await api.currentIdentity();
+		if (!me) throw redirect({ to: "/login" });
+	},
+	component: AccountsPage,
+});
+
+const receiveMoneyRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/transactions/new",
+	beforeLoad: async () => {
+		const me = await api.currentIdentity();
+		if (!me) throw redirect({ to: "/login" });
+	},
+	component: ReceiveMoneyPage,
+});
+
+const transactionHistoryRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/transactions",
+	beforeLoad: async () => {
+		const me = await api.currentIdentity();
+		if (!me) throw redirect({ to: "/login" });
+	},
+	component: TransactionHistoryPage,
+});
 
 const adminRoute = createRoute({
 	getParentRoute: () => rootRoute,
@@ -267,6 +309,9 @@ const router = createRouter({
 		loginRoute,
 		overviewRoute,
 		adminRoute,
+		accountsRoute,
+		receiveMoneyRoute,
+		transactionHistoryRoute,
 	]),
 });
 

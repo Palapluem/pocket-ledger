@@ -2,7 +2,7 @@
 import { createDb, schema } from "@pocket-ledger/db";
 import { runMigrations } from "@pocket-ledger/db/migrate";
 import { seedUsers } from "@pocket-ledger/db/seed";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { E2E_USERS } from "../../../e2e/fixtures";
 import { createApp } from "../src/app";
 import {
@@ -18,6 +18,21 @@ const port = Number(process.env.E2E_PORT ?? 4173);
 const db = createDb(url);
 await assertOwnedTestDatabase(db);
 await runMigrations(url);
+// Remove only E2E fixture transactions first; allocations restrict account deletion.
+const fixtureUsers = await db
+	.select({ id: schema.users.id })
+	.from(schema.users)
+	.where(
+		inArray(
+			schema.users.email,
+			Object.values(E2E_USERS).map((u) => u.email),
+		),
+	);
+for (const user of fixtureUsers) {
+	await db
+		.delete(schema.transactions)
+		.where(eq(schema.transactions.ownerId, user.id));
+}
 // Remove only the E2E-owned fixture users, then recreate them with known passwords.
 await db.delete(schema.users).where(
 	inArray(
