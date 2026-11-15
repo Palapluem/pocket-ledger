@@ -27,8 +27,8 @@ CREATE TABLE "transactions" (
 --> statement-breakpoint
 ALTER TABLE "accounts" ADD CONSTRAINT "accounts_owner_id_id_unique" UNIQUE("owner_id","id");--> statement-breakpoint
 ALTER TABLE "transaction_allocations" ADD CONSTRAINT "transaction_allocations_owner_transaction_fk" FOREIGN KEY ("owner_id","transaction_id") REFERENCES "public"."transactions"("owner_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "transaction_allocations" ADD CONSTRAINT "transaction_allocations_owner_account_fk" FOREIGN KEY ("owner_id","account_id") REFERENCES "public"."accounts"("owner_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "transaction_allocations" ADD CONSTRAINT "transaction_allocations_owner_account_fk" FOREIGN KEY ("owner_id","account_id") REFERENCES "public"."accounts"("owner_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "transactions" ADD CONSTRAINT "transactions_owner_primary_account_fk" FOREIGN KEY ("owner_id","primary_account_id") REFERENCES "public"."accounts"("owner_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_owner_primary_account_fk" FOREIGN KEY ("owner_id","primary_account_id") REFERENCES "public"."accounts"("owner_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "transaction_allocations_transaction_position_idx" ON "transaction_allocations" USING btree ("transaction_id","position");--> statement-breakpoint
 CREATE INDEX "transactions_owner_date_id_idx" ON "transactions" USING btree ("owner_id","occurred_on","id");

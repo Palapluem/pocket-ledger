@@ -2,7 +2,6 @@ import { sql } from "drizzle-orm";
 import {
 	bigint,
 	check,
-	date,
 	pgEnum,
 	pgTable,
 	text,
@@ -11,6 +10,7 @@ import {
 	uuid,
 } from "drizzle-orm/pg-core";
 
+import { calendarDate } from "./calendar-date";
 import { users } from "./users";
 
 export const accountType = pgEnum("account_type", [
@@ -37,7 +37,7 @@ export const accounts = pgTable(
 		})
 			.notNull()
 			.default(sql`0`),
-		openingDate: date("opening_date", { mode: "string" }),
+		openingDate: calendarDate("opening_date"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
