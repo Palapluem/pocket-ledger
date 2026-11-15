@@ -31,6 +31,7 @@ const TYPE_ORDER: AccountType[] = [
 	"EXPENSE",
 ];
 const MAX_LINES = 50;
+const MAX_OPENING_SATANG = 9_223_372_036_854_775_807n;
 
 /**
  * The Bun SQL driver returns PostgreSQL `date` values as Date objects at UTC midnight even
@@ -39,6 +40,16 @@ const MAX_LINES = 50;
 const calendar = (value: string | Date) =>
 	typeof value === "string" ? value : value.toISOString().slice(0, 10);
 const MAX_MEMO = 200;
+
+/** Opening balances allow zero and use the database's signed-BIGINT satang range. */
+function parseOpeningAmount(value: unknown): bigint | null {
+	if (typeof value !== "string") return null;
+	const match = /^(0|[1-9]\d*)(?:\.(\d{1,2}))?$/.exec(value);
+	const whole = match?.[1];
+	if (!match || whole === undefined || whole.length > 17) return null;
+	const amount = BigInt(whole) * 100n + BigInt((match[2] ?? "").padEnd(2, "0"));
+	return amount <= MAX_OPENING_SATANG ? amount : null;
+}
 
 /** A domain rejection: thrown inside the database transaction so nothing is written. */
 class Rejection extends Error {
@@ -126,7 +137,8 @@ function accountDtos(ledger: Awaited<ReturnType<typeof loadLedger>>) {
 		.sort(
 			(a, b) =>
 				TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type) ||
-				a.name.localeCompare(b.name),
+				a.name.localeCompare(b.name) ||
+				a.id.localeCompare(b.id),
 		)
 		.map((a: AccountRow) => ({
 			id: a.id,
@@ -202,6 +214,12 @@ async function saveTransaction(
 	ownerId: string,
 	input: TransactionInput,
 ) {
+	const ruleRejection = (code: string, message: string) =>
+		new Rejection(
+			422,
+			input.form === "RECEIVE" ? "RULE_VIOLATION" : code,
+			message,
+		);
 	return db.transaction(async (tx) => {
 		const referenced = [
 			input.primaryAccountId,
@@ -228,41 +246,54 @@ async function saveTransaction(
 			new Set(lineIds).size !== lineIds.length ||
 			lineIds.includes(input.primaryAccountId)
 		)
-			throw new Rejection(
-				422,
+			throw ruleRejection(
 				"INVALID_ALLOCATION",
 				"Each allocation must use a different account other than the primary account.",
 			);
 		const sum = input.allocations.reduce((s, l) => s + l.amountSatang, 0n);
 		if (sum !== input.totalSatang)
-			throw new Rejection(
-				422,
+			throw ruleRejection(
 				"ALLOCATION_MISMATCH",
 				"Allocations must add up exactly to the total.",
 			);
 
 		const primary = byId.get(input.primaryAccountId) as AccountRow;
+		if (input.form === "RECEIVE" && primary.type !== "CASH")
+			throw ruleRejection(
+				"INCOMPATIBLE_ACCOUNT",
+				"Salary receipts require a Cash primary account.",
+			);
 		if (primaryEffect(input.form, primary.type) === null)
-			throw new Rejection(
-				422,
+			throw ruleRejection(
 				"INCOMPATIBLE_ACCOUNT",
 				"This account type cannot be the primary account for this form.",
 			);
 		for (const id of lineIds) {
 			const account = byId.get(id) as AccountRow;
+			if (input.form === "RECEIVE" && account.type !== "INCOME")
+				throw ruleRejection(
+					"INCOMPATIBLE_ACCOUNT",
+					"Salary receipts require an Income allocation account.",
+				);
 			if (allocationEffect(input.form, account.type) === null)
-				throw new Rejection(
-					422,
+				throw ruleRejection(
 					"INCOMPATIBLE_ACCOUNT",
 					"An allocation account type is not allowed for this form.",
 				);
 		}
 
 		if (input.date > bangkokToday())
-			throw new Rejection(
-				422,
+			throw ruleRejection(
 				"INVALID_DATE",
 				"The date cannot be later than today.",
+			);
+		if (
+			input.form === "RECEIVE" &&
+			locked.some((a) => a.type === "CASH" && a.openingDate === null)
+		)
+			throw ruleRejection(
+				"INVALID_DATE",
+				"Set the Cash account opening date before recording this transaction.",
 			);
 		if (
 			locked.some(
@@ -271,8 +302,7 @@ async function saveTransaction(
 					(a.openingDate === null || input.date < calendar(a.openingDate)),
 			)
 		)
-			throw new Rejection(
-				422,
+			throw ruleRejection(
 				"INVALID_DATE",
 				"The date cannot be before an affected account's opening date.",
 			);
@@ -292,8 +322,7 @@ async function saveTransaction(
 				(a) => isBalanceAccount(a.type) && (balances.get(a.id) ?? 0n) < 0n,
 			)
 		)
-			throw new Rejection(
-				422,
+			throw ruleRejection(
 				"INSUFFICIENT_BALANCE",
 				"This would make an account balance negative.",
 			);
@@ -356,6 +385,134 @@ export function financeRoutes(deps: {
 			if (guard.error) return guard.error;
 			return json(200, accountDtos(await loadLedger(db, guard.identity.id)));
 		})
+		.get("/api/accounts/:id", async ({ request, params }) => {
+			const guard = await requireUser(request);
+			if (guard.error) return guard.error;
+			const notFound = failure(404, "NOT_FOUND", "Account not found.");
+			if (!UUID.test(params.id)) return notFound;
+
+			const ledger = await loadLedger(db, guard.identity.id);
+			if (!ledger.accounts.some((account) => account.id === params.id))
+				return notFound;
+			const account = accountDtos(ledger).find((item) => item.id === params.id);
+			return account ? json(200, account) : notFound;
+		})
+		.put("/api/accounts/:id/opening-balance", async ({ request, params }) => {
+			const guard = await requireUser(request);
+			if (guard.error) return guard.error;
+			let body: unknown;
+			try {
+				body = await request.json();
+			} catch {
+				body = undefined;
+			}
+			const input = (body ?? {}) as Record<string, unknown>;
+			const amountSatang = parseOpeningAmount(input.amount);
+			if (amountSatang === null || !isCalendarDate(input.date))
+				return failure(
+					400,
+					"INVALID_INPUT",
+					"Enter a non-negative amount with up to two decimal places and a valid date.",
+				);
+			if (!UUID.test(params.id))
+				return failure(404, "NOT_FOUND", "Account not found.");
+			const openingDate = input.date;
+
+			try {
+				const accountDto = await db.transaction(async (tx) => {
+					const [account] = await tx
+						.select()
+						.from(accounts)
+						.where(
+							and(
+								eq(accounts.id, params.id),
+								eq(accounts.ownerId, guard.identity.id),
+							),
+						)
+						.orderBy(asc(accounts.id))
+						.limit(1)
+						.for("update");
+					if (!account)
+						throw new Rejection(404, "NOT_FOUND", "Account not found.");
+					if (!isBalanceAccount(account.type))
+						throw new Rejection(
+							422,
+							"RULE_VIOLATION",
+							"Opening balances are only available for balance-bearing accounts.",
+						);
+
+					const ledger = await loadLedger(tx, guard.identity.id);
+					const relatedTransactions = ledger.transactions.filter(
+						(transaction) =>
+							transaction.primaryAccountId === account.id ||
+							transaction.lines.some((line) => line.accountId === account.id),
+					);
+					if (
+						relatedTransactions.some(
+							(transaction) => calendar(transaction.occurredOn) < openingDate,
+						)
+					)
+						throw new Rejection(
+							422,
+							"RULE_VIOLATION",
+							"Opening date cannot be later than an existing related transaction.",
+						);
+
+					const currentBalances = deriveBalances(
+						ledger.accounts,
+						ledger.transactions.map(asLedger),
+					);
+					const currentBalance =
+						currentBalances.get(account.id) ?? account.openingAmountSatang;
+					const nextBalance =
+						amountSatang + currentBalance - account.openingAmountSatang;
+					if (nextBalance < 0n)
+						throw new Rejection(
+							422,
+							"RULE_VIOLATION",
+							"Opening change would make the account balance negative.",
+						);
+
+					const [updated] = await tx
+						.update(accounts)
+						.set({
+							openingAmountSatang: amountSatang,
+							openingDate,
+							updatedAt: new Date(),
+						})
+						.where(
+							and(
+								eq(accounts.id, account.id),
+								eq(accounts.ownerId, guard.identity.id),
+							),
+						)
+						.returning();
+					if (!updated)
+						throw new Rejection(404, "NOT_FOUND", "Account not found.");
+
+					const updatedLedger = {
+						...ledger,
+						accounts: ledger.accounts.map((row) =>
+							row.id === updated.id ? updated : row,
+						),
+					};
+					const result = accountDtos(updatedLedger).find(
+						(item) => item.id === updated.id,
+					);
+					if (!result) throw new Error("updated account DTO was not produced");
+					return result;
+				});
+				return json(200, accountDto);
+			} catch (error) {
+				if (error instanceof Rejection)
+					return failure(error.status, error.code, error.message);
+				return failure(
+					500,
+					"INTERNAL_ERROR",
+					"Opening balance could not be saved.",
+				);
+			}
+		})
 		.get("/api/transactions", async ({ request }) => {
 			const guard = await requireUser(request);
 			if (guard.error) return guard.error;
@@ -391,13 +548,25 @@ export function financeRoutes(deps: {
 				body = undefined;
 			}
 			const parsed = parseTransaction(body);
-			if ("field" in parsed)
+			if ("field" in parsed) {
+				const isReceive =
+					typeof body === "object" &&
+					body !== null &&
+					"form" in body &&
+					body.form === "RECEIVE";
+				if (isReceive)
+					return failure(
+						400,
+						"INVALID_INPUT",
+						"Check the receive form, account, date and amounts (greater than 0, at most two decimals).",
+					);
 				return json(400, {
 					code: "INVALID_INPUT",
 					message:
 						"Check the form, account, date and amounts (greater than 0, at most two decimals).",
 					field: parsed.field,
 				});
+			}
 			try {
 				return json(
 					201,

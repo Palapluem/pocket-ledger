@@ -147,3 +147,121 @@ test.describe("TEST-28 / AC-28 one submission, no automatic retry", () => {
 		await expect(page.getByRole("button", { name: "Save" })).toBeEnabled();
 	});
 });
+
+test.describe("TEST-28 / AC-28 receive form submission safety", () => {
+	test("repeat activations send one receipt; uncertain outcomes do not retry", async ({
+		page,
+	}) => {
+		await signIn(page, E2E_USERS.retry);
+		await page.getByRole("link", { name: "Receive money" }).click();
+		let posts = 0;
+		page.on("request", (request) => {
+			if (
+				request.method() === "POST" &&
+				request.url().endsWith("/api/transactions")
+			)
+				posts += 1;
+		});
+
+		await page.route("**/api/transactions", async (route) => {
+			if (route.request().method() !== "POST") return route.continue();
+			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await route.continue();
+		});
+		await page.getByLabel("Total received (THB)").fill("100.00");
+		await page.getByRole("button", { name: "Save receipt" }).click();
+		await expect(page.getByRole("button", { name: "Saving…" })).toBeDisabled();
+		await page.getByRole("button", { name: "Saving…" }).click({ force: true });
+		await page.getByLabel("Allocation 1 amount (THB)").press("Enter");
+		await expect(page.getByRole("status")).toHaveText(
+			"Saved transaction and verified it with a fresh history read.",
+		);
+		expect(posts).toBe(1);
+
+		await page.unroute("**/api/transactions");
+		await page.route("**/api/transactions", (route) =>
+			route.request().method() === "POST"
+				? route.abort("timedout")
+				: route.continue(),
+		);
+		posts = 0;
+		await page.goto("/overview");
+		await page.getByRole("link", { name: "Receive money" }).click();
+		await page.getByLabel("Total received (THB)").fill("50.00");
+		await page.getByRole("button", { name: "Save receipt" }).click();
+		await expect(page.getByRole("alert")).toHaveText(
+			"We could not confirm whether the request was saved. Check transaction history before submitting again; automatic retry is disabled.",
+		);
+		await page.waitForTimeout(750);
+		expect(posts).toBe(1);
+		await expect(
+			page.getByRole("button", { name: "Save receipt" }),
+		).toBeEnabled();
+	});
+});
+
+test.describe("TEST-10/13/14/23 / opening balance and salary receive journey", () => {
+	test("persists the opening balance, rejects a mismatched receipt, then retrieves salary history", async ({
+		page,
+	}) => {
+		await signIn(page, E2E_USERS.user);
+		await page.getByRole("link", { name: "Accounts" }).click();
+		await expect(page.getByRole("heading", { name: "Accounts" })).toBeVisible();
+		await page.getByLabel("Opening balance amount (THB)").fill("10000.00");
+		await page.getByLabel("Opening balance date").fill("2026-11-01");
+		const confirmedAccountRead = page.waitForResponse(
+			(response) =>
+				response.request().method() === "GET" &&
+				/\/api\/accounts\/[^/]+$/.test(new URL(response.url()).pathname),
+		);
+		await page.getByRole("button", { name: "Save opening balance" }).click();
+		const accountRead = await confirmedAccountRead;
+		expect(accountRead.status()).toBe(200);
+		expect(await accountRead.json()).toMatchObject({
+			openingAmount: "10000.00",
+			openingDate: "2026-11-01",
+			balance: "10000.00",
+		});
+		await expect(page.getByRole("status")).toHaveText(
+			"Opening balance saved and retrieved from the account record.",
+		);
+		await expect(page.getByText("฿10000.00").first()).toBeVisible();
+
+		await page.getByRole("link", { name: "Receive money" }).click();
+		await page.getByLabel("Date received").fill("2026-11-02");
+		await page.getByLabel("Total received (THB)").fill("20000.00");
+		const allocation = page.getByLabel("Allocation 1 amount (THB)");
+		await expect(allocation).toHaveValue("20000.00");
+		await allocation.fill("19999.99");
+		await page.getByRole("button", { name: "Save receipt" }).click();
+		await expect(page.getByRole("alert")).toHaveText(
+			"Allocations must add up exactly to the total.",
+		);
+		const rejectedHistory = await page.request.get("/api/transactions");
+		expect(rejectedHistory.status()).toBe(200);
+		expect(await rejectedHistory.json()).toEqual([]);
+
+		await allocation.fill("20000.00");
+		await page.getByRole("button", { name: "Save receipt" }).click();
+		await expect(page.getByRole("status")).toHaveText(
+			"Saved transaction and verified it with a fresh history read.",
+		);
+		await expect(
+			page.getByText("Saved receive of ฿20000.00 on 2026-11-02."),
+		).toBeVisible();
+		await expect(page.getByLabel("Cash account")).toContainText(
+			"Bank · ฿30000.00",
+		);
+
+		await page
+			.getByRole("link", { name: "Transaction history", exact: true })
+			.click();
+		await page
+			.getByRole("button", { name: "View 2026-11-02 transaction" })
+			.click();
+		await expect(
+			page.getByRole("heading", { name: "Transaction detail" }),
+		).toBeVisible();
+		await expect(page.getByText("Salary · ฿20000.00")).toBeVisible();
+	});
+});

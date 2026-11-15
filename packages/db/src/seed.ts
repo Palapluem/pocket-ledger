@@ -71,9 +71,10 @@ export async function seedStarterAccounts(
 				onlyEmails
 					? and(
 							eq(schema.users.role, "user"),
+							eq(schema.users.enabled, true),
 							inArray(schema.users.email, onlyEmails),
 						)
-					: eq(schema.users.role, "user"),
+					: and(eq(schema.users.role, "user"), eq(schema.users.enabled, true)),
 			);
 		for (const owner of owners) {
 			const rows = await db
