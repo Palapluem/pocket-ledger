@@ -8,6 +8,9 @@ import { resetDatabase, testDatabaseUrl } from "./helpers";
 let db: Awaited<ReturnType<typeof resetDatabase>>;
 beforeEach(async () => {
 	db = await resetDatabase();
+	await db.delete(schema.transactionAllocations);
+	await db.delete(schema.transactions);
+	await db.delete(schema.accounts);
 	await db.delete(schema.users);
 });
 

@@ -43,6 +43,7 @@ export const accounts = pgTable(
 	},
 	(table) => [
 		unique().on(table.ownerId, table.key),
+		unique("accounts_owner_id_id_unique").on(table.ownerId, table.id),
 		check(
 			"accounts_opening_amount_nonnegative",
 			sql`${table.openingAmountSatang} >= 0`,

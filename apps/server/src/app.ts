@@ -2,11 +2,24 @@ import { resolve, sep } from "node:path";
 import { cors } from "@elysiajs/cors";
 import type { Database } from "@pocket-ledger/db";
 import { schema } from "@pocket-ledger/db";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { jwtVerify, SignJWT } from "jose";
 
 import { TOKEN_TTL_SECONDS } from "./config";
+import {
+	type AccountType,
+	bangkokToday,
+	deriveBalances,
+	formatMoney,
+	isAllowedAllocation,
+	isAllowedPrimary,
+	isBalanceBearing,
+	isCalendarDate,
+	MAX_TRANSACTION_SATANG,
+	normalizeCalendarDate,
+	parseMoney,
+} from "./finance";
 
 export type AppConfig = {
 	db: Database;
@@ -23,7 +36,6 @@ export type AppConfig = {
 const COOKIE = "session";
 const UNSAFE = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const ALGORITHM = "HS256";
-const MAX_SATANG = 9_223_372_036_854_775_807n;
 
 const json = (
 	status: number,
@@ -111,39 +123,20 @@ export function createApp(config: AppConfig) {
 			};
 		return { identity };
 	};
-	const formatMoney = (satang: bigint) =>
-		`${satang / 100n}.${(satang % 100n).toString().padStart(2, "0")}`;
-	const parseMoney = (value: unknown) => {
-		if (typeof value !== "string") return null;
-		const match = /^(0|[1-9]\d*)(?:\.(\d{1,2}))?$/.exec(value);
-		if (!match) return null;
-		const whole = match[1];
-		if (whole === undefined || whole.length > 17) return null;
-		const amount =
-			BigInt(whole) * 100n + BigInt((match[2] ?? "").padEnd(2, "0") || "0");
-		return amount <= MAX_SATANG ? amount : null;
-	};
-	const isCalendarDate = (value: unknown): value is string => {
-		if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))
-			return false;
-		const date = new Date(`${value}T00:00:00.000Z`);
-		return (
-			!Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value
-		);
-	};
-	const accountDto = (account: typeof schema.accounts.$inferSelect) => {
-		const openingDate = account.openingDate as string | Date | null;
+	const accountDto = (
+		account: typeof schema.accounts.$inferSelect,
+		balance = account.openingAmountSatang,
+	) => {
 		return {
 			id: account.id,
 			name: account.name,
 			type: account.type,
 			currency: account.currency,
 			openingBalance: formatMoney(account.openingAmountSatang),
-			openingDate:
-				openingDate instanceof Date
-					? openingDate.toISOString().slice(0, 10)
-					: openingDate,
-			balance: formatMoney(account.openingAmountSatang),
+			openingDate: normalizeCalendarDate(
+				account.openingDate as unknown as string | Date | null,
+			),
+			balance: formatMoney(balance),
 		};
 	};
 	const safeUser = (u: typeof schema.users.$inferSelect) => ({
@@ -155,6 +148,84 @@ export function createApp(config: AppConfig) {
 	});
 	const UUID =
 		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	const calculateBalances = (
+		ownedAccounts: (typeof schema.accounts.$inferSelect)[],
+		ownedTransactions: (typeof schema.transactions.$inferSelect)[],
+		ownedAllocations: {
+			transactionId: string;
+			accountId: string;
+			amountSatang: bigint;
+		}[],
+	) =>
+		deriveBalances(
+			ownedAccounts.map((account) => ({
+				id: account.id,
+				type: account.type,
+				openingAmountSatang: account.openingAmountSatang,
+			})),
+			ownedTransactions.map((transaction) => ({
+				id: transaction.id,
+				form: transaction.form,
+				primaryAccountId: transaction.primaryAccountId,
+				totalSatang: transaction.totalSatang,
+			})),
+			ownedAllocations,
+		);
+	const accountSnapshot = async (ownerId: string) => {
+		const ownedAccounts = await config.db
+			.select()
+			.from(schema.accounts)
+			.where(eq(schema.accounts.ownerId, ownerId));
+		const ownedTransactions = await config.db
+			.select()
+			.from(schema.transactions)
+			.where(eq(schema.transactions.ownerId, ownerId));
+		const ownedAllocations = await config.db
+			.select({
+				transactionId: schema.transactionAllocations.transactionId,
+				accountId: schema.transactionAllocations.accountId,
+				amountSatang: schema.transactionAllocations.amountSatang,
+			})
+			.from(schema.transactionAllocations)
+			.innerJoin(
+				schema.transactions,
+				eq(schema.transactions.id, schema.transactionAllocations.transactionId),
+			)
+			.where(eq(schema.transactions.ownerId, ownerId));
+		const balances = calculateBalances(
+			ownedAccounts,
+			ownedTransactions,
+			ownedAllocations,
+		);
+		return { ownedAccounts, balances };
+	};
+	const transactionDto = async (
+		transaction: typeof schema.transactions.$inferSelect,
+	) => {
+		const allocations = await config.db
+			.select()
+			.from(schema.transactionAllocations)
+			.where(eq(schema.transactionAllocations.transactionId, transaction.id))
+			.orderBy(
+				asc(schema.transactionAllocations.position),
+				asc(schema.transactionAllocations.id),
+			);
+		return {
+			id: transaction.id,
+			form: transaction.form,
+			primaryAccountId: transaction.primaryAccountId,
+			date:
+				normalizeCalendarDate(
+					transaction.occurredOn as unknown as string | Date,
+				) ?? "",
+			total: formatMoney(transaction.totalSatang),
+			memo: transaction.memo,
+			allocations: allocations.map((allocation) => ({
+				accountId: allocation.accountId,
+				amount: formatMoney(allocation.amountSatang),
+			})),
+		};
+	};
 
 	return new Elysia()
 		.use(
@@ -177,16 +248,30 @@ export function createApp(config: AppConfig) {
 		.get("/api/accounts", async ({ request }) => {
 			const guard = await requireUser(request);
 			if (guard.error) return guard.error;
-			const rows = await config.db
-				.select()
-				.from(schema.accounts)
-				.where(eq(schema.accounts.ownerId, guard.identity.id))
-				.orderBy(
-					asc(schema.accounts.type),
-					asc(schema.accounts.name),
-					asc(schema.accounts.id),
+			const snapshot = await accountSnapshot(guard.identity.id);
+			snapshot.ownedAccounts.sort((a, b) => {
+				const rank: Record<AccountType, number> = {
+					CASH: 0,
+					LOAN_GIVEN: 1,
+					LOAN_TAKEN: 2,
+					INCOME: 3,
+					EXPENSE: 4,
+				};
+				return (
+					rank[a.type] - rank[b.type] ||
+					a.name.localeCompare(b.name) ||
+					a.id.localeCompare(b.id)
 				);
-			return json(200, rows.map(accountDto));
+			});
+			return json(
+				200,
+				snapshot.ownedAccounts.map((account) =>
+					accountDto(
+						account,
+						snapshot.balances.get(account.id) ?? account.openingAmountSatang,
+					),
+				),
+			);
 		})
 		.get("/api/accounts/:id", async ({ request, params }) => {
 			const guard = await requireUser(request);
@@ -203,9 +288,15 @@ export function createApp(config: AppConfig) {
 					),
 				)
 				.limit(1);
-			return account
-				? json(200, accountDto(account))
-				: failure(404, "NOT_FOUND", "Account not found.");
+			if (!account) return failure(404, "NOT_FOUND", "Account not found.");
+			const snapshot = await accountSnapshot(guard.identity.id);
+			return json(
+				200,
+				accountDto(
+					account,
+					snapshot.balances.get(account.id) ?? account.openingAmountSatang,
+				),
+			);
 		})
 		.put("/api/accounts/:id/opening-balance", async ({ request, params }) => {
 			const guard = await requireUser(request);
@@ -218,7 +309,8 @@ export function createApp(config: AppConfig) {
 			}
 			const input = (body ?? {}) as Record<string, unknown>;
 			const amount = parseMoney(input.amount);
-			if (amount === null || !isCalendarDate(input.date))
+			const openingDate = isCalendarDate(input.date) ? input.date : null;
+			if (amount === null || openingDate === null)
 				return failure(
 					400,
 					"INVALID_INPUT",
@@ -226,35 +318,399 @@ export function createApp(config: AppConfig) {
 				);
 			if (!UUID.test(params.id))
 				return failure(404, "NOT_FOUND", "Account not found.");
-			const [account] = await config.db
-				.select()
-				.from(schema.accounts)
-				.where(
-					and(
-						eq(schema.accounts.id, params.id),
-						eq(schema.accounts.ownerId, guard.identity.id),
-					),
-				)
-				.limit(1);
-			if (!account) return failure(404, "NOT_FOUND", "Account not found.");
-			if (account.type === "INCOME" || account.type === "EXPENSE")
+			let result:
+				| {
+						updated: typeof schema.accounts.$inferSelect;
+						balance: bigint;
+				  }
+				| { error: { status: number; code: string; message: string } };
+			try {
+				result = await config.db.transaction(async (tx) => {
+					const [account] = await tx
+						.select()
+						.from(schema.accounts)
+						.where(
+							and(
+								eq(schema.accounts.id, params.id),
+								eq(schema.accounts.ownerId, guard.identity.id),
+							),
+						)
+						.limit(1)
+						.for("update");
+					if (!account)
+						return {
+							error: {
+								status: 404,
+								code: "NOT_FOUND",
+								message: "Account not found.",
+							},
+						};
+					if (!isBalanceBearing(account.type))
+						return {
+							error: {
+								status: 422,
+								code: "RULE_VIOLATION",
+								message:
+									"Opening balances are only available for balance-bearing accounts.",
+							},
+						};
+					const ownedAccounts = await tx
+						.select()
+						.from(schema.accounts)
+						.where(eq(schema.accounts.ownerId, guard.identity.id));
+					const ownedTransactions = await tx
+						.select()
+						.from(schema.transactions)
+						.where(eq(schema.transactions.ownerId, guard.identity.id));
+					const ownedAllocations = await tx
+						.select({
+							transactionId: schema.transactionAllocations.transactionId,
+							accountId: schema.transactionAllocations.accountId,
+							amountSatang: schema.transactionAllocations.amountSatang,
+						})
+						.from(schema.transactionAllocations)
+						.where(
+							eq(schema.transactionAllocations.ownerId, guard.identity.id),
+						);
+					const relatedIds = new Set(
+						ownedAllocations
+							.filter((line) => line.accountId === account.id)
+							.map((line) => line.transactionId),
+					);
+					const relatedTransactions = ownedTransactions.filter(
+						(transaction) =>
+							transaction.primaryAccountId === account.id ||
+							relatedIds.has(transaction.id),
+					);
+					if (
+						relatedTransactions.some((transaction) => {
+							const transactionDate = normalizeCalendarDate(
+								transaction.occurredOn as unknown as string | Date,
+							);
+							return transactionDate !== null && transactionDate < openingDate;
+						})
+					)
+						return {
+							error: {
+								status: 422,
+								code: "RULE_VIOLATION",
+								message:
+									"Opening date cannot be later than an existing related transaction.",
+							},
+						};
+					const currentBalances = calculateBalances(
+						ownedAccounts,
+						ownedTransactions,
+						ownedAllocations,
+					);
+					const currentBalance =
+						currentBalances.get(account.id) ?? account.openingAmountSatang;
+					const nextBalance =
+						amount + currentBalance - account.openingAmountSatang;
+					if (nextBalance < 0n)
+						return {
+							error: {
+								status: 422,
+								code: "RULE_VIOLATION",
+								message:
+									"Opening change would make the account balance negative.",
+							},
+						};
+					const [updated] = await tx
+						.update(schema.accounts)
+						.set({
+							openingAmountSatang: amount,
+							openingDate,
+							updatedAt: new Date(),
+						})
+						.where(eq(schema.accounts.id, account.id))
+						.returning();
+					return updated
+						? { updated, balance: nextBalance }
+						: {
+								error: {
+									status: 404,
+									code: "NOT_FOUND",
+									message: "Account not found.",
+								},
+							};
+				});
+			} catch {
+				return failure(
+					500,
+					"INTERNAL_ERROR",
+					"Opening balance could not be saved.",
+				);
+			}
+			if ("error" in result)
+				return failure(
+					result.error.status,
+					result.error.code,
+					result.error.message,
+				);
+			return json(200, accountDto(result.updated, result.balance));
+		})
+		.post("/api/transactions", async ({ request }) => {
+			const guard = await requireUser(request);
+			if (guard.error) return guard.error;
+			let body: unknown;
+			try {
+				body = await request.json();
+			} catch {
+				body = undefined;
+			}
+			const input = (body ?? {}) as Record<string, unknown>;
+			if (input.form !== "RECEIVE" && input.form !== "PAYMENT")
+				return failure(
+					400,
+					"INVALID_INPUT",
+					"form must be RECEIVE or PAYMENT.",
+				);
+			if (input.form === "PAYMENT")
 				return failure(
 					422,
 					"RULE_VIOLATION",
-					"Opening balances are only available for balance-bearing accounts.",
+					"Payment transactions are not available in this increment.",
 				);
-			const [updated] = await config.db
-				.update(schema.accounts)
-				.set({
-					openingAmountSatang: amount,
-					openingDate: input.date,
-					updatedAt: new Date(),
-				})
-				.where(eq(schema.accounts.id, account.id))
-				.returning();
-			return updated
-				? json(200, accountDto(updated))
-				: failure(404, "NOT_FOUND", "Account not found.");
+			if (
+				typeof input.primaryAccountId !== "string" ||
+				!UUID.test(input.primaryAccountId) ||
+				!isCalendarDate(input.date)
+			)
+				return failure(
+					400,
+					"INVALID_INPUT",
+					"Enter a valid primary account ID and calendar date.",
+				);
+			const transactionDate = input.date;
+			const totalSatang = parseMoney(input.total);
+			if (
+				totalSatang === null ||
+				totalSatang <= 0n ||
+				totalSatang > MAX_TRANSACTION_SATANG
+			)
+				return failure(
+					400,
+					"INVALID_INPUT",
+					"Transaction total must be greater than zero and within the THB limit.",
+				);
+			if (
+				input.memo !== undefined &&
+				input.memo !== null &&
+				typeof input.memo !== "string"
+			)
+				return failure(400, "INVALID_INPUT", "memo must be text.");
+			if (!Array.isArray(input.allocations) || input.allocations.length === 0)
+				return failure(
+					400,
+					"INVALID_INPUT",
+					"At least one allocation is required.",
+				);
+			const allocations: {
+				accountId: string;
+				amountSatang: bigint;
+				position: number;
+			}[] = [];
+			for (const [position, value] of input.allocations.entries()) {
+				if (typeof value !== "object" || value === null)
+					return failure(
+						400,
+						"INVALID_INPUT",
+						"Each allocation must be an object.",
+					);
+				const line = value as Record<string, unknown>;
+				const amountSatang = parseMoney(line.amount);
+				if (
+					typeof line.accountId !== "string" ||
+					!UUID.test(line.accountId) ||
+					amountSatang === null ||
+					amountSatang <= 0n ||
+					amountSatang > MAX_TRANSACTION_SATANG
+				)
+					return failure(
+						400,
+						"INVALID_INPUT",
+						"Each allocation needs a valid account ID and positive THB amount.",
+					);
+				allocations.push({ accountId: line.accountId, amountSatang, position });
+			}
+			const accountIds = [
+				input.primaryAccountId,
+				...allocations.map((allocation) => allocation.accountId),
+			];
+			if (new Set(accountIds).size !== accountIds.length)
+				return failure(
+					422,
+					"RULE_VIOLATION",
+					"Accounts must be distinct and the primary account cannot be an allocation.",
+				);
+			if (transactionDate > bangkokToday())
+				return failure(
+					422,
+					"RULE_VIOLATION",
+					"Transaction date cannot be in the future.",
+				);
+
+			let saved:
+				| {
+						transaction: typeof schema.transactions.$inferSelect;
+				  }
+				| { error: { status: number; code: string; message: string } };
+			try {
+				saved = await config.db.transaction(async (tx) => {
+					const accountRows = await tx
+						.select()
+						.from(schema.accounts)
+						.where(
+							and(
+								eq(schema.accounts.ownerId, guard.identity.id),
+								inArray(schema.accounts.id, accountIds),
+							),
+						)
+						.orderBy(asc(schema.accounts.id))
+						.for("update");
+					if (accountRows.length !== accountIds.length)
+						return {
+							error: {
+								status: 404,
+								code: "NOT_FOUND",
+								message: "Account not found.",
+							},
+						};
+					const accountsById = new Map(
+						accountRows.map((account) => [account.id, account]),
+					);
+					const primary = accountsById.get(input.primaryAccountId as string);
+					if (!primary)
+						return {
+							error: {
+								status: 404,
+								code: "NOT_FOUND",
+								message: "Account not found.",
+							},
+						};
+					if (!isAllowedPrimary("RECEIVE", primary.type))
+						return {
+							error: {
+								status: 422,
+								code: "RULE_VIOLATION",
+								message: "Receive money requires a Cash primary account.",
+							},
+						};
+					for (const allocation of allocations) {
+						const account = accountsById.get(allocation.accountId);
+						if (!account)
+							return {
+								error: {
+									status: 404,
+									code: "NOT_FOUND",
+									message: "Account not found.",
+								},
+							};
+						if (
+							!isAllowedAllocation("RECEIVE", account.type) ||
+							account.type !== "INCOME"
+						)
+							return {
+								error: {
+									status: 422,
+									code: "RULE_VIOLATION",
+									message:
+										"Salary receipts require an Income allocation account.",
+								},
+							};
+					}
+					const openingDate = normalizeCalendarDate(
+						primary.openingDate as unknown as string | Date | null,
+					);
+					if (!openingDate)
+						return {
+							error: {
+								status: 422,
+								code: "RULE_VIOLATION",
+								message:
+									"Set the Cash account opening date before recording this transaction.",
+							},
+						};
+					if (transactionDate < openingDate)
+						return {
+							error: {
+								status: 422,
+								code: "RULE_VIOLATION",
+								message:
+									"Transaction date cannot precede the Cash account opening date.",
+							},
+						};
+					const [transaction] = await tx
+						.insert(schema.transactions)
+						.values({
+							ownerId: guard.identity.id,
+							form: "RECEIVE",
+							primaryAccountId: primary.id,
+							occurredOn: transactionDate,
+							totalSatang,
+							memo: (input.memo as string | null | undefined) ?? null,
+						})
+						.returning();
+					if (!transaction)
+						throw new Error("Transaction insert returned no row.");
+					await tx.insert(schema.transactionAllocations).values(
+						allocations.map((allocation) => ({
+							ownerId: guard.identity.id,
+							transactionId: transaction.id,
+							accountId: allocation.accountId,
+							amountSatang: allocation.amountSatang,
+							position: allocation.position,
+						})),
+					);
+					return { transaction };
+				});
+			} catch {
+				return failure(
+					500,
+					"INTERNAL_ERROR",
+					"Transaction could not be saved.",
+				);
+			}
+			if ("error" in saved)
+				return failure(
+					saved.error.status,
+					saved.error.code,
+					saved.error.message,
+				);
+			return json(201, await transactionDto(saved.transaction));
+		})
+		.get("/api/transactions", async ({ request }) => {
+			const guard = await requireUser(request);
+			if (guard.error) return guard.error;
+			const rows = await config.db
+				.select()
+				.from(schema.transactions)
+				.where(eq(schema.transactions.ownerId, guard.identity.id))
+				.orderBy(
+					desc(schema.transactions.occurredOn),
+					desc(schema.transactions.id),
+				);
+			return json(200, await Promise.all(rows.map(transactionDto)));
+		})
+		.get("/api/transactions/:id", async ({ request, params }) => {
+			const guard = await requireUser(request);
+			if (guard.error) return guard.error;
+			if (!UUID.test(params.id))
+				return failure(404, "NOT_FOUND", "Transaction not found.");
+			const [transaction] = await config.db
+				.select()
+				.from(schema.transactions)
+				.where(
+					and(
+						eq(schema.transactions.id, params.id),
+						eq(schema.transactions.ownerId, guard.identity.id),
+					),
+				)
+				.limit(1);
+			if (!transaction)
+				return failure(404, "NOT_FOUND", "Transaction not found.");
+			return json(200, await transactionDto(transaction));
 		})
 		.post("/api/session", async ({ request }) => {
 			let body: unknown;

@@ -104,6 +104,9 @@ export async function resetDatabase() {
 	shared ??= createDb(url);
 	const db = shared;
 	await assertOwnedTestDatabase(db);
+	await db.delete(schema.transactionAllocations);
+	await db.delete(schema.transactions);
+	await db.delete(schema.accounts);
 	await db.delete(schema.users);
 	for (const [key, u] of Object.entries(FIXTURE)) {
 		await db.insert(schema.users).values({
