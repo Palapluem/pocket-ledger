@@ -9,8 +9,10 @@ const app = createApp({
 	jwt: config.jwt,
 	allowedOrigin: config.allowedOrigin,
 	secureCookie: config.secureCookie,
+	commit: config.commit,
+	webDir: config.webDir,
 });
 
-app.listen(config.port, () => {
+app.listen({ port: config.port, hostname: "0.0.0.0" }, () => {
 	console.log(`Server is running on port ${config.port}`);
 });

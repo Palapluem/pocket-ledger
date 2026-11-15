@@ -1,7 +1,8 @@
+import { resolve, sep } from "node:path";
 import { cors } from "@elysiajs/cors";
 import type { Database } from "@pocket-ledger/db";
 import { schema } from "@pocket-ledger/db";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { jwtVerify, SignJWT } from "jose";
 
@@ -13,6 +14,10 @@ export type AppConfig = {
 	allowedOrigin: string;
 	/** Add the Secure cookie attribute; enable under HTTPS. */
 	secureCookie?: boolean;
+	/** Source commit of the running build, reported by /api/health. */
+	commit?: string;
+	/** Directory of the built web client; when set it is served from the same origin. */
+	webDir?: string;
 };
 
 const COOKIE = "session";
@@ -247,5 +252,32 @@ export function createApp(config: AppConfig) {
 				? failure(404, "NOT_FOUND", "User not found.")
 				: json(200, safeUser(outcome));
 		})
-		.get("/", () => "OK");
+		.get("/api/health", async () => {
+			const commit = config.commit || "unknown";
+			try {
+				await config.db.execute(sql`select 1`);
+				return json(200, { status: "ok", database: "ok", commit });
+			} catch {
+				return json(503, {
+					status: "degraded",
+					database: "unavailable",
+					commit,
+				});
+			}
+		})
+		.get("/*", async ({ request }) => {
+			const path = decodeURIComponent(new URL(request.url).pathname);
+			if (!config.webDir || path === "/api" || path.startsWith("/api/"))
+				return failure(404, "NOT_FOUND", "Not found.");
+			const root = resolve(config.webDir);
+			const target = resolve(root, `.${path}`);
+			if (target.startsWith(root + sep)) {
+				const file = Bun.file(target);
+				if (await file.exists()) return new Response(file);
+			}
+			// Client-side routes (for example /login) load the single-page app.
+			return new Response(Bun.file(resolve(root, "index.html")), {
+				headers: { "content-type": "text/html; charset=utf-8" },
+			});
+		});
 }

@@ -24,6 +24,8 @@ export function loadServerConfig(env: Env) {
 		databaseUrl: required(env, "DATABASE_URL"),
 		port: Number(env.PORT ?? 3000),
 		secureCookie: env.COOKIE_SECURE === "true",
+		commit: env.GIT_COMMIT,
+		webDir: env.WEB_DIST_DIR,
 		jwt: {
 			secret,
 			issuer: env.JWT_ISSUER ?? "pocket-ledger",

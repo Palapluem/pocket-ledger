@@ -9,7 +9,9 @@
 	"scripts": {
 		"dev:server": "bun run --hot apps/server/src/index.ts",
 		"test": "bun test apps/server",
-		"check-types": "tsc --noEmit -p apps/server && tsc --noEmit -p packages/db",
+		"check-types": "tsc --noEmit -p apps/server && tsc --noEmit -p packages/db && tsc --noEmit -p apps/web",
+		"build:web": "cd apps/web && bunx vite build",
+		"dev:web": "cd apps/web && bunx vite",
 		"check": "biome check --write .",
 		"db:generate": "cd packages/db && bunx drizzle-kit generate",
 		"db:migrate": "cd packages/db && bun run src/migrate.ts",
