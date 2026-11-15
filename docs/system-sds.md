@@ -1,6 +1,6 @@
 # System-Level Software Design Specification
 
-Draft 0.7, 15 November 2026. Better T Stack and first-party stateless JWT for Sprint 1 seeded-user authentication are selected. Natthawat proposed the D-01 to D-07 choices in PR #15, and Wisit accepted them on 15 November; formal review and merge of the PR remain pending. The course section remains open. Origin/CSRF policy is deferred until deployment review; the current Origin guard is optional implementation hardening, not an agreed policy. F-01 and the F-02 backend are implemented on `sprint-1-staging`; financial features are not yet implemented. The SRS defines required product behavior.
+Draft 0.8, 15 November 2026. Better T Stack and first-party stateless JWT for Sprint 1 seeded-user authentication are selected. Both students accepted D-01 to D-07, and PR #15 merged into `sprint-1-staging` at `98afb3b`; its CI passed on head `04aecea` (run 43637769801). The course section remains open. Origin/CSRF policy is deferred until deployment review; the current Origin guard is optional implementation hardening, not an agreed policy. F-01 and the F-02 backend are implemented on `sprint-1-staging`; the F-02 UI and financial features are not yet implemented. `main` remains the bootstrap commit `a4cced2`; no accepted product release exists. The SRS defines required product behavior.
 
 ## Architecture and responsibilities
 
@@ -14,7 +14,7 @@ TanStack Router browser UI
            -> Drizzle ORM -> PostgreSQL
 ```
 
-The browser owns input presentation and feedback. The Elysia application verifies the signed JWT, enforces product permissions and ownership, validates the complete transaction and controls the database transaction through Drizzle. PostgreSQL persists users, financial accounts, transactions and allocation lines. Client-supplied owner or role values never establish authority. Core claims are sub, displayName, role, iss, aud, iat and exp; confirm their exact names/types and verification settings in the implementation contract. D-05 approves a 3600-second lifetime, HS256 signing with `jose`, issuer `pocket-ledger` and audience `pocket-ledger-web`.
+The browser owns input presentation and feedback. The Elysia application verifies the signed JWT, enforces product permissions and ownership, validates the complete transaction and controls the database transaction through Drizzle. PostgreSQL persists users, financial accounts, transactions and allocation lines. Client-supplied owner or role values never establish authority. The implemented token uses `sub`, `displayName`, `role`, `iss`, `aud`, `iat` and `exp`; D-05 sets a 3600-second lifetime, HS256 signing with `jose`, issuer `pocket-ledger` and audience `pocket-ledger-web`. The exact verification behavior is covered by the F-01 contract and the results recorded in the STS.
 
 Balances are derived from opening balances and persisted transaction/allocation effects rather than maintained in a second mutable balance cache. A query uses the agreed D-03 sign rules. Test expected values must be independently calculated. If a later design chooses a cache or a different persistence model, document its atomicity and reconciliation before implementation.
 

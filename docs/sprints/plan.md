@@ -1,6 +1,6 @@
 # Three-sprint delivery plan
 
-Draft 0.2, 15 November 2026. Natthawat proposed the D-06 Sprint 1 scope and D-01 work split in PR #15; Wisit accepted them on 15 November. Formal PR review and merge remain pending. LEB2 group name is 2-Nor. No accepted application release exists.
+Draft 0.3, 15 November 2026. The D-06 Sprint 1 scope and D-01 work split were accepted by both students and integrated through PR #15 (`98afb3b`). LEB2 group name is 2-Nor. No accepted application release exists.
 
 | Sprint | Goal and included features | Dependencies | Completion outcome |
 | --- | --- | --- | --- |
@@ -10,7 +10,7 @@ Draft 0.2, 15 November 2026. Natthawat proposed the D-06 Sprint 1 scope and D-01
 
 ## Immediate sequence
 
-1. The D-01 to D-07 decisions proposed in PR #15 and accepted by Wisit on 15 November form the Sprint 1 baseline; formal PR review and merge remain pending. The course section remains unconfirmed; defer Origin/CSRF policy until deployment review.
+1. The D-01 to D-07 decisions accepted by both students and merged through PR #15 form the Sprint 1 baseline. The course section remains unconfirmed; defer Origin/CSRF policy until deployment review.
 2. Implement the accepted ownership split: Wisit handles F-03/F-04 and Natthawat handles F-05/F-06; each student reviews the other's work and both participate in tests, integration and release.
 3. For each meaningful rule, preserve the intended failing test and then its correction/passing result. Use feature branches from current sprint staging and keep related docs/tests/code in the same PR.
 4. Integrate F-01/F-02/F-03 before the complete F-04/F-05/F-06 journey. Run integration/acceptance checks, resolve failures and obtain teammate review on the release PR into main.
@@ -24,10 +24,10 @@ The assignments below are the agreed Sprint 1 work split; rows without an owner 
 | Bounded work | Implementer / pair participants | Other teammate's specific review | Issue / evidence |
 | --- | --- | --- | --- |
 | F-01/F-02 identity/session and minimal administration | Natthawat (implemented); Wisit review | Wisit | PR #12/#14 |
-| F-03 financial accounts and opening balance | Wisit | Natthawat | Issue #1 / feature PR |
-| F-04 salary/receive journey | Wisit | Natthawat | Issue #1 / feature PR |
-| F-05 split purchase and repayment | Natthawat | Wisit | Issue #1 / feature PR |
-| F-06 balances, summary and history | Natthawat | Wisit | Issue #1 / feature PR |
+| F-03 financial accounts and opening balance | Wisit | Natthawat | Feature Issue/PR to be created when implementation is scoped |
+| F-04 salary/receive journey | Wisit | Natthawat | Feature Issue/PR to be created when implementation is scoped |
+| F-05 split purchase and repayment | Natthawat | Wisit | Feature Issue/PR to be created when implementation is scoped |
+| F-06 balances, summary and history | Natthawat | Wisit | Feature Issue/PR to be created when implementation is scoped |
 | CI and controlled failed-check proof | | | |
 | Clean Docker build, deploy and persistence checks | | | |
 | Report evidence/content verification and print check | | | |

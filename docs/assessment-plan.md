@@ -1,6 +1,6 @@
 # Engineering and delivery plan
 
-This plan covers one continuous PocketLedger product across all three sprints and six assessments. The SRS, System SDS, feature inventory, traceability, sprint plan and Sprint 1 contracts record the D-01 to D-07 choices proposed by Natthawat in PR #15 and accepted by Wisit on 15 November; formal review and merge of that PR remain pending. Sprint 1 financial workflows and their executable tests have not yet been implemented or run.
+This plan covers one continuous PocketLedger product across all three sprints and six assessments. The SRS, System SDS, feature inventory, traceability, sprint plan and Sprint 1 contracts record the D-01 to D-07 choices accepted by both students and integrated through PR #15 (`98afb3b`) into `sprint-1-staging`. Sprint 1 financial workflows and their executable tests have not yet been implemented or run; the staging branch is not an accepted `main` release.
 
 ## Sources and open source questions
 
@@ -23,10 +23,10 @@ All times below are Asia/Bangkok. Later work must retain the same team, reposito
 
 | Assessment | Due | Points / course weight | Completion gate | Current state |
 | --- | --- | --- | --- | --- |
-| Deliverable 1 | 8 Nov 2026, 23:59 | 80 / 8% | Accepted, tested local Sprint 1 on main; PDF A–F complete | Decision baseline agreed; formal PR #15 review/merge and financial implementation/tests remain pending |
-| Lab 5 | 15 Nov 2026, 23:59 | 100 / 5% | Docker, public GCP workflow, durable data, required CI and repeatable release | Not executed |
-| Lab 6 | 22 Nov 2026, 23:59 per master | 100 / 5% | Independent UAT, legitimate defect handling and independent re-test | Await detailed handout / deployed release |
-| Deliverable 2 | 29 Nov 2026, 23:59 (handout §4) | 70 / 7% | All Sprint 2 complete; meaningful tested Sprint 3 progress; deployed candidate | Not started |
+| Deliverable 1 | 8 Nov 2026, 23:59 | 80 / 8% | Accepted, tested local Sprint 1 on main; PDF A–F complete | D-01 to D-07 accepted and PR #15 merged to staging; financial implementation/tests remain NOT RUN; no accepted main release |
+| Lab 5 | 15 Nov 2026, 23:59 | 100 / 5% | Docker, public GCP workflow, durable data, required CI and repeatable release | PR integration CI passed on staging; Docker execution, GCP deployment, persistence/restart evidence and C-02 blocked-merge proof remain NOT RUN |
+| Lab 6 | 22 Nov 2026, 23:59 per master | 100 / 5% | Independent UAT, legitimate defect handling and independent re-test | Handout and report shell available; deployment and independent partner UAT/acceptance remain pending |
+| Deliverable 2 | 29 Nov 2026, 23:59 (handout §4) | 70 / 7% | All Sprint 2 complete; meaningful tested Sprint 3 progress; deployed candidate | Documentation/report shell prepared; Sprint 2/3 implementation, UAT and deployed candidate remain NOT RUN |
 | Lab 7 | 29 Nov 2026, 23:59 per master | 100 / 5% | Approved change to implemented behavior, red/green and regression-safe release | Await detailed handout / approved change |
 | Final Delivery | 13 Dec 2026, 23:59 (handout §4) | 100 / 10% | Complete three-sprint product, final QA/UAT, deployed final version, PDF and video | Not started |
 

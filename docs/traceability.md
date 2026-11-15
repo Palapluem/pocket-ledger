@@ -1,11 +1,11 @@
 # Requirements and verification traceability
 
-Draft 0.2, 7 November 2026, updated 15 November. This is the single requirements coverage matrix. Planned AC/test links refer to the D-01 to D-07 Sprint 1 baseline agreed on 15 November; PR #15 formal review and merge remain pending. Financial behavior remains NOT RUN. Partial authentication and administration results are identified below and detailed in the STS. Actual files, commands and tested commits belong in the STS result record.
+Draft 0.3, 7 November 2026, updated 15 November. This is the single requirements coverage matrix. Planned AC/test links refer to the D-01 to D-07 Sprint 1 baseline accepted by both students and merged through PR #15 (`98afb3b`). Financial behavior remains NOT RUN. Partial authentication and administration results are identified below and detailed in the STS. Actual files, commands and tested commits belong in the STS result record.
 
 | Requirement | Feature / responsibility | Planned sprint and AC / verification | Current result |
 | --- | --- | --- | --- |
-| FR-01 | F-01 | S1 AC-01 to AC-05; TEST-01 to TEST-05 | PARTIAL: session API tests reported for PRs #12/#14; UI and complete S1 verification remain pending; see STS |
-| FR-02 | F-02 | S1 AC-06/07/08; TEST-06/07/08 | PARTIAL: administration API tests reported for PR #14; UI and financial-route isolation TEST-08 remain pending; see STS |
+| FR-01 | F-01 | S1 AC-01 to AC-05; TEST-01 to TEST-05 | PARTIAL: identity backend is merged to staging; UI and complete S1 verification remain pending; see STS |
+| FR-02 | F-02 | S1 AC-06/07/08; TEST-06/07/08 | PARTIAL: administration backend is merged to staging; UI and financial-route isolation TEST-08 remain pending; see STS |
 | FR-03 | F-03 | S1 AC-09/12 for seeded accounts; S2 account-management contract | NOT RUN; full management pending S2 |
 | FR-04 | F-03 | S1 AC-10/11; TEST-10/11; remaining opening policy S2 | NOT RUN |
 | FR-05 | F-05 | S1 AC-17 to AC-21; TEST-17 to TEST-21; full combinations S2 | NOT RUN |

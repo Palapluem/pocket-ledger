@@ -1,6 +1,6 @@
 # Sprint 1 feature engineering contracts
 
-Draft 0.5, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-06. Natthawat proposed the D-01 to D-07 choices in PR #15, and Wisit accepted them on 15 November; formal review and merge remain pending. This baseline includes the Better T Stack, first-party signed-JWT authentication, 3600-second lifetime, HS256/`jose`, active runtime pins, D-01 work split, D-03/D-04 rules, D-06 scope and D-07 baseline interfaces. D-05 key handling is agreed; Origin/CSRF policy is deferred until deployment review. The course section remains open. F-01 and the F-02 backend are implemented on `sprint-1-staging`; F-03 to F-06 are not yet implemented. No product release is established by this document.
+Draft 0.6, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-06. The D-01 to D-07 decisions were accepted by both students and integrated through PR #15 (`98afb3b`). This baseline includes the Better T Stack, first-party signed-JWT authentication, 3600-second lifetime, HS256/`jose`, active runtime pins, D-01 work split, D-03/D-04 rules, D-06 scope and D-07 baseline interfaces. D-05 key handling is agreed; Origin/CSRF policy is deferred until deployment review. The course section remains open. F-01 and the F-02 backend are implemented on `sprint-1-staging`; the F-02 UI and F-03 to F-06 are not yet implemented. No product release is established by this document.
 
 ## Contract identity and revision
 
@@ -16,8 +16,8 @@ Draft 0.5, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-
 | --- | --- | --- |
 | 0.1, 7 November 2026 | Establish actual PocketLedger draft contracts and STS instead of old TokTickIT report content | Team decisions/review pending; no retrospective approval claimed |
 | 0.2, 13 November 2026 | Align F-01 with the JWT approach selected in PR #9: no server-side session or revocation; spec-level outcomes only | Documentation only; implementation details stay open until recorded |
-| 0.4, 15 November 2026 | Record the agreed D-01 to D-07 Sprint 1 decisions, baseline routes/DTOs, financial boundaries, work ownership and explicit NOT RUN financial tests | Natthawat proposed the choices in PR #15; Wisit accepted them on 15 November. Formal PR review/merge is pending. F-03 to F-06 implementation and executable financial tests remain pending. |
-| 0.5, 15 November 2026 | Add the shared client-side transaction submission/no-auto-retry acceptance criterion and align the decision/review status | BR-13 / AC-28 / TEST-28 added; no server idempotency guarantee. PR #15 review/merge remains pending. |
+| 0.4, 15 November 2026 | Record the agreed D-01 to D-07 Sprint 1 decisions, baseline routes/DTOs, financial boundaries, work ownership and explicit NOT RUN financial tests | Integrated through PR #15 at `98afb3b`; F-03 to F-06 implementation and executable financial tests remain pending. |
+| 0.5, 15 November 2026 | Add the shared client-side transaction submission/no-auto-retry acceptance criterion | BR-13 / AC-28 / TEST-28 added; no server idempotency guarantee. Included in PR #15 at `98afb3b`. |
 
 ## F-01 Identity and access
 

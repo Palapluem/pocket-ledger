@@ -1,6 +1,6 @@
 # Sprint 1 Software Test Specification and results
 
-Draft 0.4, prepared 7 November 2026 and updated 15 November. Test status is recorded in the actual results table: TEST-01 to TEST-04 and the user-seed part of TEST-09 have author-reported passing results on PR #12 head `120e83e` (PR #12 is now merged into `sprint-1-staging`), and TEST-05 to TEST-07 have an author-reported local result on PR #14 head `7aaf591` plus a separate GitHub Actions run on PR #14 head `4badd5b` (run 43576608481, 34 server tests, type check and Biome pass); every other test is planned and NOT RUN. Nothing here is a `main` or release result. Natthawat proposed the D-01 to D-07 baseline in PR #15, and Wisit accepted those choices on 15 November; formal PR review and merge remain pending. The course section remains open; Origin/CSRF policy is deferred until deployment review. Each feature PR reviews any feature-specific public-interface refinement before executable tests. All financial behavior rows below remain planned and NOT RUN until implemented. Authentication follows the first-party signed-JWT approach in the [auth/setup decision](auth-setup-proposal.md). Test IDs are stable. File names marked (exists) are present on the current PR head tree (F-01 files from PR #12, now in `sprint-1-staging`; `administration.api.test.ts` added by PR #14); all other names are planned targets, not existing files.
+Draft 0.5, prepared 7 November 2026 and updated 15 November. Historical PR #12 and PR #14 test runs are recorded with their tested heads below. The latest integrated CI evidence is PR #15 head `04aecea` (run 43637769801): 34 server tests, type check and Biome passed against PostgreSQL 18.4 using Bun 1.4.4. Every financial behavior test remains planned and NOT RUN. None of these runs is a `main` or product-release result. The D-01 to D-07 baseline is accepted and PR #15 is merged at `98afb3b`. The course section remains unconfirmed; Origin/CSRF policy is deferred until deployment review. Each feature PR may refine its public interface through review before implementation. Authentication follows the first-party signed-JWT approach in the [auth/setup decision](auth-setup-proposal.md). Test IDs are stable. File names marked (exists) are present in `sprint-1-staging`; all other names are planned targets, not existing files.
 
 ## Independent fixture and expected values
 
@@ -67,7 +67,7 @@ First select a meaningful allocation/financial rule and a role/ownership restric
 
 ## Actual verification results
 
-TEST-01 to TEST-04 and the user-seed part of TEST-09 have the author-reported results below, on PR #12 head `120e83e` (run while #12 was open; #12 later merged into `sprint-1-staging` at `ed9bf57`); TEST-05 to TEST-07 have an author-reported local result on PR #14 head `7aaf591` (historical, separate from CI) and a GitHub Actions result on PR #14 head `4badd5b` (run 43576608481). All other tests remain NOT RUN. Fill further results only after execution; this is not a completed passing result set and not a `main` or release result.
+TEST-01 to TEST-04 and the user-seed part of TEST-09 have the author-reported results below, on PR #12 head `120e83e` (run while #12 was open; #12 later merged into `sprint-1-staging` at `ed9bf57`); TEST-05 to TEST-07 have an author-reported local result on PR #14 head `7aaf591` (historical, separate from CI) and a GitHub Actions result on PR #14 head `4badd5b` (run 43576608481). The latest integrated CI run is PR #15 head `04aecea` (run 43637769801). All financial behavior tests remain NOT RUN. Fill further results only after execution; this is not a completed passing product result set and not a `main` or release result.
 
 | AC / TEST IDs and actual file/test | Tested commit and command / run | Actual result and evidence |
 | --- | --- | --- |
@@ -77,6 +77,7 @@ TEST-01 to TEST-04 and the user-seed part of TEST-09 have the author-reported re
 | Static checks | `120e83e`; `bun run check-types`; `bunx biome check apps packages scripts` | Pass (author-reported local; also run by CI) |
 | CI | `120e83e`; GitHub Actions `build-test`, run 43398550552 | Pass: type check, Biome, `bun test apps/server` against a PostgreSQL 18 service container; run while PR #12 was open, before #12 merged into `sprint-1-staging` at `ed9bf57` |
 | CI (PR #14) | `4badd5b` (PR #14 head, includes merged `sprint-1-staging`); GitHub Actions `build-test`, run 43576608481 | Pass: 34 server tests, type check and Biome against a PostgreSQL 18 service container; a PR integration result, not a `main` or release result |
+| CI (PR #15) | `04aecea` (merged to `sprint-1-staging` at `98afb3b`); GitHub Actions `build-test`, run 43637769801 | Pass: 34 server tests, type check and Biome against PostgreSQL 18.4 using Bun 1.4.4; staging integration evidence, not a `main` or release result |
 
 ## Selected evidence for the report
 
