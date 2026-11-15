@@ -9,6 +9,7 @@
 	"scripts": {
 		"dev:server": "bun run --hot apps/server/src/index.ts",
 		"test": "bun test apps/server",
+		"test:e2e": "playwright test",
 		"check-types": "tsc --noEmit -p apps/server && tsc --noEmit -p packages/db && tsc --noEmit -p apps/web",
 		"build:web": "cd apps/web && bunx vite build",
 		"dev:web": "cd apps/web && bunx vite",
@@ -19,6 +20,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.6.2",
+		"@playwright/test": "^1.65.1",
 		"@pocket-ledger/config": "workspace:*",
 		"@types/bun": "^1.4.3",
 		"typescript": "^6.0.3"
