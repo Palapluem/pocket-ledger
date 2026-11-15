@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { createDb, schema } from "@pocket-ledger/db";
 import { runMigrations } from "@pocket-ledger/db/migrate";
-import { seedUsers } from "@pocket-ledger/db/seed";
+import { seedStarterAccounts, seedUsers } from "@pocket-ledger/db/seed";
 import { eq, sql } from "drizzle-orm";
+
+import journal from "../../../packages/db/src/migrations/meta/_journal.json";
 
 import {
 	assertOwnedTestDatabase,
@@ -60,6 +62,64 @@ test("seed creates users once and rerunning changes nothing", async () => {
 	expect(first.passwordHash.startsWith("$argon2id$")).toBe(true);
 });
 
+describe("TEST-09 / AC-09 starter financial accounts (seed)", () => {
+	test("each User gets the starter accounts once; reseeding keeps existing financial data", async () => {
+		const url = testDatabaseUrl();
+		await seedUsers(url, seeds);
+		const first = await seedStarterAccounts(url);
+		const accounts = await db.select().from(schema.financialAccounts);
+		const users = await db
+			.select()
+			.from(schema.users)
+			.where(eq(schema.users.role, "user"));
+		expect(first).toBe(users.length * 5);
+		expect(accounts.length).toBe(first);
+		expect(
+			accounts.filter((a) => a.name === "Bank").every((a) => a.type === "CASH"),
+		).toBe(true);
+
+		const bank = accounts.find((a) => a.name === "Bank");
+		if (!bank) throw new Error("starter Bank account missing");
+		await db
+			.update(schema.financialAccounts)
+			.set({ openingAmountMinor: 1_000_000n, openingDate: "2026-11-01" })
+			.where(eq(schema.financialAccounts.id, bank.id));
+		const dining = accounts.find(
+			(a) => a.ownerId === bank.ownerId && a.name === "Dining",
+		);
+		if (!dining) throw new Error("starter Dining account missing");
+		const [saved] = await db
+			.insert(schema.financialTransactions)
+			.values({
+				ownerId: bank.ownerId,
+				form: "PAYMENT",
+				primaryAccountId: bank.id,
+				date: "2026-11-02",
+				totalMinor: 10_000n,
+			})
+			.returning();
+		if (!saved) throw new Error("transaction not saved");
+		await db.insert(schema.allocationLines).values({
+			transactionId: saved.id,
+			accountId: dining.id,
+			amountMinor: 10_000n,
+			position: 0,
+		});
+
+		expect(await seedStarterAccounts(url)).toBe(0);
+		const [bankAfter] = await db
+			.select()
+			.from(schema.financialAccounts)
+			.where(eq(schema.financialAccounts.id, bank.id));
+		expect(bankAfter?.openingAmountMinor).toBe(1_000_000n);
+		expect(bankAfter?.openingDate).toBe("2026-11-01");
+		expect(await db.select().from(schema.financialTransactions)).toHaveLength(
+			1,
+		);
+		expect(await db.select().from(schema.allocationLines)).toHaveLength(1);
+	});
+});
+
 describe("migrations under concurrent container starts", () => {
 	test("three runs started together on a fresh database all succeed and apply each migration once", async () => {
 		// A scratch database inside the owned test server, so the shared fixture database
@@ -88,7 +148,7 @@ describe("migrations under concurrent container starts", () => {
 						"select count(*)::int as n from drizzle.__drizzle_migrations",
 					),
 				)) as unknown as { n: number }[];
-				expect(rows[0]?.n).toBe(1);
+				expect(rows[0]?.n).toBe(journal.entries.length);
 			} finally {
 				await fresh.$client.close();
 			}

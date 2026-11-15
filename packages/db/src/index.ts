@@ -7,4 +7,5 @@ export function createDb(databaseUrl: string) {
 }
 
 export type Database = ReturnType<typeof createDb>;
+export type { AccountType, TransactionForm } from "./schema";
 export { schema };
