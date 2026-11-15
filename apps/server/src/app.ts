@@ -163,6 +163,25 @@ export function createApp(config: AppConfig) {
 				);
 			return json(200, rows.map(accountDto));
 		})
+		.get("/api/accounts/:id", async ({ request, params }) => {
+			const guard = await requireUser(request);
+			if (guard.error) return guard.error;
+			if (!UUID.test(params.id))
+				return failure(404, "NOT_FOUND", "Account not found.");
+			const [account] = await config.db
+				.select()
+				.from(schema.accounts)
+				.where(
+					and(
+						eq(schema.accounts.id, params.id),
+						eq(schema.accounts.ownerId, guard.identity.id),
+					),
+				)
+				.limit(1);
+			return account
+				? json(200, accountDto(account))
+				: failure(404, "NOT_FOUND", "Account not found.");
+		})
 		.post("/api/session", async ({ request }) => {
 			let body: unknown;
 			try {
