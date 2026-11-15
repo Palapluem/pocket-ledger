@@ -38,3 +38,5 @@ jobs:
         run: bunx biome check apps packages scripts
       - name: Integration tests (real PostgreSQL)
         run: bun test apps/server
+      - name: Build web client
+        run: bun run build:web
