@@ -1,0 +1,2 @@
+ALTER TABLE "accounts" ADD CONSTRAINT "accounts_opening_amount_nonnegative" CHECK ("accounts"."opening_amount_satang" >= 0);--> statement-breakpoint
+ALTER TABLE "accounts" ADD CONSTRAINT "accounts_currency_thb" CHECK ("accounts"."currency" = 'THB');
