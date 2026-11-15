@@ -1,6 +1,6 @@
 # Sprint 1 feature engineering contracts
 
-Draft 0.6, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-06. The D-01 to D-07 decisions were accepted by both students and integrated through PR #15 (`98afb3b`). This baseline includes the Better T Stack, first-party signed-JWT authentication, 3600-second lifetime, HS256/`jose`, active runtime pins, D-01 work split, D-03/D-04 rules, D-06 scope and D-07 baseline interfaces. D-05 key handling is agreed; Origin/CSRF policy is deferred until deployment review. The course section remains open. F-01 and the F-02 backend are implemented on `sprint-1-staging`; the F-02 UI and F-03 to F-06 are not yet implemented. No product release is established by this document.
+Draft 0.6, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-06. The D-01 to D-07 decisions were accepted by both students and integrated through PR #15 (`98afb3b`). This baseline includes the Better T Stack, first-party signed-JWT authentication, 3600-second lifetime, HS256/`jose`, active runtime pins, D-01 work split, D-03/D-04 rules, D-06 scope and D-07 baseline interfaces. D-05 key handling is agreed; Origin/CSRF policy is deferred until deployment review. The course section remains open. F-01 and the F-02 backend are implemented on `sprint-1-staging`; the F-02 UI is in open PR #18. F-03 to F-06 are not implemented on `sprint-1-staging`. No product release is established by this document.
 
 ## Contract identity and revision
 
@@ -9,8 +9,8 @@ Draft 0.6, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-
 | Baseline and design | SRS, feature inventory, traceability and System-Level SDS in docs/ |
 | Decision work | Issue #1 financial/scope/interfaces; Issue #2 team/runtime/authentication; [auth/setup decision](auth-setup-proposal.md) |
 | Documentation review | PR #4 merged after N0TAW00D approval; PR #5 and #6 reviewed and merged by Palapluem; PR #7 approved by Palapluem and merged at `3e8bc5f`; PR #9 selected the JWT approach (D-02, D-05). No implementation or product tests are claimed |
-| Implementation Issue / branch / owner / reviewer | |
-| Approved contract revision and pre-code commit | |
+| Implementation Issue / branch / owner / reviewer | Issue #20 / `feature/20-accounts-receive` / Wisit / Natthawat (review pending) |
+| Contract revision and pre-code commit | |
 
 | Revision | Reason | Approval and implementation impact |
 | --- | --- | --- |
@@ -18,6 +18,7 @@ Draft 0.6, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-
 | 0.2, 13 November 2026 | Align F-01 with the JWT approach selected in PR #9: no server-side session or revocation; spec-level outcomes only | Documentation only; implementation details stay open until recorded |
 | 0.4, 15 November 2026 | Record the agreed D-01 to D-07 Sprint 1 decisions, baseline routes/DTOs, financial boundaries, work ownership and explicit NOT RUN financial tests | Integrated through PR #15 at `98afb3b`; F-03 to F-06 implementation and executable financial tests remain pending. |
 | 0.5, 15 November 2026 | Add the shared client-side transaction submission/no-auto-retry acceptance criterion | BR-13 / AC-28 / TEST-28 added; no server idempotency guarantee. Included in PR #15 at `98afb3b`. |
+| 0.6, 15 November 2026 | Detail the F-03/F-04 account, opening-balance and salary-receipt interfaces before implementation | Issue #20; testable request/response shapes, validation outcomes and persistent data constraints are specified below. No execution result is claimed by this revision. |
 
 ## F-01 Identity and access
 
@@ -49,7 +50,16 @@ Dependencies: F-01 and accepted D-05/D-07. UI: Platform users list and enabled-s
 
 User goal: start the required journey with owned bank/card/income/expense records and record an opening bank balance. Safely seed two Users with distinct accounts plus an Administrator. The acting User selects their seeded bank account, enters the opening amount/date and retrieves the saved result. The opening amount affects the balance but not current-period income/expense.
 
-Dependencies: F-01, D-03/D-04/D-07. UI: Accounts/opening-balance form. API: owned account list and opening-balance update. Data: FinancialAccount owner/type/currency/opening state. Seed is setup support, not evidence of a user performing the required opening-balance action. Full five-type account management remains in Sprint 2.
+Dependencies: F-01, D-03/D-04/D-07. UI: an Accounts screen lists the signed-in User's seeded accounts; the User selects the bank account, enters an opening amount/date, saves, then reloads the account to verify the persisted result. Show validation, pending, success and retryable failure states. The User cannot choose an account owned by another User or the Administrator.
+
+API and data contract:
+
+- `GET /api/accounts` returns the signed-in User's accounts only, ordered by type, name and ID. Each item is `{ id, name, type, currency, openingBalance, openingDate, balance }`; money values are normalized decimal strings with two places and `currency` is `THB`. `type` is one of `CASH`, `LOAN_GIVEN`, `LOAN_TAKEN`, `INCOME` or `EXPENSE`. `balance` is derived from the opening amount and persisted transaction effects; it is not a separately mutable cache.
+- `GET /api/accounts/:id` returns the same safe representation for one owned account. An unknown or foreign ID returns the same `404 NOT_FOUND` shape; no account name, amount, owner or existence detail is disclosed.
+- `PUT /api/accounts/:id/opening-balance` accepts `{ amount: "10000.00", date: "2026-11-01" }` and returns the updated account representation. The amount is a non-negative exact decimal string with at most two fractional digits; no rounding, exponent notation, sign or binary floating-point conversion is allowed. The date is a valid `YYYY-MM-DD` calendar date. Only balance-bearing account types accept an opening state. A changed opening state is allowed after activity only when every affected transaction is on/after the new opening date and the recomputed normal balance is non-negative. The update is atomic.
+- Account records have a User owner, stable seeded key, type, THB currency, integer-satang opening amount and nullable opening date. Seed only missing records for enabled User identities; never reset an existing opening state or financial activity. Do not seed finance records for Administrators.
+
+Authentication errors are `401 UNAUTHENTICATED`; an Administrator is rejected with `403 FORBIDDEN`; a foreign/unknown account is `404 NOT_FOUND`; malformed values return `400 INVALID_INPUT`; an opening-date or balance-rule violation returns `422 RULE_VIOLATION`. Every error uses the existing `{ code, message }` JSON shape. Full five-type account management remains in Sprint 2; this Sprint 1 UI supports recording the opening state for the seeded bank account.
 
 | AC | Observable expected outcome | Requirements | STS |
 | --- | --- | --- | --- |
@@ -62,7 +72,17 @@ Dependencies: F-01, D-03/D-04/D-07. UI: Accounts/opening-balance form. API: owne
 
 User goal: record salary received into an owned bank account. Select Receive money, the owned bank, date and total; allocate that total to the owned salary Income account; submit; retrieve the saved transaction and balances. Reject invalid input or inaccessible account references without financial effects.
 
-Dependencies: F-01/F-03, D-03/D-04/D-07. UI: New transaction, Receive form, editable allocation lines and validation feedback. API: POST/GET /api/transactions and refreshed accounts/summary. Data: FinancialTransaction and AllocationLine in one database transaction. This Sprint 1 contract does not claim the later loan/transfer receive combinations are implemented.
+Dependencies: F-01/F-03, D-03/D-04/D-07. UI: the User chooses Receive money, selects the seeded bank and salary accounts, enters date and total, submits once, then retrieves the saved transaction and refreshed account balances. Disable repeat activation while the request is pending. Show validation, pending, saved and retry guidance if the response is ambiguous. This Sprint 1 contract does not claim the later loan/transfer receive combinations are implemented.
+
+API and data contract:
+
+- `POST /api/transactions` accepts `{ form: "RECEIVE", primaryAccountId, date, total, allocations: [{ accountId, amount }], memo? }`. The primary account must be an owned `CASH` account; each allocation must reference a distinct, owned `INCOME` account. Sprint 1's receive path is salary/income only. Other allocation types allowed by the whole-product SDS are deferred to Sprint 2.
+- A transaction amount and every allocation amount are decimal strings greater than 0, at most `1000000000.00`, with no more than two fractional digits. Values are parsed exactly into integer satang. The allocation sum must equal the total exactly. At least one allocation is required; duplicate allocation accounts and using the primary account as an allocation are rejected.
+- Transaction dates are valid `YYYY-MM-DD` dates from the opening date of the primary account through today's Asia/Bangkok calendar date. Income/Expense classification accounts do not impose an opening-date boundary. Invalid or foreign account references are rejected before writing. Persist the transaction and all allocation lines in one database transaction.
+- `POST` returns `201` with the saved transaction ID, form, primary account, date, total and complete allocations. `GET /api/transactions/:id` returns that same persisted detail for its owner; `GET /api/transactions` returns the owner's records only. A User cannot read another User's record; Administrators cannot call any financial endpoint.
+- Mismatched totals, incompatible account types, repeated/primary allocation accounts and date or balance-rule failures return `422 RULE_VIOLATION`; malformed JSON/shape/value returns `400 INVALID_INPUT`; foreign/unknown IDs return `404 NOT_FOUND`; database failure returns a safe `500 INTERNAL_ERROR`. A rejected request leaves no transaction, allocation or balance effect.
+
+The agreed independent example starts with a bank opening balance of THB 10,000.00 on 2026-11-01, then receives THB 20,000.00 salary on 2026-11-02. The persisted result is bank THB 30,000.00 and salary Income THB 20,000.00. The opening balance is not counted as income. The response is retrieved in a fresh API request before the UI reports the journey complete.
 
 | AC | Observable expected outcome | Requirements | STS |
 | --- | --- | --- | --- |
