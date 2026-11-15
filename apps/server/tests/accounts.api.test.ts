@@ -153,4 +153,29 @@ describe("TEST-09 / AC-09 through AC-12 account foundation", () => {
 			message: "Account not found.",
 		});
 	});
+
+	test("a User saves and re-reads an exact opening bank balance and date", async () => {
+		const { cookie } = await signIn();
+		const accountsResponse = await send("GET", "/api/accounts", { cookie });
+		const [bank] = await accountsResponse.json();
+		const saved = await send("PUT", `/api/accounts/${bank.id}/opening-balance`, {
+			cookie,
+			body: { amount: "10000.00", date: "2026-11-01" },
+		});
+		expect(saved.status).toBe(200);
+		expect(await saved.json()).toMatchObject({
+			id: bank.id,
+			openingBalance: "10000.00",
+			openingDate: "2026-11-01",
+			balance: "10000.00",
+		});
+
+		const freshRead = await send("GET", `/api/accounts/${bank.id}`, { cookie });
+		expect(freshRead.status).toBe(200);
+		expect(await freshRead.json()).toMatchObject({
+			openingBalance: "10000.00",
+			openingDate: "2026-11-01",
+			balance: "10000.00",
+		});
+	});
 });
