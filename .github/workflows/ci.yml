@@ -31,10 +31,18 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
+      - name: Mark the throwaway service database as the disposable test database
+        run: psql "$TEST_DATABASE_URL" -qc "COMMENT ON DATABASE pocket_ledger_test IS 'pocket-ledger disposable test database'"
       - run: bun install --frozen-lockfile
       - name: Type check
         run: bun run check-types
       - name: Lint (Biome, read-only)
-        run: bunx biome check apps packages scripts
+        run: bunx biome check apps packages scripts e2e playwright.config.ts
       - name: Integration tests (real PostgreSQL)
         run: bun test apps/server
+      - name: Build web client
+        run: bun run build:web
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+      - name: Browser E2E (real server, built client, PostgreSQL)
+        run: bun run test:e2e
