@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 
 import {
@@ -39,6 +39,48 @@ export const bangkokToday = () =>
 	new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(
 		new Date(),
 	);
+
+/** Shown while a financial view's data is being fetched. */
+export function Loading(props: { label: string }) {
+	return (
+		<section className="card" aria-busy="true">
+			<p role="status">{props.label}</p>
+		</section>
+	);
+}
+
+/**
+ * A load failure never shows partial or stale figures, and never exposes server
+ * details; the User can retry the read (reads have no financial effect).
+ */
+export function LoadFailed(props: { what: string }) {
+	const router = useRouter();
+	const [retrying, setRetrying] = useState(false);
+	return (
+		<section className="card">
+			<h1>Something went wrong</h1>
+			<p role="alert" className="error">
+				We could not load {props.what}. Check your connection and try again.
+			</p>
+			<div className="row">
+				<button
+					type="button"
+					disabled={retrying}
+					onClick={async () => {
+						setRetrying(true);
+						try {
+							await router.invalidate();
+						} finally {
+							setRetrying(false);
+						}
+					}}
+				>
+					{retrying ? "Retrying…" : "Try again"}
+				</button>
+			</div>
+		</section>
+	);
+}
 
 export function MoneyOverview(props: {
 	summary: Summary;
