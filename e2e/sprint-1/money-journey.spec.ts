@@ -128,13 +128,19 @@ test.describe("TEST-28 / AC-28 one submission, no automatic retry", () => {
 		expect(posts).toBe(1);
 		await expect(page.getByTestId("balance-Credit card")).toHaveText("100.00");
 
-		// Ambiguous outcome: the connection fails; no automatic retry happens.
+		// Commit the transaction, then drop the response to simulate an ambiguous outcome.
 		await page.unroute("**/api/transactions");
-		await page.route("**/api/transactions", (route) =>
-			route.request().method() === "POST"
-				? route.abort("timedout")
-				: route.continue(),
-		);
+		await page.goto("/transactions");
+		const previousPaymentCount = await page
+			.getByRole("table")
+			.locator("tbody tr")
+			.count();
+		await page.route("**/api/transactions", async (route) => {
+			if (route.request().method() !== "POST") return route.continue();
+			const committed = await route.fetch();
+			expect(committed.status()).toBe(201);
+			await route.abort("timedout");
+		});
 		posts = 0;
 		await fillPayment(page, CARD, "50.00", [[DINING, "50.00"]]);
 		await page.getByRole("button", { name: "Save" }).click();
@@ -145,6 +151,12 @@ test.describe("TEST-28 / AC-28 one submission, no automatic retry", () => {
 		expect(posts).toBe(1);
 		// The User may deliberately submit again after checking history.
 		await expect(page.getByRole("button", { name: "Save" })).toBeEnabled();
+		await page.goto("/transactions");
+		const paymentHistory = page.getByRole("table");
+		await expect(paymentHistory.locator("tbody tr")).toHaveCount(
+			previousPaymentCount + 1,
+		);
+		await expect(paymentHistory).toContainText("฿50.00");
 	});
 });
 
@@ -179,14 +191,19 @@ test.describe("TEST-28 / AC-28 receive form submission safety", () => {
 		expect(posts).toBe(1);
 
 		await page.unroute("**/api/transactions");
-		await page.route("**/api/transactions", (route) =>
-			route.request().method() === "POST"
-				? route.abort("timedout")
-				: route.continue(),
-		);
-		posts = 0;
-		await page.goto("/overview");
+		await page.goto("/transactions");
+		const previousReceiptCount = await page
+			.getByRole("table")
+			.locator("tbody tr")
+			.count();
 		await page.getByRole("link", { name: "Receive money" }).click();
+		await page.route("**/api/transactions", async (route) => {
+			if (route.request().method() !== "POST") return route.continue();
+			const committed = await route.fetch();
+			expect(committed.status()).toBe(201);
+			await route.abort("timedout");
+		});
+		posts = 0;
 		await page.getByLabel("Total received (THB)").fill("50.00");
 		await page.getByRole("button", { name: "Save receipt" }).click();
 		await expect(page.getByRole("alert")).toHaveText(
@@ -197,6 +214,12 @@ test.describe("TEST-28 / AC-28 receive form submission safety", () => {
 		await expect(
 			page.getByRole("button", { name: "Save receipt" }),
 		).toBeEnabled();
+		await page.goto("/transactions");
+		const receiptHistory = page.getByRole("table");
+		await expect(receiptHistory.locator("tbody tr")).toHaveCount(
+			previousReceiptCount + 1,
+		);
+		await expect(receiptHistory).toContainText("฿50.00");
 	});
 });
 
