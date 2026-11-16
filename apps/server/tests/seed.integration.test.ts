@@ -1,9 +1,16 @@
-import { beforeEach, expect, test } from "bun:test";
-import { schema } from "@pocket-ledger/db";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { createDb, schema } from "@pocket-ledger/db";
+import { runMigrations } from "@pocket-ledger/db/migrate";
 import { seedUsers } from "@pocket-ledger/db/seed";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
-import { resetDatabase, testDatabaseUrl } from "./helpers";
+import journal from "../../../packages/db/src/migrations/meta/_journal.json";
+
+import {
+	assertOwnedTestDatabase,
+	resetDatabase,
+	testDatabaseUrl,
+} from "./helpers";
 
 let db: Awaited<ReturnType<typeof resetDatabase>>;
 beforeEach(async () => {
@@ -53,4 +60,45 @@ test("seed creates users once and rerunning changes nothing", async () => {
 		passwordHash: first.passwordHash,
 	});
 	expect(first.passwordHash.startsWith("$argon2id$")).toBe(true);
+});
+
+describe("migrations under concurrent container starts", () => {
+	test("three runs started together on a fresh database all succeed and apply each migration once", async () => {
+		// A scratch database inside the owned test server, so the shared fixture database
+		// and its cached types are untouched.
+		const owned = createDb(testDatabaseUrl());
+		await assertOwnedTestDatabase(owned);
+		const scratch = new URL(testDatabaseUrl());
+		scratch.pathname = "/pl_migration_race";
+		await owned.execute(sql.raw("DROP DATABASE IF EXISTS pl_migration_race"));
+		await owned.execute(sql.raw("CREATE DATABASE pl_migration_race"));
+		try {
+			const results = await Promise.allSettled([
+				runMigrations(scratch.href),
+				runMigrations(scratch.href),
+				runMigrations(scratch.href),
+			]);
+			expect(results.map((r) => r.status)).toEqual([
+				"fulfilled",
+				"fulfilled",
+				"fulfilled",
+			]);
+			const fresh = createDb(scratch.href);
+			try {
+				const rows = (await fresh.execute(
+					sql.raw(
+						"select count(*)::int as n from drizzle.__drizzle_migrations",
+					),
+				)) as unknown as { n: number }[];
+				expect(rows[0]?.n).toBe(journal.entries.length);
+			} finally {
+				await fresh.$client.close();
+			}
+		} finally {
+			await owned.execute(
+				sql.raw("DROP DATABASE IF EXISTS pl_migration_race WITH (FORCE)"),
+			);
+			await owned.$client.close();
+		}
+	});
 });

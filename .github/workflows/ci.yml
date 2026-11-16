@@ -46,3 +46,5 @@ jobs:
         run: bunx playwright install --with-deps chromium
       - name: Browser E2E (real server, built client, PostgreSQL)
         run: bun run test:e2e
+      - name: Build production Docker image
+        run: docker build --build-arg GIT_COMMIT=${{ github.sha }} -t pocket-ledger:ci .
