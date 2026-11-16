@@ -366,11 +366,17 @@ describe("TEST-16 / AC-16 PAYMENT and RECEIVE amount/date inputs", () => {
 				salaryReceipt(a, { total, allocationAmount: total }),
 			);
 			expect(response.status).toBe(400);
-			expect(await response.json()).toMatchObject({ code: "INVALID_INPUT" });
+			expect(await response.json()).toMatchObject({
+				code: "INVALID_INPUT",
+				field: "total",
+			});
 		}
 		const invalidDate = await post(salaryReceipt(a, { date: "2026-02-30" }));
 		expect(invalidDate.status).toBe(400);
-		expect(await invalidDate.json()).toMatchObject({ code: "INVALID_INPUT" });
+		expect(await invalidDate.json()).toMatchObject({
+			code: "INVALID_INPUT",
+			field: "date",
+		});
 		expect(await f.counts()).toEqual({ transactions: 0, lines: 0 });
 	});
 });

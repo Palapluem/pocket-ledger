@@ -506,11 +506,7 @@ export function financeRoutes(deps: {
 			} catch (error) {
 				if (error instanceof Rejection)
 					return failure(error.status, error.code, error.message);
-				return failure(
-					500,
-					"INTERNAL_ERROR",
-					"Opening balance could not be saved.",
-				);
+				throw error;
 			}
 		})
 		.get("/api/transactions", async ({ request }) => {
@@ -549,17 +545,6 @@ export function financeRoutes(deps: {
 			}
 			const parsed = parseTransaction(body);
 			if ("field" in parsed) {
-				const isReceive =
-					typeof body === "object" &&
-					body !== null &&
-					"form" in body &&
-					body.form === "RECEIVE";
-				if (isReceive)
-					return failure(
-						400,
-						"INVALID_INPUT",
-						"Check the receive form, account, date and amounts (greater than 0, at most two decimals).",
-					);
 				return json(400, {
 					code: "INVALID_INPUT",
 					message:

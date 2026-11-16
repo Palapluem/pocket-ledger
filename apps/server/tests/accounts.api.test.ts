@@ -1,7 +1,14 @@
-import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import {
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	test,
+} from "bun:test";
 import { schema } from "@pocket-ledger/db";
 import { seedStarterAccounts } from "@pocket-ledger/db/seed";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { createApp } from "../src/app";
 import {
@@ -33,6 +40,12 @@ beforeEach(async () => {
 	db = await resetDatabase();
 	await seedStarterAccounts(testDatabaseUrl());
 	app = createApp({ db, jwt: TEST_JWT, allowedOrigin: ALLOWED_ORIGIN });
+});
+afterEach(async () => {
+	await db.execute(
+		sql`drop trigger if exists test_fail_opening_balance on accounts`,
+	);
+	await db.execute(sql`drop function if exists test_fail_opening_balance()`);
 });
 
 const send = (
@@ -234,6 +247,44 @@ describe("TEST-09 / AC-09 through AC-12 account foundation", () => {
 			openingAmount: "10000.00",
 			openingDate: "2026-11-01",
 			balance: "10000.00",
+		});
+	});
+
+	test("an opening-balance database failure returns the standard safe error", async () => {
+		const { cookie } = await signIn();
+		const accountsResponse = await send("GET", "/api/accounts", { cookie });
+		const bank = (await readJson<AccountDto[]>(accountsResponse))[0];
+		if (!bank) throw new Error("Bank account fixture is missing.");
+
+		await db.execute(sql`
+			create or replace function test_fail_opening_balance()
+			returns trigger language plpgsql as $$
+			begin raise exception 'injected opening-balance failure'; end $$`);
+		await db.execute(sql`
+			create trigger test_fail_opening_balance
+			before update of opening_amount_satang, opening_date on accounts
+			for each row execute function test_fail_opening_balance()`);
+
+		const response = await send(
+			"PUT",
+			`/api/accounts/${bank.id}/opening-balance`,
+			{ cookie, body: { amount: "10000.00", date: "2026-11-01" } },
+		);
+		expect(response.status).toBe(500);
+		const body = await response.text();
+		expect(JSON.parse(body)).toEqual({
+			code: "INTERNAL_ERROR",
+			message: "The request could not be completed. Nothing was saved.",
+		});
+		expect(body).not.toContain("injected");
+
+		const freshRead = await send("GET", `/api/accounts/${bank.id}`, {
+			cookie,
+		});
+		expect(await freshRead.json()).toMatchObject({
+			openingAmount: "0.00",
+			openingDate: bank.openingDate,
+			balance: "0.00",
 		});
 	});
 
