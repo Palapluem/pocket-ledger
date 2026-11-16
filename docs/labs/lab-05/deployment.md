@@ -134,7 +134,7 @@ Run by the project owner in the Cloud Console and Cloud Shell, region `asia-sout
 
 1. Enable APIs: Cloud Run Admin, Cloud SQL Admin, Artifact Registry, Secret Manager, IAM, IAM Service Account Credentials, Security Token Service.
 2. Artifact Registry: create Docker repository `pocket-ledger` in `asia-southeast3`.
-3. Cloud SQL: create PostgreSQL 18 instance `pocket-ledger-db` (Enterprise, shared core `db-f1-micro`, 10 GB) with a strong `postgres` password kept outside Git. Create database `pocket_ledger`. Do not create application users through the console (console/gcloud built-in users get `cloudsqlsuperuser`). Copy the connection name.
+3. Cloud SQL: create PostgreSQL 18 instance `pocket-ledger-db` (Enterprise, shared core `db-f1-micro`, 10 GB) with a strong `postgres` password kept outside Git. Create database `pocket_ledger`. Do not create application users through the console or `gcloud sql users create`: those users are members of `cloudsqlsuperuser` (they can create databases and roles). Create them with SQL in step 4. Check with `SELECT rolname, pg_has_role(rolname, 'cloudsqlsuperuser', 'member') FROM pg_roles WHERE rolname LIKE 'pocket%';`, which must return `f` for both roles. Copy the connection name.
 4. Database roles: in Cloud Shell, `gcloud sql connect pocket-ledger-db --user=postgres --database=pocket_ledger`, then run (substituting two new generated passwords):
 
    ```sql
@@ -144,7 +144,7 @@ Run by the project owner in the Cloud Console and Cloud Shell, region `asia-sout
    REVOKE ALL ON DATABASE pocket_ledger FROM PUBLIC;
    GRANT CONNECT, CREATE ON DATABASE pocket_ledger TO pocket_ledger_migrator;
    GRANT CONNECT ON DATABASE pocket_ledger TO pocket_ledger_app;
-   ALTER SCHEMA public OWNER TO pocket_ledger_migrator;
+   GRANT USAGE, CREATE ON SCHEMA public TO pocket_ledger_migrator;
    GRANT USAGE ON SCHEMA public TO pocket_ledger_app;
    ALTER DEFAULT PRIVILEGES FOR ROLE pocket_ledger_migrator IN SCHEMA public
      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO pocket_ledger_app;
@@ -152,9 +152,11 @@ Run by the project owner in the Cloud Console and Cloud Shell, region `asia-sout
      GRANT USAGE, SELECT ON SEQUENCES TO pocket_ledger_app;
    ```
 
-   Verified locally on `postgres:18.4` with the production image: the migrator applied migrations and seeded; the app role served sign-in and user updates but was refused `CREATE TABLE`, `DROP TABLE users` and `CREATE DATABASE`.
-5. Secret Manager (create each once): `pl-database-url` = `postgresql://pocket_ledger_app:<app password>@localhost/pocket_ledger?host=/cloudsql/<connection name>`; `pl-migration-database-url` = the same with `pocket_ledger_migrator:<migrator password>`; `pl-jwt-secret` = `openssl rand -hex 32`; `pl-seed-users` = JSON array of synthetic `{email, displayName, role, password}` including one administrator. URL-encode special characters in passwords.
-6. Service accounts: `pl-runtime`, `pl-migrator`, `pl-deployer`. Project roles: `pl-runtime` and `pl-migrator` get Cloud SQL Client; `pl-deployer` gets Cloud Run Admin and Artifact Registry Writer. Secret access per secret only (each secret's Permissions tab, role Secret Manager Secret Accessor): `pl-runtime` on `pl-database-url` and `pl-jwt-secret`; `pl-migrator` on `pl-migration-database-url` and `pl-seed-users`. On `pl-runtime` and `pl-migrator` (Principals with access), grant `pl-deployer` the Service Account User role.
+   On Cloud SQL, `postgres` is not a true superuser and cannot take ownership of `public` (owned by `pg_database_owner`), so the migrator gets `USAGE, CREATE` on it instead; it owns every table it creates. Cloud SQL's password policy requires lowercase, uppercase, a digit and a symbol; use a URL-safe symbol such as `-` (for example `$(openssl rand -hex 20)Aa1-`) so the connection URL needs no encoding. To keep passwords out of the terminal and shell history, run the script through `cloud-sql-proxy` and `psql -v app_pw=... -v mig_pw=... -f`, writing `PASSWORD :'app_pw'` in the SQL, and pipe the same variables into step 5.
+
+   Verified on 16 November with this exact SQL. Locally on `postgres:18.4`: the migrator applied all migrations and seeded users and starter accounts; the app role could select, insert, update and delete, but was refused `CREATE TABLE`, `DROP TABLE users`, `ALTER TABLE`, `CREATE DATABASE` and `CREATE SCHEMA`. On the Cloud SQL instance: both roles report `rolcreatedb`, `rolcreaterole` and `cloudsqlsuperuser` membership as `f`.
+5. Secret Manager (create each once): `pl-database-url` = `postgresql://pocket_ledger_app:<app password>@localhost/pocket_ledger?host=/cloudsql/<connection name>`; `pl-migration-database-url` = the same with `pocket_ledger_migrator:<migrator password>`; `pl-jwt-secret` = `openssl rand -hex 32`; `pl-seed-users` = JSON array of synthetic `{email, displayName, role, password}` including one administrator. URL-encode special characters in passwords. Build `pl-seed-users` with a JSON serializer (for example `python3 -c 'import json; print(json.dumps([...]))'`) rather than by hand, and check it with `json.load` before deploying: an invalid value makes the migration job fail at seed.
+6. Service accounts: `pl-runtime`, `pl-migrator`, `pl-deployer`. Project roles: `pl-runtime` and `pl-migrator` get Cloud SQL Client; `pl-deployer` gets Cloud Run Admin and Artifact Registry Writer. Secret access per secret only, never as a project-level Secret Manager Secret Accessor grant, because that would let the runtime read the migrator URL and seed passwords (each secret's Permissions tab, role Secret Manager Secret Accessor): `pl-runtime` on `pl-database-url` and `pl-jwt-secret`; `pl-migrator` on `pl-migration-database-url` and `pl-seed-users`. On `pl-runtime` and `pl-migrator` (Principals with access), grant `pl-deployer` the Service Account User role.
 7. Workload Identity Federation (Cloud Shell):
 
    ```bash
