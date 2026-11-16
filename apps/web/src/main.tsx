@@ -13,7 +13,7 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 import { ApiError, api, type ManagedUser } from "./api";
-import { MoneyOverview, PaymentForm } from "./finance";
+import { LoadFailed, Loading, MoneyOverview, PaymentForm } from "./finance";
 import "./styles.css";
 
 function Footer() {
@@ -132,6 +132,13 @@ const overviewRoute = createRoute({
 					money: await Promise.all([api.summary(), api.transactions()]),
 				}
 			: { money: null },
+	pendingMs: 200,
+	pendingComponent: () => (
+		<Loading label="Loading your balances, income and expense, and history…" />
+	),
+	errorComponent: () => (
+		<LoadFailed what="your balances, income and expense, and history" />
+	),
 	component: OverviewPage,
 });
 
@@ -283,6 +290,9 @@ const newPaymentRoute = createRoute({
 		return { me };
 	},
 	loader: async () => ({ accounts: await api.accounts() }),
+	pendingMs: 200,
+	pendingComponent: () => <Loading label="Loading your accounts…" />,
+	errorComponent: () => <LoadFailed what="your accounts" />,
 	component: NewPaymentPage,
 });
 
