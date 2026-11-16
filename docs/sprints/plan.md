@@ -1,6 +1,6 @@
 # Three-sprint delivery plan
 
-Draft 0.3, 15 November 2026. The D-06 Sprint 1 scope and D-01 work split were accepted by both students and integrated through PR #15 (`98afb3b`). LEB2 group name is 2-Nor. No accepted application release exists.
+Draft 0.4, updated 16 November 2026. The D-06 Sprint 1 scope and D-01 work split were accepted by both students and integrated through PR #15 (`98afb3b`). F-01–F-06 are now integrated into `sprint-1-staging` at `53c20ff`; PR #25 was approved by N0TAW00D. CI #59 passed on PR head `420c6bd`, and clean-checkout TEST-27 passed on staging. `main` remains bootstrap `a4cced2`; no accepted application release exists. LEB2 group name is 2-Nor.
 
 | Sprint | Goal and included features | Dependencies | Completion outcome |
 | --- | --- | --- | --- |
@@ -10,12 +10,12 @@ Draft 0.3, 15 November 2026. The D-06 Sprint 1 scope and D-01 work split were ac
 
 ## Immediate sequence
 
-1. The D-01 to D-07 decisions accepted by both students and merged through PR #15 form the Sprint 1 baseline. The course section remains unconfirmed; defer Origin/CSRF policy until deployment review.
-2. Implement the accepted ownership split: Wisit handles F-03/F-04 and Natthawat handles F-05/F-06; each student reviews the other's work and both participate in tests, integration and release.
-3. For each meaningful rule, preserve the intended failing test and then its correction/passing result. Use feature branches from current sprint staging and keep related docs/tests/code in the same PR.
-4. Integrate F-01/F-02/F-03 before the complete F-04/F-05/F-06 journey. Run integration/acceptance checks, resolve failures and obtain teammate review on the release PR into main.
-5. Assemble the self-contained Deliverable 1 PDF with the agreed A-E documents and actual Part F evidence. Empty execution fields remain unfinished, not PASS.
-6. Carry that accepted release into Lab 5: clean Docker build, relevant required CI on staging/main PRs, controlled blocked-merge proof, GCP deployment and persistence verification. Lab 5 is due 15 November 23:59.
+1. Keep the accepted D-01 to D-07 baseline; the course section remains unconfirmed. D-05 Origin/CSRF request protection remains deferred in separate PR #24 and must be resolved before public deployment.
+2. F-01–F-06 and their core Sprint 1 journey are integrated into `sprint-1-staging` at `53c20ff`. PR #25 was approved by N0TAW00D; CI #59 passed on head `420c6bd`; clean-checkout TEST-27 passed on the merged staging SHA.
+3. Finish the single bounded status/evidence reconciliation in Issue #26. Obtain N0TAW00D's substantive review and merge that documentation PR into staging; do not create a second documentation PR for the same closeout.
+4. Run integration/acceptance checks on the final staging candidate, then open the required reviewed release PR from `sprint-1-staging` to `main`. N0TAW00D must review and merge it; no author self-approval or self-merge.
+5. On the exact accepted `main` release, run and record the required checks. Capture Part F demonstrations, test output/excerpts, two reviewed Issue/PR examples, workflow/history evidence, contributions and final board status; complete A–F page ranges and the self-contained PDF.
+6. Keep Lab 5 separate: Docker/CI/GCP deployment and durable persistence proof belong there, not in PD1. The handout's 8 November deadline and the student-reported 15 November 23:30 cutoff have both passed; no later extension is verified.
 
 ## Team task allocation
 
@@ -23,11 +23,11 @@ The assignments below are the agreed Sprint 1 work split; rows without an owner 
 
 | Bounded work | Implementer / pair participants | Other teammate's specific review | Issue / evidence |
 | --- | --- | --- | --- |
-| F-01/F-02 identity/session and minimal administration | Natthawat (implemented); Wisit review | Wisit | PR #12/#14 |
-| F-03 financial accounts and opening balance | Wisit | Natthawat | Feature Issue/PR to be created when implementation is scoped |
-| F-04 salary/receive journey | Wisit | Natthawat | Feature Issue/PR to be created when implementation is scoped |
-| F-05 split purchase and repayment | Natthawat | Wisit | Feature Issue/PR to be created when implementation is scoped |
-| F-06 balances, summary and history | Natthawat | Wisit | Feature Issue/PR to be created when implementation is scoped |
+| F-01/F-02 identity/session and minimal administration | Natthawat (PRs #12/#14/#18) | Wisit | Integrated in staging; identity/admin API and browser checks in CI #59 |
+| F-03 financial accounts and opening balance | Wisit (Issue #20 / PR #25) | Natthawat | Approved by N0TAW00D; merged at `53c20ff`; CI #59 on head `420c6bd` |
+| F-04 salary/receive journey | Wisit (Issue #20 / PR #25) | Natthawat | Approved by N0TAW00D; merged at `53c20ff`; CI #59 on head `420c6bd` |
+| F-05 split purchase and repayment | Natthawat (Issue #21 / PR #22) | Wisit | Merged at `7d8be8e`; included in integrated CI #59 |
+| F-06 balances, summary and history | Natthawat (Issue #21 / PR #22) | Wisit | Merged at `7d8be8e`; included in integrated CI #59 |
 | CI and controlled failed-check proof | | | |
 | Clean Docker build, deploy and persistence checks | | | |
 | Report evidence/content verification and print check | | | |
@@ -36,4 +36,4 @@ The assignments below are the agreed Sprint 1 work split; rows without an owner 
 
 Deliverable 1 needs a local working release; completed Docker/GCP/CI is assessed in Lab 5. Lab 6 requires an independent project team, not the two developers reviewing themselves. Lab 7 needs an instructor/TA-approved change to already implemented behavior. Do not substitute an unfinished baseline feature for that maintenance exercise.
 
-The saved handout sets Deliverable 1 for 8 November 2026; the course-repository work plan records Wisit's report of an extension to 14 November, but no official announcement is attached here. At this revision, F-01 identity and the F-02 administration backend are implemented on `sprint-1-staging`; the financial features F-03 to F-06 and their executable tests are not implemented or run, and no accepted `main` release exists. Record actual progress against the course's current deadline or extension; do not relabel planned work as complete or invent evidence.
+The saved handout sets Deliverable 1 for 8 November 2026. Wisit later reported a cutoff of 15 November at 23:30 Asia/Bangkok; both have passed and no later extension is verified. As of 16 November, F-01–F-06 are integrated and tested on `sprint-1-staging` at `53c20ff`, but there is no accepted `main` release. Final release checks and the self-contained report remain incomplete. Do not relabel staging as a release or claim submission readiness.

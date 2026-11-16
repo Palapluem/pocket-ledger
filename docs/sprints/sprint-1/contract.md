@@ -1,6 +1,6 @@
 # Sprint 1 feature engineering contracts
 
-Draft 1.1, prepared 7 November 2026 and updated 16 November. Includes F-01 to F-06. PRs #18, #19, #22 and #23 are integrated into `sprint-1-staging` at `7d8be8e`; PR #22's head `d454ef8` passed CI run `43824074356`. PR #25 head `3c8c4bd` passed CI run `43843968257`; implementation commit `1b29eb2` rejects future opening dates and adds retry controls to account loading. Wisit confirmed the future-date rule on 16 November. The current TEST-28 E2E update additionally proves the ambiguous-outcome behavior for both payment and receive: the server commits and returns 201, the browser response is dropped, and a fresh history read finds exactly one added record; the full local browser suite passes 11/11. D-05 key handling is agreed; Origin/CSRF remains deferred. The course section remains unconfirmed. No accepted product release exists on `main`, which remains `a4cced2`.
+Draft 1.1, updated 16 November 2026. Includes F-01 to F-06. PR #22 merged to `sprint-1-staging` at `7d8be8e`; PR #23 at `6048593`; PR #25 at `53c20ff`. N0TAW00D approved PR #25 head `420c6bd` before merge. CI #59 passed on that head: 125 server tests / 518 assertions across 14 files, 11 browser E2E tests, type checks, Biome, web build and production Docker image build. Clean-checkout TEST-27 passed on merge commit `53c20ff`; exact local setup and results are in `tests.md`. The E2E suite covers the committed-response-loss behavior for both payment and receive. D-05 key handling is agreed; Origin/CSRF remains deferred in separate PR #24. The course section remains unconfirmed. `main` is still bootstrap `a4cced2`; no accepted product release exists.
 
 ## Contract identity and revision
 
@@ -9,7 +9,7 @@ Draft 1.1, prepared 7 November 2026 and updated 16 November. Includes F-01 to F-
 | Baseline and design | SRS, feature inventory, traceability and System-Level SDS in docs/ |
 | Decision work | Issue #1 financial/scope/interfaces; Issue #2 team/runtime/authentication; [auth/setup decision](auth-setup-proposal.md) |
 | Documentation review | PR #4 merged after N0TAW00D approval; PR #5 and #6 reviewed and merged by Palapluem; PR #7 approved by Palapluem and merged at `3e8bc5f`; PR #9 selected the JWT approach (D-02, D-05). No implementation or product tests are claimed |
-| Implementation Issue / branch / owner / reviewer | Issue #20 / `feature/20-accounts-receive-reconcile` / Wisit / Natthawat (review pending) |
+| Implementation Issue / branch / owner / reviewer | Issue #20 / `feature/20-accounts-receive-reconcile` / Wisit / Natthawat (approved PR #25; merged at `53c20ff`) |
 | Contract revision and pre-code commit | Revision 0.6, commit `90aeab6`; implementation and executable financial tests had not started at that commit |
 
 | Revision | Reason | Approval and implementation impact |
@@ -22,7 +22,8 @@ Draft 1.1, prepared 7 November 2026 and updated 16 November. Includes F-01 to F-
 | 0.7, 15 November 2026 | Issue #21 refines the F-05/F-06 interface within D-03/D-04/D-07: response DTOs, error codes, history order and the summary range (see "F-05/F-06 implemented interface") | Implemented in PR #22 on the shared schema; CI and review status are recorded in the coordination history. No financial rule changes |
 | 0.8, 16 November 2026 | Reconcile F-03/F-04 with PR #22's canonical API/service and PR #23's schema; make the `openingAmount` DTO and Sprint 1 salary-only RECEIVE boundary consistent; record actual verification in `tests.md` | No new schema or migration. Implementation is stacked on PR #22 and remains subject to teammate review before staging integration. |
 | 0.9, 16 November 2026 | Complete the F-03/F-04 reconciliation: require a fresh account GET after opening-balance updates, order equal-name accounts by ID, align receive memos with the 200-character API limit, and verify UI feedback and safe repeat-submission behavior | No new schema or migration. Added direct assertions for persisted account reads, unchanged owner state after a foreign update, and receive-form no-retry behavior. Results remain tied to the tested candidate, not main or staging. |
-| 1.0, 16 November 2026 | Clarify that an opening-balance effective date cannot be later than today in Asia/Bangkok; reject it at the API and cap the date input; add a public-API regression test proving a fresh account read is unchanged | Wisit confirmed the rule while resolving PR #25 review; N0TAW00D re-review and CI on the new head are pending. No other financial rule changes. |
+| 1.0, 16 November 2026 | Clarify that an opening-balance effective date cannot be later than today in Asia/Bangkok; reject it at the API and cap the date input; add a public-API regression test proving a fresh account read is unchanged | Wisit confirmed the rule while resolving PR #25 review; N0TAW00D approved the updated head and CI #59 passed. No other financial rule changes. |
+| 1.1, 16 November 2026 | Record the peer-approved PR #25 merge, exact-head CI #59, and clean-checkout TEST-27 result on the integrated staging candidate | N0TAW00D approved PR #25 head `420c6bd`; merge `53c20ff`. This records staging evidence only; accepted-main verification remains pending. |
 
 ## F-01 Identity and access
 

@@ -17,11 +17,13 @@ Both members participate across requirements/design, testing, implementation, su
 
 ## Contributions
 
-Fill from actual work and links rather than assigned permanent roles.
+Record completed work from Issues, reviewed PRs and verification evidence. Assignment ownership alone is not a contribution record; the final report should also identify meaningful pair work and the release activities completed by each student.
 
 | Assessment / period | Student | Work and responsibility | Issue / contract / commit / PR evidence | Review / verification |
 | --- | --- | --- | --- | --- |
-| Documentation preparation, 3–7 Nov 2026 | Wisit Suwannao | Organized the baseline, draft contracts/STS and report structure; unresolved policies remain for team review | Issues #1–3; PR #4 | PR #4 merged after N0TAW00D approval; reviewed and approved PR #5 and #6 |
-| Stack and auth/setup proposals, 12 Nov 2026 | Natthawat Primsirikunawut | Authored PR #5 to record the D-02 stack decision and PR #6 for the auth/setup proposal; implementation tasks remain unassigned | Issues #2; PR #5 and #6 | Approved PR #4; no product implementation contribution claimed |
+| Sprint 1 identity and administration | Natthawat Primsirikunawut | Implemented F-01 identity/session and F-02 minimal platform administration, including UI/API behavior and tests | PRs #12, #14 and #18; integrated into `sprint-1-staging` | Wisit reviewed the implementation PRs; current integrated identity/admin checks pass in CI #59 |
+| Sprint 1 payment, balances and history | Natthawat Primsirikunawut | Implemented F-05 split card purchase/repayment and F-06 balance, summary and history paths with tests | Issue #21 / PR #22; merged at `7d8be8e` | Wisit reviewed the shared-schema/contract changes; integrated candidate passes CI #59 |
+| Sprint 1 accounts and receive | Wisit Suwannao | Implemented F-03 seeded/owned accounts and opening balance plus F-04 salary receipt, validation and retry behavior; recorded the agreed future-opening-date rule | Issue #20 / PR #25; merged at `53c20ff` | N0TAW00D approved PR #25 head `420c6bd`; CI #59 passed before merge; TEST-27 clean-checkout run passed on `53c20ff` |
+| PD1 status/evidence reconciliation | Wisit Suwannao | Coordinated clean-checkout verification and documentation updates; this is not a product-code contribution | Issue #26 / documentation PR to staging (review pending) | TEST-27 results are recorded in the STS; teammate review and main release remain pending |
 
-Agree the first bounded tasks together in [the sprint plan](sprints/plan.md#team-task-allocation). Each student must contribute to tests/implementation as well as reviewing the other's work. Update this table from actual evidence.
+The current status does not yet establish the final `main` release or report contribution record. Add the release PR/commit, final reviewer evidence and both students' report contributions after they occur; do not infer them from this table.

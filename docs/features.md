@@ -1,6 +1,6 @@
 # Feature inventory
 
-Draft 0.5, 15 November 2026. The D-01/D-06 Sprint 1 ownership split was accepted by both students and integrated through PR #15 (`98afb3b`). Wisit owns F-03/F-04 and Natthawat owns F-05/F-06, with cross-review. The inventory covers the whole baseline; the F-01 and F-02 backends are implemented on `sprint-1-staging`. F-05/F-06 and the shared financial model are implemented in Issue #21's PR (pending review and integration); F-03/F-04 remain in Issue #20. No feature is accepted in a `main` release.
+Draft 0.6, updated 16 November 2026. The D-01/D-06 Sprint 1 ownership split was accepted by both students and integrated through PR #15 (`98afb3b`). F-01–F-06 are integrated into `sprint-1-staging` at `53c20ff`: PR #22 delivered F-05/F-06 and PR #25 delivered F-03/F-04. N0TAW00D approved PR #25 before merge; CI #59 passed on its head `420c6bd`. Issues #20 and #21 are closed. F-07/F-08 and the stated later-sprint expansions remain planned, not implemented. No Sprint 1 feature has yet been accepted in a release on `main`, which remains `a4cced2`.
 
 | Feature | Requirement coverage | Sprint 1 increment | Later completion |
 | --- | --- | --- | --- |
