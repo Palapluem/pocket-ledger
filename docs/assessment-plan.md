@@ -1,6 +1,6 @@
 # Engineering and delivery plan
 
-This plan covers one continuous PocketLedger product across all three sprints and six assessments. It is preparation, not an approved SRS or evidence that any workflow has been implemented.
+This plan covers one continuous PocketLedger product across all three sprints and six assessments. The SRS, System SDS, feature inventory, traceability, sprint plan and Sprint 1 contracts record the D-01 to D-07 choices accepted by both students and integrated through PR #15 (`98afb3b`) into `sprint-1-staging`. The Sprint 1 F-01–F-06 increment and its automated verification are now integrated in staging at `53c20ff`; PR #25 was approved and merged, CI #59 passed on head `420c6bd`, and clean-checkout TEST-27 passed on `53c20ff`. This is not an accepted `main` release. The remaining PD1 gates are the reviewed release to `main`, release-matched verification, final Part F/report evidence and the self-contained PDF.
 
 ## Sources and open source questions
 
@@ -23,10 +23,10 @@ All times below are Asia/Bangkok. Later work must retain the same team, reposito
 
 | Assessment | Due | Points / course weight | Completion gate | Current state |
 | --- | --- | --- | --- | --- |
-| Deliverable 1 | 8 Nov 2026, 23:59 | 80 / 8% | Accepted, tested local Sprint 1 on main; PDF A–F complete | Preparation; no application release |
-| Lab 5 | 15 Nov 2026, 23:59 | 100 / 5% | Docker, public GCP workflow, durable data, required CI and repeatable release | Not executed |
-| Lab 6 | 22 Nov 2026, 23:59 per master | 100 / 5% | Independent UAT, legitimate defect handling and independent re-test | Await detailed handout / deployed release |
-| Deliverable 2 | 29 Nov 2026, 23:59 (handout §4) | 70 / 7% | All Sprint 2 complete; meaningful tested Sprint 3 progress; deployed candidate | Not started |
+| Deliverable 1 | Original handout: 8 Nov 2026, 23:59; student-reported cutoff: 15 Nov, 23:30 +07 | 80 / 8% | Accepted, tested Sprint 1 release on `main`; self-contained PDF Parts A–F | F-01–F-06 are integrated and tested on staging (`53c20ff`); CI #59 and staging TEST-27 passed. No accepted `main` release, release-matched checks, final Part F evidence or PDF yet. The reported cutoff has passed; no later extension is verified. |
+| Lab 5 | 15 Nov 2026, 23:59 | 100 / 5% | Docker, public GCP workflow, durable data, required CI and repeatable release | PR integration CI passed on staging; Docker execution, GCP deployment, persistence/restart evidence and C-02 blocked-merge proof remain NOT RUN |
+| Lab 6 | 22 Nov 2026, 23:59 per master | 100 / 5% | Independent UAT, legitimate defect handling and independent re-test | Handout and report shell available; deployment and independent partner UAT/acceptance remain pending |
+| Deliverable 2 | 29 Nov 2026, 23:59 (handout §4) | 70 / 7% | All Sprint 2 complete; meaningful tested Sprint 3 progress; deployed candidate | Documentation/report shell prepared; Sprint 2/3 implementation, UAT and deployed candidate remain NOT RUN |
 | Lab 7 | 29 Nov 2026, 23:59 per master | 100 / 5% | Approved change to implemented behavior, red/green and regression-safe release | Await detailed handout / approved change |
 | Final Delivery | 13 Dec 2026, 23:59 (handout §4) | 100 / 10% | Complete three-sprint product, final QA/UAT, deployed final version, PDF and video | Not started |
 
@@ -47,7 +47,9 @@ The table is a review starting point. Do not mark Sprint 2 complete by silently 
 | F-07 Transaction correction | Policy specified before its implementation | Correct balances/history after approved corrections |
 | F-08 Favourites and duplicate | Allocated to later sprint in the complete inventory | Favourite list and a distinct editable duplicate transaction |
 
-Cover ownership on every referenced account and transaction path. Cash includes bank/wallet; card debt belongs to Loan Taken. Opening balances, transfers, borrowing and repayments do not become income or expenses. Amount precision/signs, date policy, correction behavior and retry rules remain in the [decision record](wayfinder/decisions.md).
+Cover ownership on every referenced account and transaction path. Cash includes bank/wallet; card debt belongs to Loan Taken. Opening balances, transfers, borrowing and repayments do not become income or expenses. Agreed amount precision/signs, date policy, correction behavior and retry limits are recorded in the [decision register](decisions.md). The Sprint 1 subset has implementation and staging verification; account-management expansion, remaining transaction combinations, correction, search/filter, category reporting and favourites/duplicate remain allocated to S2/S3 as shown in the feature inventory.
+
+Use [the SRS](srs.md), [feature inventory](features.md), [single traceability matrix](traceability.md), [System SDS](system-sds.md), [sprint plan](sprints/plan.md), [Sprint 1 contract](sprints/sprint-1/contract.md) and [STS/results](sprints/sprint-1/tests.md) as the working engineering documents. This assessment plan is navigation and assessment scope, not a second set of feature requirements.
 
 Before implementing a feature, write its linked requirements, behavior/SDS, applicable UI/API/data details, AC, STS and DoD. Elaborate later features when needed; do not freeze every Sprint 3 endpoint before Sprint 1.
 

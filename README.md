@@ -2,7 +2,7 @@
 
 PocketLedger is a personal finance application for tracking financial accounts, allocated transactions, balances and debt. It is the CPE334 group product for Wisit Suwannao and Natthawat Primsirikunawut, based on Theme 7: Personal Money and Expense Logging System.
 
-**Current stage: repository and engineering preparation.** Application implementation, automated product tests, accepted sprint releases and cloud deployment have not started. A document template or planned check is not passing execution evidence.
+**Current stage (16 November 2026): the Sprint 1 increment F-01–F-06 is integrated on `sprint-1-staging` at `53c20ff`.** PR #25 for Issue #20 was approved by N0TAW00D and merged at that commit; CI #59 passed on its PR head `420c6bd` (125 server tests / 518 assertions across 14 files, 11 browser E2E tests, type checks, Biome, web build and production Docker image build). A separate clean-checkout TEST-27 run on `53c20ff` also passed local setup, migration, seed, build, server tests, browser tests and smoke checks; details are in the STS. These are staging results, not a release on `main`. `main` remains bootstrap `a4cced2`; the reviewed staging-to-main release, release-matched verification and PD1 PDF are still outstanding. GCP deployment is Lab 5 work. The course section remains unconfirmed. Origin/CSRF policy remains deferred in the separate open proposal PR #24. LEB2 group name is **2-Nor**.
 
 ## Product scope
 
@@ -16,7 +16,13 @@ Users access their own financial data. Administrators manage platform user accou
 
 - [Team and assessment identity](docs/team.md)
 - [Engineering and delivery plan](docs/assessment-plan.md)
-- [Decisions before implementation](docs/wayfinder/map.md)
+- [Team decisions and unresolved policies](docs/decisions.md)
+- [SRS and product scope](docs/srs.md)
+- [Feature inventory](docs/features.md) and [requirements traceability](docs/traceability.md)
+- [System-Level SDS](docs/system-sds.md)
+- [Three-sprint plan and rotating work](docs/sprints/plan.md)
+- [Sprint 1 feature contracts](docs/sprints/sprint-1/contract.md) and [STS/results](docs/sprints/sprint-1/tests.md)
+- [Authentication and setup decision](docs/sprints/sprint-1/auth-setup-proposal.md) — records the agreed JWT model and key handling; Origin/CSRF request protection is deferred until deployment review
 - [Financial vocabulary](GLOSSARY.md)
 - [Contribution and release workflow](CONTRIBUTING.md)
 - [Coordination and handoff](COORDINATION.md)
@@ -57,7 +63,7 @@ Use later sprint staging branches when those sprints begin. Keep related documen
 
 ## Running the application
 
-There is no application runtime or selected stack in this bootstrap. Record the team's stack decision, money/date rules and Sprint 1 contracts before implementing features. The first implementation change must supply the actual dependency, environment, database migration/seed, run, build and test commands here.
+The team selected Better T Stack with TanStack Router, Elysia, Bun, PostgreSQL and Drizzle ORM. Docker is selected for local database setup and web/server packaging; Biome, Husky and Turborepo are included. API add-ons, payments and examples are disabled. Sprint 1 seeded-user authentication uses a first-party signed JWT instead of Better Auth. See [D-02](docs/decisions.md#d-02-stack-and-reproducible-runtime) and the [System SDS](docs/system-sds.md). On `sprint-1-staging`, the integrated app contains the F-01–F-06 UI/API/database journey. Bun 1.4.4 and PostgreSQL `18.4` are the agreed active pins. PR #15 applies PostgreSQL 18.4 in CI and `scripts/test-db.sh`. The tested staging candidate is not yet released on `main`; containerized deployment and GCP evidence belong to Lab 5.
 
 Do not run the TokTickIT example deploy scripts against a cloud project without adapting them and reviewing every resource, permission and database operation. The reference kit remains in the [course Lab 5 folder](https://github.com/Palapluem/cpe334-software-engineer-2026/tree/main/labs/Lab05).
 

@@ -1,0 +1,74 @@
+name: Deploy
+
+# Deploys an accepted main release to Cloud Run. Runs on every push to main (a merged,
+# reviewed release PR) or manually for an existing main commit. The `production`
+# environment may require a manual approval before the job starts.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      REGION: ${{ vars.GCP_REGION }}
+      SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPOSITORY }}/pocket-ledger
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Build and push image tagged with the full commit SHA
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          docker build --build-arg GIT_COMMIT="${GITHUB_SHA}" -t "${IMAGE}:${GITHUB_SHA}" .
+          docker push "${IMAGE}:${GITHUB_SHA}"
+          DIGEST=$(gcloud artifacts docker images describe "${IMAGE}:${GITHUB_SHA}" --format='value(image_summary.digest)')
+          echo "DIGEST=${DIGEST}" >> "$GITHUB_ENV"
+          echo "Image: ${IMAGE}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Apply migrations and seed once, as a job with the migration credential
+        run: |
+          gcloud run jobs deploy pocket-ledger-migrate \
+            --region "${REGION}" \
+            --image "${IMAGE}@${DIGEST}" \
+            --args migrate \
+            --service-account "${{ vars.GCP_MIGRATOR_SERVICE_ACCOUNT }}" \
+            --set-cloudsql-instances "${{ vars.CLOUD_SQL_CONNECTION_NAME }}" \
+            --set-secrets "DATABASE_URL=pl-migration-database-url:latest,SEED_USERS_JSON=pl-seed-users:latest" \
+            --max-retries 0 --task-timeout 300 --execute-now --wait
+      - name: Deploy the image digest to Cloud Run
+        run: |
+          gcloud run deploy "${SERVICE}" \
+            --region "${REGION}" \
+            --image "${IMAGE}@${DIGEST}" \
+            --service-account "${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}" \
+            --add-cloudsql-instances "${{ vars.CLOUD_SQL_CONNECTION_NAME }}" \
+            --set-env-vars "CORS_ORIGIN=${{ vars.PUBLIC_URL }},COOKIE_SECURE=true" \
+            --set-secrets "DATABASE_URL=pl-database-url:latest,JWT_SECRET=pl-jwt-secret:latest" \
+            --allow-unauthenticated --max-instances 2 --quiet
+          REVISION=$(gcloud run services describe "${SERVICE}" --region "${REGION}" --format='value(status.latestReadyRevisionName)')
+          echo "Revision: ${REVISION}" >> "$GITHUB_STEP_SUMMARY"
+      - name: Smoke test (read-only) - running commit must equal this release
+        run: |
+          for i in $(seq 1 10); do
+            BODY=$(curl -fsS "${{ vars.PUBLIC_URL }}/api/health") && break
+            sleep 6
+          done
+          echo "Health: ${BODY}" >> "$GITHUB_STEP_SUMMARY"
+          echo "${BODY}" | grep -q "\"commit\":\"${GITHUB_SHA}\""
+          echo "${BODY}" | grep -q '"database":"ok"'
+          curl -fsS "${{ vars.PUBLIC_URL }}/login" | grep -q "<title>PocketLedger</title>"
