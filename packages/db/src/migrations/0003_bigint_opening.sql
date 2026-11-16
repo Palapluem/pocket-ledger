@@ -1,0 +1,1 @@
+ALTER TABLE "accounts" ALTER COLUMN "opening_amount_satang" SET DEFAULT 0;
