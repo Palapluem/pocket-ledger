@@ -7,4 +7,7 @@ export function createDb(databaseUrl: string) {
 }
 
 export type Database = ReturnType<typeof createDb>;
+export type AccountType = (typeof schema.accountType.enumValues)[number];
+export type TransactionForm =
+	(typeof schema.transactionForm.enumValues)[number];
 export { schema };

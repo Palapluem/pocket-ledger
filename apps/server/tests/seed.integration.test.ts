@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { createDb, schema } from "@pocket-ledger/db";
 import { runMigrations } from "@pocket-ledger/db/migrate";
-import { seedUsers } from "@pocket-ledger/db/seed";
+import { seedStarterAccounts, seedUsers } from "@pocket-ledger/db/seed";
 import { eq, sql } from "drizzle-orm";
 
 import journal from "../../../packages/db/src/migrations/meta/_journal.json";
@@ -60,6 +60,71 @@ test("seed creates users once and rerunning changes nothing", async () => {
 		passwordHash: first.passwordHash,
 	});
 	expect(first.passwordHash.startsWith("$argon2id$")).toBe(true);
+});
+
+describe("TEST-09 / AC-09 starter financial accounts (seed)", () => {
+	test("each User gets the starter accounts once; reseeding keeps existing financial data", async () => {
+		const url = testDatabaseUrl();
+		await seedUsers(url, seeds);
+		const first = await seedStarterAccounts(url);
+		const accounts = await db.select().from(schema.accounts);
+		const users = await db
+			.select()
+			.from(schema.users)
+			.where(eq(schema.users.role, "user"));
+		expect(first).toBe(users.length * 5);
+		expect(accounts.length).toBe(first);
+		expect(
+			accounts.filter((a) => a.name === "Bank").every((a) => a.type === "CASH"),
+		).toBe(true);
+
+		const bank = accounts.find((a) => a.name === "Bank");
+		if (!bank) throw new Error("starter Bank account missing");
+		await db
+			.update(schema.accounts)
+			.set({ openingAmountSatang: 1_000_000n, openingDate: "2026-11-01" })
+			.where(eq(schema.accounts.id, bank.id));
+		const dining = accounts.find(
+			(a) => a.ownerId === bank.ownerId && a.name === "Dining",
+		);
+		if (!dining) throw new Error("starter Dining account missing");
+		const [saved] = await db
+			.insert(schema.transactions)
+			.values({
+				ownerId: bank.ownerId,
+				form: "PAYMENT",
+				primaryAccountId: bank.id,
+				occurredOn: "2026-11-02",
+				totalSatang: 10_000n,
+			})
+			.returning();
+		if (!saved) throw new Error("transaction not saved");
+		await db.insert(schema.transactionAllocations).values({
+			ownerId: bank.ownerId,
+			transactionId: saved.id,
+			accountId: dining.id,
+			amountSatang: 10_000n,
+			position: 0,
+		});
+
+		expect(await seedStarterAccounts(url)).toBe(0);
+		const [bankAfter] = await db
+			.select()
+			.from(schema.accounts)
+			.where(eq(schema.accounts.id, bank.id));
+		expect(bankAfter?.openingAmountSatang).toBe(1_000_000n);
+		// Bun SQL returns `date` as a Date at UTC midnight; compare the calendar day.
+		const opening = bankAfter?.openingDate as unknown as Date | string;
+		expect(
+			typeof opening === "string"
+				? opening
+				: opening.toISOString().slice(0, 10),
+		).toBe("2026-11-01");
+		expect(await db.select().from(schema.transactions)).toHaveLength(1);
+		expect(await db.select().from(schema.transactionAllocations)).toHaveLength(
+			1,
+		);
+	});
 });
 
 describe("migrations under concurrent container starts", () => {
