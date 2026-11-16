@@ -4,6 +4,8 @@ import { runMigrations } from "@pocket-ledger/db/migrate";
 import { seedUsers } from "@pocket-ledger/db/seed";
 import { eq, sql } from "drizzle-orm";
 
+import journal from "../../../packages/db/src/migrations/meta/_journal.json";
+
 import {
 	assertOwnedTestDatabase,
 	resetDatabase,
@@ -88,7 +90,7 @@ describe("migrations under concurrent container starts", () => {
 						"select count(*)::int as n from drizzle.__drizzle_migrations",
 					),
 				)) as unknown as { n: number }[];
-				expect(rows[0]?.n).toBe(1);
+				expect(rows[0]?.n).toBe(journal.entries.length);
 			} finally {
 				await fresh.$client.close();
 			}
