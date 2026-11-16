@@ -440,6 +440,12 @@ export function financeRoutes(deps: {
 							"RULE_VIOLATION",
 							"Opening balances are only available for balance-bearing accounts.",
 						);
+					if (openingDate > bangkokToday())
+						throw new Rejection(
+							422,
+							"RULE_VIOLATION",
+							"Opening date cannot be later than today.",
+						);
 
 					const ledger = await loadLedger(tx, guard.identity.id);
 					const relatedTransactions = ledger.transactions.filter(

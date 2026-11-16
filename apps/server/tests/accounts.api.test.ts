@@ -250,6 +250,38 @@ describe("TEST-09 / AC-09 through AC-12 account foundation", () => {
 		});
 	});
 
+	test("TEST-10 / AC-10 rejects a future opening date without changing the account", async () => {
+		const { cookie } = await signIn();
+		const accountsResponse = await send("GET", "/api/accounts", { cookie });
+		const bank = (await readJson<AccountDto[]>(accountsResponse))[0];
+		if (!bank) throw new Error("Bank account fixture is missing.");
+
+		const today = new Intl.DateTimeFormat("en-CA", {
+			timeZone: "Asia/Bangkok",
+			year: "numeric",
+			month: "2-digit",
+			day: "2-digit",
+		}).format(new Date());
+		const tomorrow = new Date(`${today}T12:00:00.000Z`);
+		tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+		const futureDate = tomorrow.toISOString().slice(0, 10);
+
+		const rejected = await send(
+			"PUT",
+			`/api/accounts/${bank.id}/opening-balance`,
+			{ cookie, body: { amount: "10000.00", date: futureDate } },
+		);
+		expect(rejected.status).toBe(422);
+		expect(await rejected.json()).toEqual({
+			code: "RULE_VIOLATION",
+			message: "Opening date cannot be later than today.",
+		});
+
+		const freshRead = await send("GET", `/api/accounts/${bank.id}`, { cookie });
+		expect(freshRead.status).toBe(200);
+		expect(await freshRead.json()).toEqual(bank);
+	});
+
 	test("an opening-balance database failure returns the standard safe error", async () => {
 		const { cookie } = await signIn();
 		const accountsResponse = await send("GET", "/api/accounts", { cookie });

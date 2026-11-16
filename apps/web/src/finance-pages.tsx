@@ -1,15 +1,14 @@
 import { Link } from "@tanstack/react-router";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import {
+	type FormEvent,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 
 import { type Account, ApiError, api, type Transaction } from "./api";
-
-const todayInBangkok = () =>
-	new Intl.DateTimeFormat("en-CA", {
-		timeZone: "Asia/Bangkok",
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-	}).format(new Date());
+import { bangkokToday } from "./finance";
 
 const accountTypeLabel: Record<Account["type"], string> = {
 	CASH: "Cash",
@@ -43,7 +42,7 @@ function OpeningBalanceEditor({
 	onSaved: (account: Account) => void;
 }) {
 	const [amount, setAmount] = useState(account.openingAmount);
-	const [date, setDate] = useState(account.openingDate ?? todayInBangkok());
+	const [date, setDate] = useState(account.openingDate ?? bangkokToday());
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string>();
 	const [status, setStatus] = useState<string>();
@@ -88,6 +87,7 @@ function OpeningBalanceEditor({
 				<input
 					aria-label="Opening balance date"
 					type="date"
+					max={bangkokToday()}
 					required
 					value={date}
 					onChange={(event) => setDate(event.target.value)}
@@ -114,29 +114,31 @@ export function AccountsPage() {
 	const [accounts, setAccounts] = useState<Account[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string>();
+	const loadActiveRef = useRef(false);
+
+	const loadAccounts = useCallback(async () => {
+		setLoading(true);
+		setError(undefined);
+		try {
+			const value = await api.accounts();
+			if (loadActiveRef.current) setAccounts(value);
+		} catch (reason) {
+			if (loadActiveRef.current)
+				setError(
+					errorMessage(reason, "Accounts could not be loaded. Try again."),
+				);
+		} finally {
+			if (loadActiveRef.current) setLoading(false);
+		}
+	}, []);
 
 	useEffect(() => {
-		let active = true;
-		api
-			.accounts()
-			.then(
-				(value) => {
-					if (active) setAccounts(value);
-				},
-				(reason: unknown) => {
-					if (active)
-						setError(
-							errorMessage(reason, "Accounts could not be loaded. Try again."),
-						);
-				},
-			)
-			.finally(() => {
-				if (active) setLoading(false);
-			});
+		loadActiveRef.current = true;
+		void loadAccounts();
 		return () => {
-			active = false;
+			loadActiveRef.current = false;
 		};
-	}, []);
+	}, [loadAccounts]);
 
 	const updateAccount = (updated: Account) =>
 		setAccounts((current) =>
@@ -150,9 +152,14 @@ export function AccountsPage() {
 			<PageNavigation />
 			{loading && <p role="status">Loading accounts…</p>}
 			{error && (
-				<p className="error" role="alert">
-					{error}
-				</p>
+				<div>
+					<p className="error" role="alert">
+						{error}
+					</p>
+					<button type="button" onClick={() => void loadAccounts()}>
+						Retry loading accounts
+					</button>
+				</div>
 			)}
 			{!loading && !error && accounts.length === 0 && (
 				<p className="empty-state">
@@ -200,7 +207,7 @@ type AllocationDraft = { accountId: string; amount: string };
 export function ReceiveMoneyPage() {
 	const [accounts, setAccounts] = useState<Account[]>([]);
 	const [primaryAccountId, setPrimaryAccountId] = useState("");
-	const [date, setDate] = useState(todayInBangkok());
+	const [date, setDate] = useState(bangkokToday());
 	const [total, setTotal] = useState("");
 	const [allocations, setAllocations] = useState<AllocationDraft[]>([
 		{ accountId: "", amount: "" },
@@ -209,6 +216,7 @@ export function ReceiveMoneyPage() {
 	const [loading, setLoading] = useState(true);
 	const [submitting, setSubmitting] = useState(false);
 	const submittingRef = useRef(false);
+	const loadActiveRef = useRef(false);
 	const [loadError, setLoadError] = useState<string>();
 	const [error, setError] = useState<string>();
 	const [status, setStatus] = useState<string>();
@@ -216,35 +224,36 @@ export function ReceiveMoneyPage() {
 	const [incomeAccounts, setIncomeAccounts] = useState<Account[]>([]);
 	const [cashAccounts, setCashAccounts] = useState<Account[]>([]);
 
-	useEffect(() => {
-		let active = true;
-		api
-			.accounts()
-			.then(
-				(value) => {
-					if (!active) return;
-					const cash = value.filter((account) => account.type === "CASH");
-					const income = value.filter((account) => account.type === "INCOME");
-					setAccounts(value);
-					setCashAccounts(cash);
-					setIncomeAccounts(income);
-					setPrimaryAccountId(cash[0]?.id ?? "");
-					setAllocations([{ accountId: income[0]?.id ?? "", amount: "" }]);
-				},
-				(reason: unknown) => {
-					if (active)
-						setLoadError(
-							errorMessage(reason, "Accounts could not be loaded. Try again."),
-						);
-				},
-			)
-			.finally(() => {
-				if (active) setLoading(false);
-			});
-		return () => {
-			active = false;
-		};
+	const loadAccounts = useCallback(async () => {
+		setLoading(true);
+		setLoadError(undefined);
+		try {
+			const value = await api.accounts();
+			if (!loadActiveRef.current) return;
+			const cash = value.filter((account) => account.type === "CASH");
+			const income = value.filter((account) => account.type === "INCOME");
+			setAccounts(value);
+			setCashAccounts(cash);
+			setIncomeAccounts(income);
+			setPrimaryAccountId(cash[0]?.id ?? "");
+			setAllocations([{ accountId: income[0]?.id ?? "", amount: "" }]);
+		} catch (reason) {
+			if (loadActiveRef.current)
+				setLoadError(
+					errorMessage(reason, "Accounts could not be loaded. Try again."),
+				);
+		} finally {
+			if (loadActiveRef.current) setLoading(false);
+		}
 	}, []);
+
+	useEffect(() => {
+		loadActiveRef.current = true;
+		void loadAccounts();
+		return () => {
+			loadActiveRef.current = false;
+		};
+	}, [loadAccounts]);
 
 	const updateTotal = (next: string) => {
 		setTotal(next);
@@ -319,9 +328,14 @@ export function ReceiveMoneyPage() {
 			<PageNavigation />
 			{loading && <p role="status">Loading accounts…</p>}
 			{!loading && loadError && (
-				<p className="error" role="alert">
-					{loadError}
-				</p>
+				<div>
+					<p className="error" role="alert">
+						{loadError}
+					</p>
+					<button type="button" onClick={() => void loadAccounts()}>
+						Retry loading accounts
+					</button>
+				</div>
 			)}
 			{!loading &&
 				!loadError &&

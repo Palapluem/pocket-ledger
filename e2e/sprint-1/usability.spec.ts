@@ -83,6 +83,10 @@ test("TEST-25 / AC-25 labelled flows fit target widths and support keyboard focu
 		await expect(page.getByRole("heading", { name: "Accounts" })).toBeVisible();
 		const amount = page.getByLabel("Opening balance amount (THB)").first();
 		const date = page.getByLabel("Opening balance date").first();
+		const todayInBangkok = new Intl.DateTimeFormat("en-CA", {
+			timeZone: "Asia/Bangkok",
+		}).format(new Date());
+		await expect(date).toHaveAttribute("max", todayInBangkok);
 		await amount.focus();
 		await page.keyboard.press("Tab");
 		await expect(date).toBeFocused();
@@ -127,4 +131,16 @@ test("TEST-25 / AC-25 labelled flows fit target widths and support keyboard focu
 	await expect(page.getByRole("alert")).toHaveText(
 		"Accounts could not be loaded. Try again.",
 	);
+	await page.getByRole("button", { name: "Retry loading accounts" }).click();
+	await expect(page.getByRole("heading", { name: "Bank" })).toBeVisible();
+
+	await page.evaluate(() =>
+		sessionStorage.setItem("e2e-accounts-mode", "error"),
+	);
+	await page.goto("/transactions/receive");
+	await expect(page.getByRole("alert")).toHaveText(
+		"Accounts could not be loaded. Try again.",
+	);
+	await page.getByRole("button", { name: "Retry loading accounts" }).click();
+	await expect(page.getByLabel("Cash account")).toBeVisible();
 });
