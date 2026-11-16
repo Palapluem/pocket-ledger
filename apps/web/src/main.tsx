@@ -14,6 +14,11 @@ import { createRoot } from "react-dom/client";
 
 import { ApiError, api, type ManagedUser } from "./api";
 import { LoadFailed, Loading, MoneyOverview, PaymentForm } from "./finance";
+import {
+	AccountsPage,
+	ReceiveMoneyPage,
+	TransactionHistoryPage,
+} from "./finance-pages";
 import "./styles.css";
 
 function Footer() {
@@ -172,8 +177,15 @@ function OverviewPage() {
 				{me.role === "administrator" && (
 					<Link to="/admin/users">Manage users</Link>
 				)}
-				{money && (
-					<Link to="/transactions/new">Make a payment or record a charge</Link>
+				{me.role === "user" && (
+					<>
+						<Link to="/accounts">Accounts</Link>
+						<Link to="/transactions/receive">Receive money</Link>
+						<Link to="/transactions/new">
+							Make a payment or record a charge
+						</Link>
+						<Link to="/transactions">Transaction history</Link>
+					</>
 				)}
 				<SignOutButton />
 			</nav>
@@ -181,6 +193,34 @@ function OverviewPage() {
 		</section>
 	);
 }
+
+async function requireFinancialUser() {
+	const me = await api.currentIdentity();
+	if (!me) throw redirect({ to: "/login" });
+	if (me.role !== "user") throw redirect({ to: "/overview" });
+	return { me };
+}
+
+const accountsRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/accounts",
+	beforeLoad: requireFinancialUser,
+	component: AccountsPage,
+});
+
+const receiveMoneyRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/transactions/receive",
+	beforeLoad: requireFinancialUser,
+	component: ReceiveMoneyPage,
+});
+
+const transactionHistoryRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/transactions",
+	beforeLoad: requireFinancialUser,
+	component: TransactionHistoryPage,
+});
 
 const adminRoute = createRoute({
 	getParentRoute: () => rootRoute,
@@ -314,6 +354,9 @@ const router = createRouter({
 		overviewRoute,
 		adminRoute,
 		newPaymentRoute,
+		accountsRoute,
+		receiveMoneyRoute,
+		transactionHistoryRoute,
 	]),
 });
 

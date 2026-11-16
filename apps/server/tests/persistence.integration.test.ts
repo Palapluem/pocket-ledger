@@ -68,9 +68,8 @@ afterEach(async () => {
 
 test("TEST-26 / AC-26 saved identifiers and financial values survive an application process restart", async () => {
 	// Fixture accounts (opening dates 2026-11-01) and the D-07 opening bank balance of 10,000.00.
-	const { accounts, setOpening } = await financeFixture();
+	const { accounts } = await financeFixture();
 	const a = accounts.userA;
-	await setOpening(a.Bank, 1_000_000n);
 
 	const port = freePort();
 	const first = await startServer(port);
@@ -97,6 +96,14 @@ test("TEST-26 / AC-26 saved identifiers and financial values survive an applicat
 	});
 	expect(login.status).toBe(200);
 	const cookie = login.headers.get("set-cookie")?.split(";")[0] ?? "";
+	const opening = await call(
+		first.base,
+		"PUT",
+		`/api/accounts/${a.Bank}/opening-balance`,
+		cookie,
+		{ amount: "10000.00", date: "2026-11-01" },
+	);
+	expect(opening.status).toBe(200);
 
 	const ids: string[] = [];
 	for (const payload of [salary(a), cardCharge(a), repayment(a)]) {

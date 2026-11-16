@@ -1,6 +1,6 @@
 # Sprint 1 feature engineering contracts
 
-Draft 0.7, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-06. The D-01 to D-07 decisions were accepted by both students and integrated through PR #15 (`98afb3b`). This baseline includes the Better T Stack, first-party signed-JWT authentication, 3600-second lifetime, HS256/`jose`, active runtime pins, D-01 work split, D-03/D-04 rules, D-06 scope and D-07 baseline interfaces. D-05 key handling is agreed; Origin/CSRF policy is deferred until deployment review. The course section remains open. F-01 and the F-02 backend are implemented on `sprint-1-staging`. Issue #21 implements F-05/F-06 and the shared account/transaction model on its PR branch (not yet integrated); F-03 opening-balance and F-04 receive work remain in Issue #20. No product release is established by this document.
+Draft 1.1, prepared 7 November 2026 and updated 16 November. Includes F-01 to F-06. PRs #18, #19, #22 and #23 are integrated into `sprint-1-staging` at `7d8be8e`; PR #22's head `d454ef8` passed CI run `43824074356`. PR #25 head `3c8c4bd` passed CI run `43843968257`; implementation commit `1b29eb2` rejects future opening dates and adds retry controls to account loading. Wisit confirmed the future-date rule on 16 November. The current TEST-28 E2E update additionally proves the ambiguous-outcome behavior for both payment and receive: the server commits and returns 201, the browser response is dropped, and a fresh history read finds exactly one added record; the full local browser suite passes 11/11. D-05 key handling is agreed; Origin/CSRF remains deferred. The course section remains unconfirmed. No accepted product release exists on `main`, which remains `a4cced2`.
 
 ## Contract identity and revision
 
@@ -9,8 +9,8 @@ Draft 0.7, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-
 | Baseline and design | SRS, feature inventory, traceability and System-Level SDS in docs/ |
 | Decision work | Issue #1 financial/scope/interfaces; Issue #2 team/runtime/authentication; [auth/setup decision](auth-setup-proposal.md) |
 | Documentation review | PR #4 merged after N0TAW00D approval; PR #5 and #6 reviewed and merged by Palapluem; PR #7 approved by Palapluem and merged at `3e8bc5f`; PR #9 selected the JWT approach (D-02, D-05). No implementation or product tests are claimed |
-| Implementation Issue / branch / owner / reviewer | |
-| Approved contract revision and pre-code commit | |
+| Implementation Issue / branch / owner / reviewer | Issue #20 / `feature/20-accounts-receive-reconcile` / Wisit / Natthawat (review pending) |
+| Contract revision and pre-code commit | Revision 0.6, commit `90aeab6`; implementation and executable financial tests had not started at that commit |
 
 | Revision | Reason | Approval and implementation impact |
 | --- | --- | --- |
@@ -18,7 +18,11 @@ Draft 0.7, prepared 7 November 2026 and updated 15 November. Includes F-01 to F-
 | 0.2, 13 November 2026 | Align F-01 with the JWT approach selected in PR #9: no server-side session or revocation; spec-level outcomes only | Documentation only; implementation details stay open until recorded |
 | 0.4, 15 November 2026 | Record the agreed D-01 to D-07 Sprint 1 decisions, baseline routes/DTOs, financial boundaries, work ownership and explicit NOT RUN financial tests | Integrated through PR #15 at `98afb3b`; F-03 to F-06 implementation and executable financial tests remain pending. |
 | 0.5, 15 November 2026 | Add the shared client-side transaction submission/no-auto-retry acceptance criterion | BR-13 / AC-28 / TEST-28 added; no server idempotency guarantee. Included in PR #15 at `98afb3b`. |
-| 0.7, 15 November 2026 | Issue #21 refines the F-05/F-06 interface within D-03/D-04/D-07: response DTOs, error codes, history order and the summary range (see "F-05/F-06 implemented interface") | Implementation PR for #21; Wisit reviews. No financial rule changes |
+| 0.6, 15 November 2026 | Detail the F-03/F-04 account, opening-balance and salary-receipt interfaces before implementation | Issue #20; testable request/response shapes, validation outcomes and persistent data constraints are specified below. No execution result is claimed by this revision. |
+| 0.7, 15 November 2026 | Issue #21 refines the F-05/F-06 interface within D-03/D-04/D-07: response DTOs, error codes, history order and the summary range (see "F-05/F-06 implemented interface") | Implemented in PR #22 on the shared schema; CI and review status are recorded in the coordination history. No financial rule changes |
+| 0.8, 16 November 2026 | Reconcile F-03/F-04 with PR #22's canonical API/service and PR #23's schema; make the `openingAmount` DTO and Sprint 1 salary-only RECEIVE boundary consistent; record actual verification in `tests.md` | No new schema or migration. Implementation is stacked on PR #22 and remains subject to teammate review before staging integration. |
+| 0.9, 16 November 2026 | Complete the F-03/F-04 reconciliation: require a fresh account GET after opening-balance updates, order equal-name accounts by ID, align receive memos with the 200-character API limit, and verify UI feedback and safe repeat-submission behavior | No new schema or migration. Added direct assertions for persisted account reads, unchanged owner state after a foreign update, and receive-form no-retry behavior. Results remain tied to the tested candidate, not main or staging. |
+| 1.0, 16 November 2026 | Clarify that an opening-balance effective date cannot be later than today in Asia/Bangkok; reject it at the API and cap the date input; add a public-API regression test proving a fresh account read is unchanged | Wisit confirmed the rule while resolving PR #25 review; N0TAW00D re-review and CI on the new head are pending. No other financial rule changes. |
 
 ## F-01 Identity and access
 
@@ -48,14 +52,23 @@ Dependencies: F-01 and accepted D-05/D-07. UI: Platform users list and enabled-s
 
 ## F-03 Financial accounts and opening balance
 
-User goal: start the required journey with owned bank/card/income/expense records and record an opening bank balance. Safely seed two Users with distinct accounts plus an Administrator. The acting User selects their seeded bank account, enters the opening amount/date and retrieves the saved result. The opening amount affects the balance but not current-period income/expense.
+User goal: start the required journey with owned bank/card/income/expense records and record an opening bank balance. Safely seed two Users with distinct accounts plus an Administrator. The acting User selects their seeded bank account, enters the opening amount/date, then makes a fresh GET request for that account and verifies the persisted result. The opening amount affects the balance but not current-period income/expense.
 
-Dependencies: F-01, D-03/D-04/D-07. UI: Accounts/opening-balance form. API: owned account list and opening-balance update. Data: FinancialAccount owner/type/currency/opening state. Seed is setup support, not evidence of a user performing the required opening-balance action. Full five-type account management remains in Sprint 2.
+Dependencies: F-01, D-03/D-04/D-07. UI: an Accounts screen lists the signed-in User's seeded accounts; the User selects the bank account, enters an opening amount/date, saves, then reloads the account to verify the persisted result. Show validation, pending, success and retryable failure states. The User cannot choose an account owned by another User or the Administrator.
+
+API and data contract:
+
+- `GET /api/accounts` returns the signed-in User's accounts only, ordered by type, name and ID. Each item is `{ id, name, type, currency, openingAmount, openingDate, balance }`; money values are normalized decimal strings with two places and `currency` is `THB`. `type` is one of `CASH`, `LOAN_GIVEN`, `LOAN_TAKEN`, `INCOME` or `EXPENSE`. `balance` is derived from the opening amount and persisted transaction effects; it is not a separately mutable cache.
+- `GET /api/accounts/:id` returns the same safe representation for one owned account. An unknown or foreign ID returns the same `404 NOT_FOUND` shape; no account name, amount, owner or existence detail is disclosed.
+- `PUT /api/accounts/:id/opening-balance` accepts `{ amount: "10000.00", date: "2026-11-01" }` and returns the updated account representation. The canonical amount field is `openingAmount`. The amount is a non-negative exact decimal string with at most two fractional digits; no rounding, exponent notation, sign or binary floating-point conversion is allowed. The date is a valid `YYYY-MM-DD` calendar date no later than today in Asia/Bangkok. Only balance-bearing account types accept an opening state. A changed opening state is allowed after activity only when every affected transaction is on/after the new opening date and the recomputed normal balance is non-negative. The update is atomic.
+- Account records have a User owner, stable seeded key, type, THB currency, integer-satang opening amount and nullable opening date. Seed only missing records for enabled User identities; never reset an existing opening state or financial activity. Do not seed finance records for Administrators.
+
+Authentication errors are `401 UNAUTHENTICATED`; an Administrator is rejected with `403 FORBIDDEN`; a foreign/unknown account is `404 NOT_FOUND`; malformed values return `400 INVALID_INPUT`; an opening-date or balance-rule violation returns `422 RULE_VIOLATION`. Every error uses the existing `{ code, message }` JSON shape. Full five-type account management remains in Sprint 2; this Sprint 1 UI supports recording the opening state for the seeded bank account.
 
 | AC | Observable expected outcome | Requirements | STS |
 | --- | --- | --- | --- |
 | AC-09 | Synthetic identities/accounts are reproducible; rerunning seed preserves existing user financial activity | FR-03; BR-12; NFR-04 | TEST-09 |
-| AC-10 | User records and retrieves the opening bank balance/date; balance matches the independent expected value. A transaction date cannot precede the opening date of any balance-bearing account it affects | FR-04; BR-05/08/10 | TEST-10/24 |
+| AC-10 | User records and retrieves the opening bank balance/date; balance matches the independent expected value. An opening date after today in Asia/Bangkok is rejected without changing the account. A transaction date cannot precede the opening date of any balance-bearing account it affects | FR-04; BR-05/08/10 | TEST-10/24 |
 | AC-11 | Opening balance does not appear as salary, income or expense in the selected summary | FR-04; BR-06 | TEST-11 |
 | AC-12 | User B cannot read/change User A's accounts or opening state; responses reveal no private values | BR-01; NFR-01 | TEST-12 |
 
@@ -63,7 +76,17 @@ Dependencies: F-01, D-03/D-04/D-07. UI: Accounts/opening-balance form. API: owne
 
 User goal: record salary received into an owned bank account. Select Receive money, the owned bank, date and total; allocate that total to the owned salary Income account; submit; retrieve the saved transaction and balances. Reject invalid input or inaccessible account references without financial effects.
 
-Dependencies: F-01/F-03, D-03/D-04/D-07. UI: New transaction, Receive form, editable allocation lines and validation feedback. API: POST/GET /api/transactions and refreshed accounts/summary. Data: FinancialTransaction and AllocationLine in one database transaction. This Sprint 1 contract does not claim the later loan/transfer receive combinations are implemented.
+Dependencies: F-01/F-03, D-03/D-04/D-07. UI: the User chooses Receive money, selects the seeded bank and salary accounts, enters date and total, submits once, then retrieves the saved transaction and refreshed account balances. Disable repeat activation while the request is pending. Show validation, pending, saved and retry guidance if the response is ambiguous. This Sprint 1 contract does not claim the later loan/transfer receive combinations are implemented.
+
+API and data contract:
+
+- `POST /api/transactions` accepts `{ form: "RECEIVE", primaryAccountId, date, total, allocations: [{ accountId, amount }], memo? }`. The primary account must be an owned `CASH` account; each allocation must reference a distinct, owned `INCOME` account. Sprint 1's receive path is salary/income only. Other allocation types allowed by the whole-product SDS are deferred to Sprint 2.
+- A transaction amount and every allocation amount are decimal strings greater than 0, at most `1000000000.00`, with no more than two fractional digits. Values are parsed exactly into integer satang. The allocation sum must equal the total exactly. At least one allocation is required; duplicate allocation accounts and using the primary account as an allocation are rejected.
+- Transaction dates are valid `YYYY-MM-DD` dates from the opening date of the primary account through today's Asia/Bangkok calendar date. Income/Expense classification accounts do not impose an opening-date boundary. Invalid or foreign account references are rejected before writing. Persist the transaction and all allocation lines in one database transaction.
+- `POST` returns `201` with the saved transaction ID, form, primary account, date, total and complete allocations. `GET /api/transactions/:id` returns that same persisted detail for its owner; `GET /api/transactions` returns the owner's records only. A User cannot read another User's record; Administrators cannot call any financial endpoint.
+- Mismatched totals, incompatible account types, repeated/primary allocation accounts and date or balance-rule failures return `422 RULE_VIOLATION`; malformed JSON/shape/value returns `400 INVALID_INPUT`; foreign/unknown IDs return `404 NOT_FOUND`; database failure returns a safe `500 INTERNAL_ERROR`. A rejected request leaves no transaction, allocation or balance effect.
+
+The agreed independent example starts with a bank opening balance of THB 10,000.00 on 2026-11-01, then receives THB 20,000.00 salary on 2026-11-02. The persisted result is bank THB 30,000.00 and salary Income THB 20,000.00. The opening balance is not counted as income. The response is retrieved in a fresh API request before the UI reports the journey complete.
 
 | AC | Observable expected outcome | Requirements | STS |
 | --- | --- | --- | --- |
@@ -107,7 +130,7 @@ Dependencies: F-01/F-03/F-04/F-05 and D-03/D-04/D-07. UI: Financial overview and
 | AC-22 | End-to-end fixture gives bank 29,500, card debt 700, Income 20,000 and Expense 1,200 under the D-03 THB convention | FR-07/08; BR-05/06 | TEST-22 |
 | AC-23 | Fresh history/detail reads return saved forms, totals and complete allocations in the approved stable order | FR-09; BR-01 | TEST-23 |
 | AC-24 | Records at the approved opening/reporting boundaries are included/excluded exactly under D-04; invalid ranges fail safely | FR-08/09; BR-08 | TEST-24 |
-| AC-25 | Required sign-in/transaction/history journeys have labelled keyboard-operable controls and usable loading/error/empty states at the 390, 768 and 1280 px target widths | NFR-03 | TEST-25 |
+| AC-25 | Required sign-in/transaction/history controls are labelled and keyboard-operable; account flows present usable loading, error and empty feedback, and the required screens fit the 390, 768 and 1280 px target widths | NFR-03 | TEST-25 |
 | AC-26 | The same saved identifiers and financial values survive an actual local application restart; Lab 5 additionally verifies redeployment | NFR-02 | TEST-26 |
 | AC-27 | Clean setup, safe seed, production build and documented tests work at an identified commit with placeholder configuration | NFR-04; BR-12 | TEST-27 |
 
@@ -115,12 +138,12 @@ Dependencies: F-01/F-03/F-04/F-05 and D-03/D-04/D-07. UI: Financial overview and
 
 - Shared model: the canonical schema from PR #23 (Issue #20): `accounts`, `transactions`, `transaction_allocations`, `*_satang` columns and owner-scoped composite foreign keys. Dates are `YYYY-MM-DD`. Balances are derived, never stored. A balance account without an opening date cannot be used in a transaction yet (`422 INVALID_DATE`).
 - Seed: every User gets the starter accounts (account keys `bank`, `credit-card`, `salary`, `dining`, `groceries`): Bank (Cash), Credit card (Loan Taken), Salary (Income), Dining and Groceries (Expense), opening 0 on the seed date. Reseeding inserts only missing account keys and never changes existing accounts or activity.
-- `GET /api/accounts` → owned accounts `{id, name, type, currency, openingAmount, openingDate, balance}` ordered Cash, Loan Taken, Loan Given, Income, Expense, then name.
-- `POST /api/transactions` → `201` with `{id, form, primaryAccountId, date, total, memo, createdAt, allocations: [{accountId, amount}]}`; allocations keep their submitted order. One service applies the System SDS effect matrix to both forms, so the F-04 receive path uses it too.
+- `GET /api/accounts` → owned accounts `{id, name, type, currency, openingAmount, openingDate, balance}` ordered Cash, Loan Taken, Loan Given, Income, Expense, then name and ID.
+- `POST /api/transactions` → `201` with `{id, form, primaryAccountId, date, total, memo, createdAt, allocations: [{accountId, amount}]}`; allocations keep their submitted order. Memo is optional and limited to 200 characters. One service applies the System SDS effect matrix to both forms after enforcing each Sprint 1 form's account-type rules, including F-04's salary/income-only scope.
 - `GET /api/transactions` → owned history, newest date first, then newest created; `GET /api/transactions/:id` → the same DTO.
 - `GET /api/summary` → `{from, to, income, expense, accounts}`; without `from`/`to` it covers all dates; with both it is inclusive; one bound, an invalid date or `from > to` is `400 INVALID_RANGE`. Balances are current.
-- Errors, in precedence order: `401 UNAUTHENTICATED`; `403 FORBIDDEN` for an Administrator; `400 INVALID_INPUT` with `field` (shape, form, exact amount, real date, 1 to 50 lines, memo ≤ 200); `404 NOT_FOUND` for any account or transaction outside the caller's scope; `422 INVALID_ALLOCATION` (repeated account or the primary account on a line), `422 ALLOCATION_MISMATCH`, `422 INCOMPATIBLE_ACCOUNT`, `422 INVALID_DATE` (after today in Asia/Bangkok, or before an affected balance account's opening date), `422 INSUFFICIENT_BALANCE`; `500 INTERNAL_ERROR` after a rollback, without internal details.
-- UI: the overview shows balances, income/expense and history for a User, with an empty-history message, a loading status while its reads are pending, and on a failed read a safe alert with no figures and a "Try again" action (the payment form's account load behaves the same); "Make a payment or record a charge" saves one `PAYMENT`, blocks repeat activation while pending, never retries, and tells the User to check history after an uncertain outcome (AC-28).
+- Errors, in precedence order: `401 UNAUTHENTICATED`; `403 FORBIDDEN` for an Administrator; `400 INVALID_INPUT` with `field` (shape, form, exact amount, real date, 1 to 50 lines, memo ≤ 200); `404 NOT_FOUND` for any account or transaction outside the caller's scope. For `PAYMENT`, repeated/primary allocation accounts return `422 INVALID_ALLOCATION`; mismatched totals return `422 ALLOCATION_MISMATCH`; incompatible types return `422 INCOMPATIBLE_ACCOUNT`; invalid dates return `422 INVALID_DATE`; and a negative balance returns `422 INSUFFICIENT_BALANCE`. For Sprint 1 salary `RECEIVE`, those allocation, type, date and balance rule failures return `422 RULE_VIOLATION`. A database failure returns `500 INTERNAL_ERROR` after rollback, without internal details.
+- UI: the overview shows balances, income/expense and history for a User, including an empty-history message, a loading status and a safe failure alert with no financial figures plus a "Try again" action. The payment form's account load has the same loading/failure feedback. "Receive money" saves a salary `RECEIVE` to an owned Cash account with owned Income allocations; "Make a payment or record a charge" saves one `PAYMENT`. Both transaction forms block repeat activation while pending, never retry automatically and tell the User to check history after an uncertain outcome (AC-28).
 
 ## Product Definition of Done
 

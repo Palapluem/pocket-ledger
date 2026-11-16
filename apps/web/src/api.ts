@@ -19,29 +19,42 @@ export type AccountType =
 	| "INCOME"
 	| "EXPENSE";
 
+/** Canonical F-03/F-05 account DTO used by the UI. */
 export type Account = {
 	id: string;
 	name: string;
 	type: AccountType;
 	currency: string;
 	openingAmount: string;
-	openingDate: string;
+	openingDate: string | null;
 	balance: string;
+};
+
+export type TransactionForm = "PAYMENT" | "RECEIVE";
+
+export type TransactionAllocation = {
+	accountId: string;
+	amount: string;
 };
 
 export type Transaction = {
 	id: string;
-	form: "PAYMENT" | "RECEIVE";
+	form: TransactionForm;
 	primaryAccountId: string;
 	date: string;
 	total: string;
 	memo: string | null;
 	createdAt: string;
-	allocations: { accountId: string; amount: string }[];
+	allocations: TransactionAllocation[];
 };
 
-export type NewTransaction = Omit<Transaction, "id" | "createdAt" | "memo"> & {
+export type NewTransaction = {
+	form: TransactionForm;
+	primaryAccountId: string;
+	date: string;
+	total: string;
 	memo?: string;
+	allocations: TransactionAllocation[];
 };
 
 export type Summary = {
@@ -88,6 +101,24 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 	return body as T;
 }
 
+async function createTransaction(input: NewTransaction): Promise<Transaction> {
+	try {
+		return await request<Transaction>("/api/transactions", {
+			method: "POST",
+			body: JSON.stringify(input),
+			signal: AbortSignal.timeout(15_000),
+		});
+	} catch (error) {
+		// Our own 500 means the database rolled back; a proxy/gateway 5xx does not.
+		if (
+			error instanceof ApiError &&
+			(error.status < 500 || error.code === "INTERNAL_ERROR")
+		)
+			throw error;
+		throw new UncertainOutcome();
+	}
+}
+
 export const api = {
 	signIn: (email: string, password: string) =>
 		request<Identity>("/api/session", {
@@ -110,28 +141,16 @@ export const api = {
 			body: JSON.stringify({ enabled }),
 		}),
 	accounts: () => request<Account[]>("/api/accounts"),
+	getAccount: (id: string) => request<Account>(`/api/accounts/${id}`),
+	updateOpeningBalance: (id: string, amount: string, date: string) =>
+		request<Account>(`/api/accounts/${id}/opening-balance`, {
+			method: "PUT",
+			body: JSON.stringify({ amount, date }),
+		}),
 	transactions: () => request<Transaction[]>("/api/transactions"),
+	getTransaction: (id: string) =>
+		request<Transaction>(`/api/transactions/${id}`),
 	summary: () => request<Summary>("/api/summary"),
-	/**
-	 * Sent once and never retried automatically (D-04, AC-28): a network failure or
-	 * timeout may have happened after the server saved it.
-	 */
-	createTransaction: async (input: NewTransaction) => {
-		try {
-			return await request<Transaction>("/api/transactions", {
-				method: "POST",
-				body: JSON.stringify(input),
-				signal: AbortSignal.timeout(15_000),
-			});
-		} catch (error) {
-			// Our own 500 means the database rolled back; a proxy/gateway 5xx does not say.
-			if (
-				error instanceof ApiError &&
-				(error.status < 500 || error.code === "INTERNAL_ERROR")
-			)
-				throw error;
-			throw new UncertainOutcome();
-		}
-	},
+	createTransaction,
 	health: () => request<{ status: string; commit: string }>("/api/health"),
 };
