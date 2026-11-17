@@ -102,18 +102,25 @@ If a failing proof PR is created after the required gate is verified, keep it un
 
 ## Repeatable release procedure
 
-1. Identify the labelled Issue, contract and bounded feature/fix branch from sprint staging.
-2. Run relevant tests and obtain a specific teammate review before staging integration.
-3. Run integration/system checks and review the release PR into `main`.
-4. Identify the accepted full commit and the pipeline trigger/manual approval, if any.
-5. Describe actual test, image build/push, migration, service update and smoke-test steps.
-6. Verify the running revision/image/source chain and the live domain workflow.
+Either teammate repeats these steps. The deploy steps are defined in `.github/workflows/deploy.yml`; nobody deploys from a laptop.
+
+1. **Integrate on staging.** Each change is merged into `sprint-1-staging` through its own reviewed PR with a passing `build-test` check.
+2. **Open and merge the release PR.** Open one PR from `sprint-1-staging` into `main`. Wait for `build-test` to pass and for the other teammate's approval; that teammate merges it.
+3. **Identify the release SHA.** The release SHA is the full merge commit on `main` (`git rev-parse origin/main` after `git fetch`, or the merge commit shown on the PR). The push to `main` starts two runs for this SHA: CI on `main` and Deploy.
+4. **Approve the deployment.** Open the Deploy run under Actions. If it shows "production requires an approval", N0TAW00D (the environment's required reviewer) clicks **Review deployments**, ticks `production` and chooses **Approve and deploy**. To redeploy an existing `main` commit, run the Deploy workflow manually (`workflow_dispatch`) on `main`.
+5. **Follow the run to success.** The single `deploy` job runs these steps in order, and any failure stops the release:
+   1. It authenticates to GCP through Workload Identity Federation as `pl-deployer`. No key file is used.
+   2. It builds the image with `GIT_COMMIT=<release SHA>`, pushes it tagged with the full SHA, and reads its digest. The step summary records `Image: …@sha256:…`.
+   3. It runs the Cloud Run job `pocket-ledger-migrate` from that digest with `--args migrate`, as `pl-migrator`, with `pl-migration-database-url` and `pl-seed-users`. Migrations apply, and synthetic users and starter accounts are seeded only where they are missing. The job must finish successfully (`--wait`, no retries).
+   4. It deploys the same digest to the Cloud Run service as `pl-runtime`, with `pl-database-url` and `pl-jwt-secret`. The step summary records `Revision: …`.
+   5. It runs read-only smoke checks. `/api/health` must report `"commit":"<release SHA>"` and `"database":"ok"`, and `/login` must serve the PocketLedger page.
+6. **Verify and record.** From the run's step summary and logs, copy the CI and Deploy run links, the release SHA, the image digest, the revision and the smoke results into the release table below. Optionally confirm in the Cloud Console that the service's serving revision runs that digest. Then run the live checks below against the public URL.
 
 | Release | Main commit | Reviewed PRs | CI / deploy run | Image tag and digest | Running revision / traffic | Smoke result |
 | --- | --- | --- | --- | --- | --- | --- |
 | [2026-11-16](https://github.com/Palapluem/pocket-ledger/pull/28) | `bbf7c4a168b6b3585c4e973bb78faf7f233fd11b` | PR #25 (reviewed change to staging); PR #28 (staging → main, approved by N0TAW00D) | CI #64 (release PR), #63 (staging); main CI [#66](https://github.com/Palapluem/pocket-ledger/actions/runs/43911059795); deploy [#1](https://github.com/Palapluem/pocket-ledger/actions/runs/43911059895) | Full-SHA tag `bbf7c4a168b6b3585c4e973bb78faf7f233fd11b`; digest `sha256:83a5c319aa4259b8a75521fce5af17a07c2dba195ee0d54f1aae41ca355851a6` | Cloud Run revision `pocket-ledger-00001-dnf` | Deploy run #1 passed read-only smoke checks: `/api/health` reported the release commit and database health; `/login` served the client. |
 
-Document how either member repeats the procedure. Keep full-SHA tagging/digest deployment if using the reference approach; explain an alternative identification mechanism.
+The source → image → revision chain is identified by the full-SHA image tag, the deployed digest (not a mutable tag), and the commit that `/api/health` reports from the running service.
 
 ## Live checks and persistence
 
