@@ -93,38 +93,45 @@ Document chosen cost controls, budget alerts, service availability during gradin
 | --- | --- |
 | CI workflow and pull-request base branches | `.github/workflows/ci.yml` on PRs and pushes to `main` and `sprint-1-staging` |
 | Required check name, selected from an actual run | `build-test` |
-| Ruleset / branch protection for the normal integration and release path | |
-| Teammate approval requirement and bypass policy | |
-| Passing PR and run (C-01) | |
-| Temporary failing PR, failed required check and blocked merge (C-02) | |
+| Ruleset / branch protection for the normal integration and release path | **Pending verification.** The CI workflow defines the `build-test` check, but the available GitHub connection cannot read branch-protection settings; no ruleset was returned. Do not claim a required merge gate until the setting is verified. |
+| Teammate approval requirement and bypass policy | PR #28 has a specific teammate release review; the GitHub production environment required N0TAW00D's deployment approval. The branch-protection approval and bypass settings remain unverified. |
+| Passing PR and run (C-01) | **PASS:** PR #28 to `main`, head `922adfc`, CI run [#64](https://github.com/Palapluem/pocket-ledger/actions/runs/43905359658) succeeded. Staging run [#63](https://github.com/Palapluem/pocket-ledger/actions/runs/43904845851) reports 125 PostgreSQL server tests across 14 files and 11 Playwright browser E2E tests, plus type check, Biome, web build and production Docker image build; the release PR run completed the same CI job successfully. |
+| Temporary failing PR, failed required check and blocked merge (C-02) | **PENDING:** no temporary failing-check PR or blocked-merge evidence is recorded. Do not merge a proof PR; first verify that `build-test` is required on the intended branches. |
 
-The failing proof PR is not merged. Preserve its version/run evidence. Identify how the relevant automated suites are included rather than assuming the starter commands cover the app.
+If a failing proof PR is created after the required gate is verified, keep it unmerged and preserve its version/run evidence. Identify how the relevant automated suites are included rather than assuming the starter commands cover the app.
 
 ## Repeatable release procedure
 
-1. Identify the labelled Issue, contract and bounded feature/fix branch from sprint staging.
-2. Run relevant tests and obtain a specific teammate review before staging integration.
-3. Run integration/system checks and review the release PR into `main`.
-4. Identify the accepted full commit and the pipeline trigger/manual approval, if any.
-5. Describe actual test, image build/push, migration, service update and smoke-test steps.
-6. Verify the running revision/image/source chain and the live domain workflow.
+Either teammate repeats these steps. The deploy steps are defined in `.github/workflows/deploy.yml`; nobody deploys from a laptop.
+
+1. **Integrate on staging.** Each change is merged into `sprint-1-staging` through its own reviewed PR with a passing `build-test` check.
+2. **Open and merge the release PR.** Open one PR from `sprint-1-staging` into `main`. Wait for `build-test` to pass and for the other teammate's approval; that teammate merges it.
+3. **Identify the release SHA.** The release SHA is the full merge commit on `main` (`git rev-parse origin/main` after `git fetch`, or the merge commit shown on the PR). The push to `main` starts two runs for this SHA: CI on `main` and Deploy.
+4. **Approve the deployment.** Open the Deploy run under Actions. If it shows "production requires an approval", N0TAW00D (the environment's required reviewer) clicks **Review deployments**, ticks `production` and chooses **Approve and deploy**. To redeploy an existing `main` commit, run the Deploy workflow manually (`workflow_dispatch`) on `main`.
+5. **Follow the run to success.** The single `deploy` job runs these steps in order, and any failure stops the release:
+   1. It authenticates to GCP through Workload Identity Federation as `pl-deployer`. No key file is used.
+   2. It builds the image with `GIT_COMMIT=<release SHA>`, pushes it tagged with the full SHA, and reads its digest. The step summary records `Image: …@sha256:…`.
+   3. It runs the Cloud Run job `pocket-ledger-migrate` from that digest with `--args migrate`, as `pl-migrator`, with `pl-migration-database-url` and `pl-seed-users`. Migrations apply, and synthetic users and starter accounts are seeded only where they are missing. The job must finish successfully (`--wait`, no retries).
+   4. It deploys the same digest to the Cloud Run service as `pl-runtime`, with `pl-database-url` and `pl-jwt-secret`. The step summary records `Revision: …`.
+   5. It runs read-only smoke checks. `/api/health` must report `"commit":"<release SHA>"` and `"database":"ok"`, and `/login` must serve the PocketLedger page.
+6. **Verify and record.** From the run's step summary and logs, copy the CI and Deploy run links, the release SHA, the image digest, the revision and the smoke results into the release table below. Optionally confirm in the Cloud Console that the service's serving revision runs that digest. Then run the live checks below against the public URL.
 
 | Release | Main commit | Reviewed PRs | CI / deploy run | Image tag and digest | Running revision / traffic | Smoke result |
 | --- | --- | --- | --- | --- | --- | --- |
-| | | | | | | |
+| [2026-11-16](https://github.com/Palapluem/pocket-ledger/pull/28) | `bbf7c4a168b6b3585c4e973bb78faf7f233fd11b` | PR #25 (reviewed change to staging); PR #28 (staging → main, approved by N0TAW00D) | CI #64 (release PR), #63 (staging); main CI [#66](https://github.com/Palapluem/pocket-ledger/actions/runs/43911059795); deploy [#1](https://github.com/Palapluem/pocket-ledger/actions/runs/43911059895) | Full-SHA tag `bbf7c4a168b6b3585c4e973bb78faf7f233fd11b`; digest `sha256:83a5c319aa4259b8a75521fce5af17a07c2dba195ee0d54f1aae41ca355851a6` | Cloud Run revision `pocket-ledger-00001-dnf` | Deploy run #1 passed read-only smoke checks: `/api/health` reported the release commit and database health; `/login` served the client. |
 
-Document how either member repeats the procedure. Keep full-SHA tagging/digest deployment if using the reference approach; explain an alternative identification mechanism.
+The source → image → revision chain is identified by the full-SHA image tag, the deployed digest (not a mutable tag), and the commit that `/api/health` reports from the running service.
 
 ## Live checks and persistence
 
 | Check | Data / scenario and version | Action | Expected / actual result | Evidence |
 | --- | --- | --- | --- | --- |
-| C-03 clean clone | | | | |
-| C-04 public domain workflow and rejection/access restriction | | | | |
-| C-05 before restart | | | | |
-| C-05 after actual application restart | | | | |
-| C-05 after redeploy | | | | |
-| C-06 source/image/revision match | | | | |
+| C-03 clean clone | Release `bbf7c4a`; environment copied from `.env.example` with local-only test values | A fresh local clone was checked out at the release SHA on 17 Nov. Docker Compose could not start because the Docker daemon was unavailable; a fresh GitHub clone was blocked by DNS/network access. | **NOT RUN:** no working-container or health result from the clean clone. PR #19 includes author-reported local build/Compose results, but this audit could not reproduce the clean-clone check. | Audit note (17 Nov); PR #19 author-reported local verification |
+| C-04 public domain workflow and rejection/access restriction | Public URL and deploy run #1 | Run #1 verified the reported release SHA and database health at `/api/health`, plus the `/login` page. No sign-in, main financial action, or rule-rejection/access-restriction evidence was found. | **PARTIAL:** deployment smoke checks pass; the complete required business journey remains unverified. | [Deploy run #1](https://github.com/Palapluem/pocket-ledger/actions/runs/43911059895); required browser screenshots pending |
+| C-05 before restart | Cloud Run / Cloud SQL release `bbf7c4a` | No production financial record and before-state screenshot were found. PR #19 reports a local Compose user-state persistence check only. | **NOT RUN on GCP.** | Cloud Run before/after evidence pending |
+| C-05 after actual application restart | Same record and database | No deployed-service restart with the same recorded financial values was verified. | **NOT RUN on GCP.** | Cloud Run before/after evidence pending |
+| C-05 after redeploy | Same record and database | No redeploy followed by a fresh read of the same record was verified. | **NOT RUN on GCP.** | Cloud Run before/after evidence pending |
+| C-06 source/image/revision match | Release PR #28; main `bbf7c4a168b6b3585c4e973bb78faf7f233fd11b` | Deploy workflow built the full-SHA image, deployed its digest, ran migrations/seed, and smoke-tested the running commit and database. | **PASS:** deploy run #1 succeeded; the recorded revision is `pocket-ledger-00001-dnf` and the workflow confirmed the served commit matches the release SHA. | PR #28; main CI #66; [deploy run #1](https://github.com/Palapluem/pocket-ledger/actions/runs/43911059895) |
 
 Record the same synthetic transaction identifier and financial values before/after the two events. State the actual restart mechanism and versions; a redeploy-only check does not establish both checks.
 
@@ -134,17 +141,19 @@ Run by the project owner in the Cloud Console and Cloud Shell, region `asia-sout
 
 1. Enable APIs: Cloud Run Admin, Cloud SQL Admin, Artifact Registry, Secret Manager, IAM, IAM Service Account Credentials, Security Token Service.
 2. Artifact Registry: create Docker repository `pocket-ledger` in `asia-southeast3`.
-3. Cloud SQL: create PostgreSQL 18 instance `pocket-ledger-db` (Enterprise, shared core `db-f1-micro`, 10 GB) with a strong `postgres` password kept outside Git. Create database `pocket_ledger`. Do not create application users through the console (console/gcloud built-in users get `cloudsqlsuperuser`). Copy the connection name.
-4. Database roles: in Cloud Shell, `gcloud sql connect pocket-ledger-db --user=postgres --database=pocket_ledger`, then run (substituting two new generated passwords):
+3. Cloud SQL: create PostgreSQL 18 instance `pocket-ledger-db` (Enterprise, shared core `db-f1-micro`, 10 GB) with a strong `postgres` password kept outside Git. Create database `pocket_ledger`. The Cloud Console cannot assign custom PostgreSQL database roles to a built-in user. A built-in user created without custom database roles receives `cloudsqlsuperuser` by default; `gcloud sql users create` supports `--database-roles` when custom roles already exist. In this deployment, console-created application users had the default elevated role and were recreated with the restricted SQL roles in step 4. Use the SQL procedure below for this setup. Verify with `SELECT rolname, pg_has_role(rolname, 'cloudsqlsuperuser', 'member') FROM pg_roles WHERE rolname LIKE 'pocket%';`; it must return `f` for both application roles. See [Cloud SQL user management](https://docs.cloud.google.com/sql/docs/postgres/create-manage-users). Copy the connection name.
+4. Database roles: in Cloud Shell, connect with `gcloud sql connect pocket-ledger-db --user=postgres --database=pocket_ledger`. In the interactive `psql` session, run the following. Create two distinct strong passwords in a password manager; enter them only at the hidden `\password` prompts below. Do not put password values in SQL text, command arguments, shell history, CI logs, or Git.
 
-   ```sql
-   CREATE ROLE pocket_ledger_migrator LOGIN PASSWORD '<migrator password>' NOSUPERUSER NOCREATEDB NOCREATEROLE;
-   CREATE ROLE pocket_ledger_app LOGIN PASSWORD '<app password>' NOSUPERUSER NOCREATEDB NOCREATEROLE;
+   ```psql
+   CREATE ROLE pocket_ledger_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+   CREATE ROLE pocket_ledger_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+   \password pocket_ledger_migrator
+   \password pocket_ledger_app
    GRANT pocket_ledger_migrator TO CURRENT_USER;
    REVOKE ALL ON DATABASE pocket_ledger FROM PUBLIC;
    GRANT CONNECT, CREATE ON DATABASE pocket_ledger TO pocket_ledger_migrator;
    GRANT CONNECT ON DATABASE pocket_ledger TO pocket_ledger_app;
-   ALTER SCHEMA public OWNER TO pocket_ledger_migrator;
+   GRANT USAGE, CREATE ON SCHEMA public TO pocket_ledger_migrator;
    GRANT USAGE ON SCHEMA public TO pocket_ledger_app;
    ALTER DEFAULT PRIVILEGES FOR ROLE pocket_ledger_migrator IN SCHEMA public
      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO pocket_ledger_app;
@@ -152,9 +161,11 @@ Run by the project owner in the Cloud Console and Cloud Shell, region `asia-sout
      GRANT USAGE, SELECT ON SEQUENCES TO pocket_ledger_app;
    ```
 
-   Verified locally on `postgres:18.4` with the production image: the migrator applied migrations and seeded; the app role served sign-in and user updates but was refused `CREATE TABLE`, `DROP TABLE users` and `CREATE DATABASE`.
-5. Secret Manager (create each once): `pl-database-url` = `postgresql://pocket_ledger_app:<app password>@localhost/pocket_ledger?host=/cloudsql/<connection name>`; `pl-migration-database-url` = the same with `pocket_ledger_migrator:<migrator password>`; `pl-jwt-secret` = `openssl rand -hex 32`; `pl-seed-users` = JSON array of synthetic `{email, displayName, role, password}` including one administrator. URL-encode special characters in passwords.
-6. Service accounts: `pl-runtime`, `pl-migrator`, `pl-deployer`. Project roles: `pl-runtime` and `pl-migrator` get Cloud SQL Client; `pl-deployer` gets Cloud Run Admin and Artifact Registry Writer. Secret access per secret only (each secret's Permissions tab, role Secret Manager Secret Accessor): `pl-runtime` on `pl-database-url` and `pl-jwt-secret`; `pl-migrator` on `pl-migration-database-url` and `pl-seed-users`. On `pl-runtime` and `pl-migrator` (Principals with access), grant `pl-deployer` the Service Account User role.
+   On Cloud SQL, `postgres` is not a true superuser and cannot take ownership of `public` (owned by `pg_database_owner`), so the migrator gets `USAGE, CREATE` on it instead; it owns every table it creates. The `psql \password` commands prompt without echoing the password and avoid placing cleartext passwords in SQL history or command arguments. Cloud SQL instance password policies are optional; the policy setting for this instance was not verified. If enabled, follow its configured constraints. Use strong, distinct passwords regardless, and URL-encode any reserved characters when placing a password in a database URL. See [Cloud SQL instance password policy](https://docs.cloud.google.com/sql/docs/postgres/create-instance) and the [psql password command](https://www.postgresql.org/docs/current/app-psql.html).
+
+   Verified on 16 November with this exact SQL. Locally on `postgres:18.4`: the migrator applied all migrations and seeded users and starter accounts; the app role could select, insert, update and delete, but was refused `CREATE TABLE`, `DROP TABLE users`, `ALTER TABLE`, `CREATE DATABASE` and `CREATE SCHEMA`. On the Cloud SQL instance: both roles report `rolcreatedb`, `rolcreaterole` and `cloudsqlsuperuser` membership as `f`.
+5. Secret Manager (create each once): `pl-database-url` = `postgresql://pocket_ledger_app:<app password>@localhost/pocket_ledger?host=/cloudsql/<connection name>`; `pl-migration-database-url` = the same with `pocket_ledger_migrator:<migrator password>`; `pl-jwt-secret` = `openssl rand -hex 32`; `pl-seed-users` = JSON array of synthetic `{email, displayName, role, password}` including one administrator. URL-encode special characters in passwords. Build `pl-seed-users` with a JSON serializer (for example `python3 -c 'import json; print(json.dumps([...]))'`) rather than by hand, and check it with `json.load` before deploying: an invalid value makes the migration job fail at seed.
+6. Service accounts: `pl-runtime`, `pl-migrator`, `pl-deployer`. Project roles: `pl-runtime` and `pl-migrator` get Cloud SQL Client; `pl-deployer` gets Cloud Run Admin and Artifact Registry Writer. Secret access per secret only, never as a project-level Secret Manager Secret Accessor grant, because that would let the runtime read the migrator URL and seed passwords (each secret's Permissions tab, role Secret Manager Secret Accessor): `pl-runtime` on `pl-database-url` and `pl-jwt-secret`; `pl-migrator` on `pl-migration-database-url` and `pl-seed-users`. On `pl-runtime` and `pl-migrator` (Principals with access), grant `pl-deployer` the Service Account User role.
 7. Workload Identity Federation (Cloud Shell):
 
    ```bash
