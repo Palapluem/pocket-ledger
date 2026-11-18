@@ -1,0 +1,9 @@
+2026-11-18T12:56:13.843Z health: {"status":"ok","database":"ok","commit":"bbf7c4a168b6b3585c4e973bb78faf7f233fd11b"}
+2026-11-18T12:56:13.843Z PASS health reports database ok
+2026-11-18T12:56:15.230Z signed in
+2026-11-18T12:56:15.309Z GET /api/transactions/62b441fb-4edc-4574-97eb-835ad111ca2f -> 200 {"id":"62b441fb-4edc-4574-97eb-835ad111ca2f","form":"PAYMENT","primaryAccountId":"b0279a10-81bc-4464-bdba-39ddd676e331","date":"2026-11-18","total":"1200.00","memo":"Lab 5 C-04 synthetic charge 2026-11-18T12:51:51.029Z","createdAt":"2026-11-18T12:51:51.000Z","allocations":[{"accountId":"0d948002-0ce4-4bed-a699-59b423d97f14","amount":"700.00"},{"accountId":"2e7c4877-c244-467a-9df6-08461c9fafc5","amount":"500.00"}]}
+2026-11-18T12:56:15.309Z summary: {"from":null,"to":null,"income":"0.00","expense":"1200.00","accounts":[{"id":"d1b8bf11-f91c-43bf-a768-db0219fc0ab3","name":"Bank","type":"CASH","currency":"THB","openingAmount":"0.00","openingDate":"2026-11-17","balance":"0.00"},{"id":"b0279a10-81bc-4464-bdba-39ddd676e331","name":"Credit card","type":"LOAN_TAKEN","currency":"THB","openingAmount":"0.00","openingDate":"2026-11-17","balance":"1200.00"},{"id":"89da18bb-f75b-444c-b247-129bc7b57e6f","name":"Salary","type":"INCOME","currency":"THB","openingAmount":"0.00","openingDate":"2026-11-17","balance":"0.00"},{"id":"0d948002-0ce4-4bed-a699-59b423d97f14","name":"Dining","type":"EXPENSE","currency":"THB","openingAmount":"0.00","openingDate":"2026-11-17","balance":"700.00"},{"id":"2e7c4877-c244-467a-9df6-08461c9fafc5","name":"Groceries","type":"EXPENSE","currency":"THB","openingAmount":"0.00","openingDate":"2026-11-17","balance":"500.00"}]}
+2026-11-18T12:56:15.309Z PASS record retrieved (200)
+2026-11-18T12:56:15.309Z PASS same identifier and record
+2026-11-18T12:56:15.309Z PASS same balances and income/expense
+2026-11-18T12:56:15.338Z RESULT: PASS
