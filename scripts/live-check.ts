@@ -72,16 +72,39 @@ const note = (line: string) => {
 	log.push(`${stamp()} ${line}`);
 	console.log(line);
 };
+let total = 0;
 let failures = 0;
+let stopped = false;
+/** Every assertion goes through here, so the PASS/FAIL lines and the final count agree. */
 const check = (name: string, ok: boolean) => {
+	total += 1;
 	if (!ok) failures += 1;
 	note(`${ok ? "PASS" : "FAIL"} ${name}`);
+	return ok;
 };
+/** A browser assertion counted as a check (Playwright waits up to its default timeout). */
+const checkUi = async (name: string, assertion: Promise<void>) =>
+	check(
+		name,
+		await assertion.then(
+			() => true,
+			() => false,
+		),
+	);
 
 type Summary = {
 	income: string;
 	expense: string;
-	accounts: { name: string; balance: string }[];
+	accounts: { id: string; name: string; balance: string }[];
+};
+type Detail = {
+	id: string;
+	form: string;
+	primaryAccountId: string;
+	date: string;
+	total: string;
+	memo: string | null;
+	allocations: { accountId: string; amount: string }[];
 };
 /** "1200.00" -> 120000n satang, without floating point. */
 const satang = (value: string | undefined) => {
@@ -96,11 +119,97 @@ const amountOf = (s: Summary, key: string) =>
 		: s.accounts.find((a) => a.name === key)?.balance;
 const delta = (before: Summary, after: Summary, key: string) =>
 	satang(amountOf(after, key)) - satang(amountOf(before, key));
+const accountId = (s: Summary, name: string) =>
+	s.accounts.find((a) => a.name === name)?.id;
+/** Calendar date in Asia/Bangkok (D-04) of an ISO instant. */
+const bangkokDate = (iso: string) => {
+	const instant = new Date(iso);
+	return Number.isNaN(instant.getTime())
+		? `invalid instant ${iso}`
+		: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(
+				instant,
+			);
+};
+const MEMO_PREFIX = "Lab 5 C-04 synthetic charge ";
+
+/**
+ * Checks a retrieved transaction field by field against independently expected values:
+ * the identifier and memo the script created, a PAYMENT of 1,200.00 charged to the
+ * Credit card on the Bangkok date of creation, split Dining 700.00 / Groceries 500.00.
+ */
+const checkRecord = (
+	status: number,
+	detail: Detail,
+	expected: { id: string; memo: string; summary: Summary },
+) => {
+	const { id, memo, summary } = expected;
+	check("retrieved record status 200", status === 200);
+	check("record id matches", detail.id === id);
+	check("record form PAYMENT", detail.form === "PAYMENT");
+	check(
+		"record charged to Credit card",
+		detail.primaryAccountId === accountId(summary, "Credit card"),
+	);
+	check("record total 1200.00", detail.total === "1200.00");
+	check("record memo matches", detail.memo === memo);
+	check(
+		"record date is the Bangkok date of creation",
+		detail.date === bangkokDate(memo.slice(MEMO_PREFIX.length)),
+	);
+	const lines = [...(detail.allocations ?? [])]
+		.map((l) => `${l.accountId}=${l.amount}`)
+		.sort();
+	const want = [
+		`${accountId(summary, "Dining")}=700.00`,
+		`${accountId(summary, "Groceries")}=500.00`,
+	].sort();
+	check(
+		"record allocations exactly Dining 700.00 + Groceries 500.00",
+		JSON.stringify(lines) === JSON.stringify(want),
+	);
+};
+
+const fillCharge = async (memo: string | undefined, groceries: string) => {
+	await page
+		.getByRole("link", { name: "Make a payment or record a charge" })
+		.click();
+	await page
+		.getByLabel("Pay from or charge to")
+		.selectOption({ label: "Credit card (Loan taken / card)" });
+	await page.getByLabel("Total (THB)").fill("1200.00");
+	await page
+		.getByLabel("Line 1 account")
+		.selectOption({ label: "Dining (Expense)" });
+	await page.getByLabel("Line 1 amount").fill("700.00");
+	await page.getByRole("button", { name: "Add line" }).click();
+	await page
+		.getByLabel("Line 2 account")
+		.selectOption({ label: "Groceries (Expense)" });
+	await page.getByLabel("Line 2 amount").fill(groceries);
+	if (memo) await page.getByLabel("Memo (optional)").fill(memo);
+};
+const submit = async () => {
+	const [response] = await Promise.all([
+		page.waitForResponse(
+			(r) =>
+				r.request().method() === "POST" &&
+				r.url().endsWith("/api/transactions"),
+		),
+		page.getByRole("button", { name: "Save" }).click(),
+	]);
+	return response;
+};
+const getJson = async <T>(path: string) => {
+	const res = await page.request.get(`${BASE}${path}`);
+	return { status: res.status(), body: (await res.json()) as T };
+};
 
 try {
-	const health = await (await page.request.get(`${BASE}/api/health`)).json();
+	const health = (
+		await getJson<{ database?: string; commit?: string }>("/api/health")
+	).body;
 	note(`health: ${JSON.stringify(health)}`);
-	check("health reports database ok", health?.database === "ok");
+	check("health reports database ok", health.database === "ok");
 
 	await page.goto(`${BASE}/login`);
 	await page.getByLabel("Email").fill(email);
@@ -108,64 +217,42 @@ try {
 	await shot(page, "01-login");
 	await page.getByLabel("Password").fill(password);
 	await page.getByRole("button", { name: "Sign in" }).click();
-	await expect(page).toHaveURL(/\/overview$/);
-	await expect(page.getByTestId("expense")).toBeVisible();
+	if (
+		!(await checkUi(
+			"sign-in reaches the overview",
+			expect(page.getByTestId("expense")).toBeVisible(),
+		))
+	)
+		throw new Error("sign-in failed; stopping");
 	await shot(page, "02-overview-signed-in");
-	note("signed in");
 
 	if (mode === "record") {
 		if (existsSync(recordFile))
 			throw new Error(
 				`${recordFile} already exists; it is the C-05 baseline and is not overwritten`,
 			);
-		const before = (await (
-			await page.request.get(`${BASE}/api/summary`)
-		).json()) as Summary;
+		const before = (await getJson<Summary>("/api/summary")).body;
 		note(`summary before: ${JSON.stringify(before)}`);
 
-		const memo = `Lab 5 C-04 synthetic charge ${stamp()}`;
-		await page
-			.getByRole("link", { name: "Make a payment or record a charge" })
-			.click();
-		await page
-			.getByLabel("Pay from or charge to")
-			.selectOption({ label: "Credit card (Loan taken / card)" });
-		await page.getByLabel("Total (THB)").fill("1200.00");
-		await page
-			.getByLabel("Line 1 account")
-			.selectOption({ label: "Dining (Expense)" });
-		await page.getByLabel("Line 1 amount").fill("700.00");
-		await page.getByRole("button", { name: "Add line" }).click();
-		await page
-			.getByLabel("Line 2 account")
-			.selectOption({ label: "Groceries (Expense)" });
-		await page.getByLabel("Line 2 amount").fill("500.00");
-		await page.getByLabel("Memo (optional)").fill(memo);
+		const memo = `${MEMO_PREFIX}${stamp()}`;
+		await fillCharge(memo, "500.00");
 		await shot(page, "03-charge-form");
-		const [created] = await Promise.all([
-			page.waitForResponse(
-				(r) =>
-					r.request().method() === "POST" &&
-					r.url().endsWith("/api/transactions"),
-			),
-			page.getByRole("button", { name: "Save" }).click(),
-		]);
-		if (created.status() !== 201)
-			throw new Error(`save returned ${created.status()}`);
+		const created = await submit();
+		if (!check("save returns 201", created.status() === 201))
+			throw new Error("save failed; stopping");
 		const { id } = (await created.json()) as { id: string };
-		await expect(page).toHaveURL(/\/overview$/);
-		await expect(page.getByText(memo)).toBeVisible();
+		note(`saved transaction ${id}`);
+		await checkUi(
+			"saved charge shown in the overview history",
+			expect(page.getByText(memo)).toBeVisible(),
+		);
 		await shot(page, "04-overview-after-save");
-		note(`saved transaction ${id} (201)`);
 
-		const detail = await (
-			await page.request.get(`${BASE}/api/transactions/${id}`)
-		).json();
-		const after = (await (
-			await page.request.get(`${BASE}/api/summary`)
-		).json()) as Summary;
-		note(`saved retrieval: ${JSON.stringify(detail)}`);
+		const after = (await getJson<Summary>("/api/summary")).body;
+		const read = await getJson<Detail>(`/api/transactions/${id}`);
+		note(`saved retrieval: ${read.status} ${JSON.stringify(read.body)}`);
 		note(`summary after: ${JSON.stringify(after)}`);
+		checkRecord(read.status, read.body, { id, memo, summary: after });
 		// Independent expected effect of the 1,200 card charge split 700 / 500.
 		check("expense +1200.00", delta(before, after, "expense") === 120_000n);
 		check("income unchanged", delta(before, after, "income") === 0n);
@@ -178,41 +265,20 @@ try {
 		check("Bank unchanged", delta(before, after, "Bank") === 0n);
 
 		// Rule rejection: allocations 700 + 400 do not equal the 1,200 total.
-		await page
-			.getByRole("link", { name: "Make a payment or record a charge" })
-			.click();
-		await page
-			.getByLabel("Pay from or charge to")
-			.selectOption({ label: "Credit card (Loan taken / card)" });
-		await page.getByLabel("Total (THB)").fill("1200.00");
-		await page
-			.getByLabel("Line 1 account")
-			.selectOption({ label: "Dining (Expense)" });
-		await page.getByLabel("Line 1 amount").fill("700.00");
-		await page.getByRole("button", { name: "Add line" }).click();
-		await page
-			.getByLabel("Line 2 account")
-			.selectOption({ label: "Groceries (Expense)" });
-		await page.getByLabel("Line 2 amount").fill("400.00");
-		const [rejected] = await Promise.all([
-			page.waitForResponse(
-				(r) =>
-					r.request().method() === "POST" &&
-					r.url().endsWith("/api/transactions"),
-			),
-			page.getByRole("button", { name: "Save" }).click(),
-		]);
-		await expect(page.getByRole("alert")).toHaveText(
-			"Allocations must add up exactly to the total.",
-		);
-		await shot(page, "05-rule-rejection");
-		const unchanged = await (
-			await page.request.get(`${BASE}/api/summary`)
-		).json();
+		await fillCharge(undefined, "400.00");
+		const rejected = await submit();
 		note(
 			`rule rejection: POST /api/transactions -> ${rejected.status()} ${JSON.stringify(await rejected.json())}`,
 		);
 		check("rule rejection is 422", rejected.status() === 422);
+		await checkUi(
+			"rejection message shown",
+			expect(page.getByRole("alert")).toHaveText(
+				"Allocations must add up exactly to the total.",
+			),
+		);
+		await shot(page, "05-rule-rejection");
+		const unchanged = (await getJson<Summary>("/api/summary")).body;
 		check(
 			"summary unchanged after rejection",
 			JSON.stringify(unchanged) === JSON.stringify(after),
@@ -229,7 +295,7 @@ try {
 		if (failures === 0) {
 			writeFileSync(
 				recordFile,
-				`${JSON.stringify({ recordedAt: stamp(), health, id, memo, detail, summary: after }, null, 2)}\n`,
+				`${JSON.stringify({ recordedAt: stamp(), health, id, memo, detail: read.body, summary: after }, null, 2)}\n`,
 			);
 			note(`record stored in ${recordFile}`);
 		}
@@ -237,37 +303,47 @@ try {
 		const saved = JSON.parse(readFileSync(recordFile, "utf8")) as {
 			id: string;
 			memo: string;
-			detail: unknown;
-			summary: unknown;
+			detail: Detail;
+			summary: Summary;
 		};
-		const res = await page.request.get(`${BASE}/api/transactions/${saved.id}`);
-		const detail = await res.json();
-		const summary = await (
-			await page.request.get(`${BASE}/api/summary`)
-		).json();
+		const summary = (await getJson<Summary>("/api/summary")).body;
+		const read = await getJson<Detail>(`/api/transactions/${saved.id}`);
 		note(
-			`GET /api/transactions/${saved.id} -> ${res.status()} ${JSON.stringify(detail)}`,
+			`GET /api/transactions/${saved.id} -> ${read.status} ${JSON.stringify(read.body)}`,
 		);
 		note(`summary: ${JSON.stringify(summary)}`);
-		check("record retrieved (200)", res.status() === 200);
+		checkRecord(read.status, read.body, {
+			id: saved.id,
+			memo: saved.memo,
+			summary,
+		});
 		check(
-			"same identifier and record",
-			JSON.stringify(detail) === JSON.stringify(saved.detail),
+			"record identical to the baseline",
+			JSON.stringify(read.body) === JSON.stringify(saved.detail),
 		);
 		check(
-			"same balances and income/expense",
+			"balances and income/expense identical to the baseline",
 			JSON.stringify(summary) === JSON.stringify(saved.summary),
 		);
-		await expect(page.getByText(saved.memo)).toBeVisible();
+		await checkUi(
+			"same record shown in the overview history",
+			expect(page.getByText(saved.memo)).toBeVisible(),
+		);
 		await shot(page, "03-overview-same-record");
 	}
 } catch (error) {
-	failures += 1;
 	await shot(page, "error").catch(() => {});
-	note(`FAILED: ${error instanceof Error ? error.message : String(error)}`);
+	note(`STOPPED: ${error instanceof Error ? error.message : String(error)}`);
+	stopped = true;
 } finally {
-	note(failures === 0 ? "RESULT: PASS" : `RESULT: FAIL (${failures})`);
-	process.exitCode = failures === 0 ? 0 : 1;
+	const passed = total - failures;
+	const ok = failures === 0 && !stopped;
+	note(
+		ok
+			? `RESULT: PASS (${passed}/${total} checks)`
+			: `RESULT: FAIL (${passed}/${total} checks passed${stopped ? "; run stopped early" : ""})`,
+	);
+	process.exitCode = ok ? 0 : 1;
 	writeFileSync(join(outDir, `${label}-log.txt`), `${log.join("\n")}\n`);
 	await browser.close();
 }
