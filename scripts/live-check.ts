@@ -83,14 +83,14 @@ const check = (name: string, ok: boolean) => {
 	return ok;
 };
 /** A browser assertion counted as a check (Playwright waits up to its default timeout). */
-const checkUi = async (name: string, assertion: Promise<void>) =>
-	check(
-		name,
-		await assertion.then(
-			() => true,
-			() => false,
-		),
-	);
+const checkUi = async (name: string, assertion: () => Promise<void>) => {
+	try {
+		await assertion();
+		return check(name, true);
+	} catch {
+		return check(name, false);
+	}
+};
 
 type Summary = {
 	income: string;
@@ -220,7 +220,7 @@ try {
 	if (
 		!(await checkUi(
 			"sign-in reaches the overview",
-			expect(page.getByTestId("expense")).toBeVisible(),
+			async () => await expect(page.getByTestId("expense")).toBeVisible(),
 		))
 	)
 		throw new Error("sign-in failed; stopping");
@@ -244,7 +244,7 @@ try {
 		note(`saved transaction ${id}`);
 		await checkUi(
 			"saved charge shown in the overview history",
-			expect(page.getByText(memo)).toBeVisible(),
+			async () => await expect(page.getByText(memo)).toBeVisible(),
 		);
 		await shot(page, "04-overview-after-save");
 
@@ -273,9 +273,10 @@ try {
 		check("rule rejection is 422", rejected.status() === 422);
 		await checkUi(
 			"rejection message shown",
-			expect(page.getByRole("alert")).toHaveText(
-				"Allocations must add up exactly to the total.",
-			),
+			async () =>
+				await expect(page.getByRole("alert")).toHaveText(
+					"Allocations must add up exactly to the total.",
+				),
 		);
 		await shot(page, "05-rule-rejection");
 		const unchanged = (await getJson<Summary>("/api/summary")).body;
@@ -327,7 +328,7 @@ try {
 		);
 		await checkUi(
 			"same record shown in the overview history",
-			expect(page.getByText(saved.memo)).toBeVisible(),
+			async () => await expect(page.getByText(saved.memo)).toBeVisible(),
 		);
 		await shot(page, "03-overview-same-record");
 	}
