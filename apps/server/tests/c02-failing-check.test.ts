@@ -4,5 +4,7 @@ import { expect, test } from "bun:test";
 // `build-test` check fails and GitHub blocks the merge. The PR carrying this file must
 // never be merged; it is closed unmerged and its branch is kept as evidence.
 test("C-02 deliberately failing required check (never merge)", () => {
-	expect("build-test must block this merge").toBe("this assertion fails on purpose");
+	expect("build-test must block this merge").toBe(
+		"this assertion fails on purpose",
+	);
 });
