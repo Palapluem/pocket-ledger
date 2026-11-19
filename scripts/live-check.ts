@@ -12,7 +12,7 @@
  * Uses a synthetic seeded User. The email comes from LIVE_EMAIL or a prompt; the password
  * comes from a hidden prompt and is never written to disk or output.
  */
-import { mkdirSync, renameSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { chromium, expect, type Page } from "@playwright/test";
 import {
@@ -204,16 +204,29 @@ const fillCharge = async (memo: string | undefined, groceries: string) => {
 	await page.getByLabel("Line 2 amount").fill(groceries);
 	if (memo) await page.getByLabel("Memo (optional)").fill(memo);
 };
+/**
+ * Submits the form and returns the POST response. If the request fails without a response
+ * (connection dropped, timeout), the outcome is unknown: the server may still commit it.
+ */
 const submit = async () => {
-	const [response] = await Promise.all([
-		page.waitForResponse(
-			(r) =>
-				r.request().method() === "POST" &&
-				r.url().endsWith("/api/transactions"),
-		),
-		page.getByRole("button", { name: "Save" }).click(),
-	]);
-	return response;
+	const isPost = (r: { method(): string; url(): string }) =>
+		r.method() === "POST" && r.url().endsWith("/api/transactions");
+	const answered = page
+		.waitForResponse((r) => isPost(r.request()))
+		.then((response) => ({ response }));
+	const failed = page
+		.waitForEvent("requestfailed", isPost)
+		.then((r) => ({ failure: r.failure()?.errorText ?? "request failed" }));
+	// The losing waiter rejects later (timeout or browser close); that is expected.
+	answered.catch(() => {});
+	failed.catch(() => {});
+	await page.getByRole("button", { name: "Save" }).click();
+	const outcome = await Promise.race([answered, failed]);
+	if ("failure" in outcome)
+		throw new Error(
+			`POST /api/transactions got no response (${outcome.failure}); its outcome is unknown`,
+		);
+	return outcome.response;
 };
 const getJson = async <T>(path: string) => {
 	const res = await page.request.get(`${BASE}${path}`);
@@ -347,19 +360,18 @@ try {
 				`transactions with this memo: ${matches.map((t) => t.id).join(", ") || "none"}`,
 			);
 			if (matches.length === 0) {
-				// A receipt with an id means the server returned 201; finding nothing is an error.
+				// One absent read never proves a pending POST did not commit: a request whose
+				// response was lost may still be processing and commit later. The receipt is kept
+				// unresolved, so `record` stays blocked; run `reconcile` again later.
 				check(
-					"receipt without an id has no committed transaction",
-					!receipt.id,
+					receipt.id
+						? "transaction with the receipt id is visible"
+						: "pending POST outcome resolved",
+					false,
 				);
-				if (!receipt.id) {
-					// The earlier POST did not commit; keep the receipt for the record and allow `record`.
-					const kept = join(outDir, `c05-record.abandoned-${Date.now()}.json`);
-					renameSync(recordFile, kept);
-					note(
-						`no transaction was created; receipt moved to ${basename(kept)}`,
-					);
-				}
+				note(
+					`no transaction with this memo is visible; ${basename(recordFile)} stays ${receipt.status} and \`record\` stays blocked. Run \`reconcile\` again later. Remove the receipt by hand only after confirming that no request can still commit.`,
+				);
 			} else {
 				check("exactly one transaction has this memo", matches.length === 1);
 				const id = receipt.id ?? matches[0]?.id ?? "";

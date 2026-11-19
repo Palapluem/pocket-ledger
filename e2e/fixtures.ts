@@ -30,4 +30,11 @@ export const E2E_USERS = {
 		role: "user" as const,
 		password: "e2e-receipt-pass",
 	},
+	/** Used only by the Lab 5 live-check lost-response test (scripts/live-check.ts). */
+	lostResponse: {
+		email: "lou@e2e.test",
+		displayName: "Lou",
+		role: "user" as const,
+		password: "e2e-lost-response-pass",
+	},
 };

@@ -4,7 +4,8 @@
  * The receipt is written before the transaction is submitted, so a run that fails or loses the
  * response after the server committed the charge never lets a retry create a second charge.
  *
- *   pending     written before the POST; the outcome is not known yet (the memo identifies it)
+ *   pending     written before the POST; the outcome is not known yet (the memo identifies it).
+ *               Never cleared automatically: a lost response may still commit later.
  *   incomplete  the POST returned 201; the transaction id is known, later checks did not all pass
  *   complete    every record check passed; this is the C-05 baseline used by `verify`
  */
