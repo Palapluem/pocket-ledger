@@ -9,7 +9,7 @@
  *   complete    every record check passed; this is the C-05 baseline used by `verify`
  */
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 export type ReceiptStatus = "pending" | "incomplete" | "complete";
 
@@ -46,7 +46,7 @@ export function readReceipt(file: string): Receipt | undefined {
 	};
 	if (!raw.status) {
 		if (!raw.id || !raw.memo || !raw.detail || !raw.summary)
-			throw new Error(`${file} is not a recognisable receipt`);
+			throw new Error(`${basename(file)} is not a recognisable receipt`);
 		return {
 			...raw,
 			status: "complete",
@@ -55,7 +55,7 @@ export function readReceipt(file: string): Receipt | undefined {
 		};
 	}
 	if (!raw.memo || !raw.startedAt)
-		throw new Error(`${file} is missing memo/startedAt`);
+		throw new Error(`${basename(file)} is missing memo/startedAt`);
 	return raw as Receipt;
 }
 
@@ -64,19 +64,20 @@ export function assertCanRecord(file: string, receipt: Receipt | undefined) {
 	if (!receipt) return;
 	if (receipt.status === "complete")
 		throw new Error(
-			`${file} is a complete C-05 baseline (transaction ${receipt.id}); it is not overwritten and no new transaction is created`,
+			`${basename(file)} is a complete C-05 baseline (transaction ${receipt.id}); it is not overwritten and no new transaction is created`,
 		);
 	throw new Error(
-		`${file} is ${receipt.status}: a synthetic transaction may already exist (memo "${receipt.memo}"${receipt.id ? `, id ${receipt.id}` : ""}). No new transaction was created. Run \`reconcile\` with the same directory to resolve it.`,
+		`${basename(file)} is ${receipt.status}: a synthetic transaction may already exist (memo "${receipt.memo}"${receipt.id ? `, id ${receipt.id}` : ""}). No new transaction was created. Run \`reconcile\` with the same directory to resolve it.`,
 	);
 }
 
 /** `verify` compares only against a complete baseline. */
 export function requireComplete(file: string, receipt: Receipt | undefined) {
-	if (!receipt) throw new Error(`${file} does not exist; run \`record\` first`);
+	if (!receipt)
+		throw new Error(`${basename(file)} does not exist; run \`record\` first`);
 	if (receipt.status !== "complete" || !receipt.detail || !receipt.summary)
 		throw new Error(
-			`${file} is ${receipt.status}, not a complete baseline; run \`reconcile\` first`,
+			`${basename(file)} is ${receipt.status}, not a complete baseline; run \`reconcile\` first`,
 		);
 	return receipt as Receipt & { id: string; detail: unknown; summary: unknown };
 }

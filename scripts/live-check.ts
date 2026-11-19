@@ -3,7 +3,9 @@
  *
  *   bun scripts/live-check.ts record <outDir>          C-04: sign in, save a card charge, show a rule rejection
  *                                                      and an unauthenticated rejection; stores the record for C-05.
- *   bun scripts/live-check.ts verify <outDir> <label>  C-05: sign in again and compare the same record and summary.
+ *   bun scripts/live-check.ts verify <outDir> <label> <expectedCommit>
+ *                                                      C-05: sign in again, prove the running commit, and compare
+ *                                                      the same record and summary.
  *   bun scripts/live-check.ts reconcile <outDir>        Resolve a pending/incomplete receipt left by a failed `record`
  *                                                      without creating another transaction (see live-check-receipt.ts).
  *
@@ -11,7 +13,7 @@
  * comes from a hidden prompt and is never written to disk or output.
  */
 import { mkdirSync, renameSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { chromium, expect, type Page } from "@playwright/test";
 import {
 	assertCanRecord,
@@ -24,13 +26,15 @@ import {
 const BASE =
 	process.env.LIVE_URL ??
 	"https://pocket-ledger-468473091761.asia-southeast3.run.app";
-const [mode, outDir, label = "check"] = process.argv.slice(2);
+const [mode, outDir, label = "check", expectedCommit] = process.argv.slice(2);
 if (
 	(mode !== "record" && mode !== "verify" && mode !== "reconcile") ||
-	!outDir
+	!outDir ||
+	// verify must name the commit it expects, so it cannot pass against an older revision.
+	(mode === "verify" && !expectedCommit)
 ) {
 	console.error(
-		"usage: bun scripts/live-check.ts record <outDir> | verify <outDir> <label> | reconcile <outDir>",
+		"usage: bun scripts/live-check.ts record <outDir> | verify <outDir> <label> <expectedCommit> | reconcile <outDir>",
 	);
 	process.exit(2);
 }
@@ -249,7 +253,7 @@ try {
 		await shot(page, "03-charge-form");
 		// Durable before the POST: if the outcome is lost, the memo still identifies the charge.
 		writeReceipt(recordFile, { status: "pending", memo, startedAt, health });
-		note(`receipt pending in ${recordFile}`);
+		note(`receipt pending in ${basename(recordFile)}`);
 		const created = await submit();
 		if (!check("save returns 201", created.status() === 201))
 			throw new Error("save failed; stopping");
@@ -326,13 +330,13 @@ try {
 				summary: after,
 				recordedAt: stamp(),
 			});
-			note(`receipt complete: C-05 baseline stored in ${recordFile}`);
+			note(`receipt complete: C-05 baseline stored in ${basename(recordFile)}`);
 		}
 	} else if (mode === "reconcile") {
 		const receipt = readReceipt(recordFile);
-		if (!receipt) throw new Error(`${recordFile} does not exist`);
+		if (!receipt) throw new Error(`${basename(recordFile)} does not exist`);
 		if (receipt.status === "complete") {
-			note(`${recordFile} is already complete; nothing to reconcile`);
+			note(`${basename(recordFile)} is already complete; nothing to reconcile`);
 		} else {
 			note(`receipt ${receipt.status}: memo "${receipt.memo}"`);
 			const history = await getJson<Detail[]>("/api/transactions");
@@ -352,7 +356,9 @@ try {
 					// The earlier POST did not commit; keep the receipt for the record and allow `record`.
 					const kept = join(outDir, `c05-record.abandoned-${Date.now()}.json`);
 					renameSync(recordFile, kept);
-					note(`no transaction was created; receipt moved to ${kept}`);
+					note(
+						`no transaction was created; receipt moved to ${basename(kept)}`,
+					);
 				}
 			} else {
 				check("exactly one transaction has this memo", matches.length === 1);
@@ -383,12 +389,16 @@ try {
 						reconciled: true,
 					});
 					note(
-						`receipt complete (reconciled): C-05 baseline stored in ${recordFile}`,
+						`receipt complete (reconciled): C-05 baseline stored in ${basename(recordFile)}`,
 					);
 				}
 			}
 		}
 	} else {
+		check(
+			`running commit is the expected ${expectedCommit}`,
+			health.commit === expectedCommit,
+		);
 		const saved = requireComplete(recordFile, readReceipt(recordFile)) as {
 			id: string;
 			memo: string;

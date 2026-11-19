@@ -13,13 +13,18 @@ docker compose -p pl-c03 up -d
   GET /api/health -> {"status":"ok","database":"ok","commit":"bbf7c4a168b6b3585c4e973bb78faf7f233fd11b"}
   GET /login      -> <title>PocketLedger</title>
 
-Journey in the container: bun scripts/live-check.ts record (LIVE_URL=http://localhost:8080)
-  RESULT: PASS (22/22 checks), transaction 4d4af5f3-a6f4-467d-86ad-d553df317f81   [c03-log.txt]
+Runner (separate from the application under test): scripts/live-check.ts blob 896f471 (commit 44400ef,
+identical in sprint-1-staging 547dc33), run from the operator's repository checkout. It is not in the
+bbf7c4a clone and not in the image.
+
+Journey in the container: bun scripts/live-check.ts record <dir> c03 (LIVE_URL=http://localhost:8080)
+  RESULT: PASS (22/22 checks), transaction 4d4af5f3-a6f4-467d-86ad-d553df317f81
 docker compose -p pl-c03 restart app
   app container StartedAt 12:19:45Z pid 1730 -> 12:20:12Z pid 2032
-  verify: RESULT: PASS (13/13 checks)   [c03-after-container-restart-log.txt]
+  verify: RESULT: PASS (13/13 checks)
 docker compose -p pl-c03 down   (named volume pl-c03_pgdata kept)   then   up -d   (new app container)
   app log on rerun: Migrations applied / Seeded 0 new user(s) / Seeded 0 new financial account(s)
-  verify: RESULT: PASS (13/13 checks)   [c03-after-recreate-log.txt]
+  verify: RESULT: PASS (13/13 checks)
 
+Raw run logs are kept outside Git; see run-summaries.md for the sanitized results.
 Cleanup: docker compose -p pl-c03 down -v, image removed, clone and local .env deleted.

@@ -10,6 +10,8 @@ import { E2E_USERS } from "../fixtures";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const USER = E2E_USERS.receipt;
+/** The commit apps/server/tests/e2e-server.ts reports from /api/health. */
+const COMMIT = "e2e";
 
 /**
  * Forwards to the E2E server and, while `failReadback` is set, answers the single-transaction
@@ -126,7 +128,7 @@ test("Lab 5 live-check: a failure after the charge is committed keeps a receipt,
 	expect(await transactionsOf(request, base)).toHaveLength(1);
 
 	// 3. `verify` refuses an incomplete receipt.
-	run = await runScript(["verify", dir, "early-verify"], base);
+	run = await runScript(["verify", dir, "early-verify", COMMIT], base);
 	expect(run.code).toBe(1);
 	expect(run.out).toContain("not a complete baseline");
 
@@ -140,10 +142,19 @@ test("Lab 5 live-check: a failure after the charge is committed keeps a receipt,
 		reconciled: true,
 	});
 
-	// 5. The completed baseline verifies, and there is still exactly one charge.
+	// 5. verify names the commit it expects: an older revision fails, the running one passes.
+	run = await runScript(["verify", dir, "prior", "bbf7c4a-prior"], base);
+	expect(run.code).toBe(1);
+	expect(run.out).toContain(
+		"FAIL running commit is the expected bbf7c4a-prior",
+	);
 	run = await runScript(["verify", dir, "verify"], base);
-	expect(run.out).toContain("RESULT: PASS (13/13 checks)");
+	expect(run.code).toBe(2);
+	run = await runScript(["verify", dir, "verify", COMMIT], base);
+	expect(run.out).toContain("RESULT: PASS (14/14 checks)");
 	expect(run.code).toBe(0);
+	// 6. There is still exactly one charge, and no output exposed the host path.
+	expect(run.out).not.toContain(dir);
 	const after = await transactionsOf(request, base);
 	expect(after.map((t) => t.id)).toEqual([kept.id]);
 });
