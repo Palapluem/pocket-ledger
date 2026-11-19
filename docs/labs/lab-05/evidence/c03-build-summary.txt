@@ -1,0 +1,30 @@
+C-03 clean-clone build and container run (local), 2026-11-19
+Docker Engine 29.9.2, Docker Compose 5.6.1, macOS host.
+
+git clone https://github.com/Palapluem/pocket-ledger.git   (fresh clone, empty directory)
+git checkout bbf7c4a168b6b3585c4e973bb78faf7f233fd11b        (release on main; git status: clean)
+cp .env.example .env    then filled only: POSTGRES_PASSWORD, JWT_SECRET (random, local-only),
+                        GIT_COMMIT=<checked-out SHA>, SEED_USERS_JSON (two synthetic local users)
+docker compose -p pl-c03 build --no-cache    exit 0, 21.4 s; dependency install and web build ran fresh
+                                             (only the empty WORKDIR steps report CACHED)
+  image pl-c03-app  sha256:10a274969f396971c12daf1ccdad73fb95d8035f64a46d36f4d38eeef78d4f96
+docker compose -p pl-c03 up -d
+  app log: Migrations applied / Seeded 2 new user(s) / Seeded 5 new financial account(s) / Server is running on port 8080
+  GET /api/health -> {"status":"ok","database":"ok","commit":"bbf7c4a168b6b3585c4e973bb78faf7f233fd11b"}
+  GET /login      -> <title>PocketLedger</title>
+
+Runner (separate from the application under test): scripts/live-check.ts blob 896f471 (commit 44400ef,
+identical in sprint-1-staging 547dc33), run from the operator's repository checkout. It is not in the
+bbf7c4a clone and not in the image.
+
+Journey in the container: bun scripts/live-check.ts record <dir> c03 (LIVE_URL=http://localhost:8080)
+  RESULT: PASS (22/22 checks), transaction 4d4af5f3-a6f4-467d-86ad-d553df317f81
+docker compose -p pl-c03 restart app
+  app container StartedAt 12:19:45Z pid 1730 -> 12:20:12Z pid 2032
+  verify: RESULT: PASS (13/13 checks)
+docker compose -p pl-c03 down   (named volume pl-c03_pgdata kept)   then   up -d   (new app container)
+  app log on rerun: Migrations applied / Seeded 0 new user(s) / Seeded 0 new financial account(s)
+  verify: RESULT: PASS (13/13 checks)
+
+Raw run logs are kept outside Git; see run-summaries.md for the sanitized results.
+Cleanup: docker compose -p pl-c03 down -v, image removed, clone and local .env deleted.

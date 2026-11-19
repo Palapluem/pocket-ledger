@@ -1,11 +1,17 @@
 name: Deploy
 
-# Deploys an accepted main release to Cloud Run. Runs on every push to main (a merged,
+# Deploys an accepted main release to Cloud Run. Runs on a push to main (a merged,
 # reviewed release PR) or manually for an existing main commit. The `production`
 # environment may require a manual approval before the job starts.
+# A push that changes only documentation (docs/**, *.md) does not deploy. Recording release
+# evidence on main therefore leaves the deployed image and revision, and the evidence about
+# them, unchanged. Such a push still runs CI.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
   workflow_dispatch:
 
 concurrency:
