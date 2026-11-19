@@ -3,27 +3,43 @@
  *
  *   bun scripts/live-check.ts record <outDir>          C-04: sign in, save a card charge, show a rule rejection
  *                                                      and an unauthenticated rejection; stores the record for C-05.
- *   bun scripts/live-check.ts verify <outDir> <label>  C-05: sign in again and compare the same record and summary.
+ *   bun scripts/live-check.ts verify <outDir> <label> <expectedCommit>
+ *                                                      C-05: sign in again, prove the running commit, and compare
+ *                                                      the same record and summary.
+ *   bun scripts/live-check.ts reconcile <outDir>        Resolve a pending/incomplete receipt left by a failed `record`
+ *                                                      without creating another transaction (see live-check-receipt.ts).
  *
  * Uses a synthetic seeded User. The email comes from LIVE_EMAIL or a prompt; the password
  * comes from a hidden prompt and is never written to disk or output.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { basename, join } from "node:path";
 import { chromium, expect, type Page } from "@playwright/test";
+import {
+	assertCanRecord,
+	readReceipt,
+	receiptPath,
+	requireComplete,
+	writeReceipt,
+} from "./live-check-receipt";
 
 const BASE =
 	process.env.LIVE_URL ??
 	"https://pocket-ledger-468473091761.asia-southeast3.run.app";
-const [mode, outDir, label = "check"] = process.argv.slice(2);
-if ((mode !== "record" && mode !== "verify") || !outDir) {
+const [mode, outDir, label = "check", expectedCommit] = process.argv.slice(2);
+if (
+	(mode !== "record" && mode !== "verify" && mode !== "reconcile") ||
+	!outDir ||
+	// verify must name the commit it expects, so it cannot pass against an older revision.
+	(mode === "verify" && !expectedCommit)
+) {
 	console.error(
-		"usage: bun scripts/live-check.ts record <outDir> | verify <outDir> <label>",
+		"usage: bun scripts/live-check.ts record <outDir> | verify <outDir> <label> <expectedCommit> | reconcile <outDir>",
 	);
 	process.exit(2);
 }
 mkdirSync(outDir, { recursive: true });
-const recordFile = join(outDir, "c05-record.json");
+const recordFile = receiptPath(outDir);
 
 function ask(question: string, hidden: boolean): Promise<string> {
 	process.stdout.write(question);
@@ -188,16 +204,29 @@ const fillCharge = async (memo: string | undefined, groceries: string) => {
 	await page.getByLabel("Line 2 amount").fill(groceries);
 	if (memo) await page.getByLabel("Memo (optional)").fill(memo);
 };
+/**
+ * Submits the form and returns the POST response. If the request fails without a response
+ * (connection dropped, timeout), the outcome is unknown: the server may still commit it.
+ */
 const submit = async () => {
-	const [response] = await Promise.all([
-		page.waitForResponse(
-			(r) =>
-				r.request().method() === "POST" &&
-				r.url().endsWith("/api/transactions"),
-		),
-		page.getByRole("button", { name: "Save" }).click(),
-	]);
-	return response;
+	const isPost = (r: { method(): string; url(): string }) =>
+		r.method() === "POST" && r.url().endsWith("/api/transactions");
+	const answered = page
+		.waitForResponse((r) => isPost(r.request()))
+		.then((response) => ({ response }));
+	const failed = page
+		.waitForEvent("requestfailed", isPost)
+		.then((r) => ({ failure: r.failure()?.errorText ?? "request failed" }));
+	// The losing waiter rejects later (timeout or browser close); that is expected.
+	answered.catch(() => {});
+	failed.catch(() => {});
+	await page.getByRole("button", { name: "Save" }).click();
+	const outcome = await Promise.race([answered, failed]);
+	if ("failure" in outcome)
+		throw new Error(
+			`POST /api/transactions got no response (${outcome.failure}); its outcome is unknown`,
+		);
+	return outcome.response;
 };
 const getJson = async <T>(path: string) => {
 	const res = await page.request.get(`${BASE}${path}`);
@@ -227,21 +256,31 @@ try {
 	await shot(page, "02-overview-signed-in");
 
 	if (mode === "record") {
-		if (existsSync(recordFile))
-			throw new Error(
-				`${recordFile} already exists; it is the C-05 baseline and is not overwritten`,
-			);
+		assertCanRecord(recordFile, readReceipt(recordFile));
 		const before = (await getJson<Summary>("/api/summary")).body;
 		note(`summary before: ${JSON.stringify(before)}`);
 
-		const memo = `${MEMO_PREFIX}${stamp()}`;
+		const startedAt = stamp();
+		const memo = `${MEMO_PREFIX}${startedAt}`;
 		await fillCharge(memo, "500.00");
 		await shot(page, "03-charge-form");
+		// Durable before the POST: if the outcome is lost, the memo still identifies the charge.
+		writeReceipt(recordFile, { status: "pending", memo, startedAt, health });
+		note(`receipt pending in ${basename(recordFile)}`);
 		const created = await submit();
 		if (!check("save returns 201", created.status() === 201))
 			throw new Error("save failed; stopping");
 		const { id } = (await created.json()) as { id: string };
-		note(`saved transaction ${id}`);
+		writeReceipt(recordFile, {
+			status: "incomplete",
+			memo,
+			startedAt,
+			health,
+			id,
+		});
+		note(
+			`saved transaction ${id}; receipt incomplete until every check passes`,
+		);
 		await checkUi(
 			"saved charge shown in the overview history",
 			async () => await expect(page.getByText(memo)).toBeVisible(),
@@ -292,16 +331,87 @@ try {
 		);
 		check("unauthenticated request is 401", anon.status === 401);
 
-		// Only a fully passing run becomes the C-05 baseline.
+		// Only a fully passing run becomes the C-05 baseline; otherwise the receipt stays incomplete.
 		if (failures === 0) {
-			writeFileSync(
-				recordFile,
-				`${JSON.stringify({ recordedAt: stamp(), health, id, memo, detail: read.body, summary: after }, null, 2)}\n`,
+			writeReceipt(recordFile, {
+				status: "complete",
+				memo,
+				startedAt,
+				health,
+				id,
+				detail: read.body,
+				summary: after,
+				recordedAt: stamp(),
+			});
+			note(`receipt complete: C-05 baseline stored in ${basename(recordFile)}`);
+		}
+	} else if (mode === "reconcile") {
+		const receipt = readReceipt(recordFile);
+		if (!receipt) throw new Error(`${basename(recordFile)} does not exist`);
+		if (receipt.status === "complete") {
+			note(`${basename(recordFile)} is already complete; nothing to reconcile`);
+		} else {
+			note(`receipt ${receipt.status}: memo "${receipt.memo}"`);
+			const history = await getJson<Detail[]>("/api/transactions");
+			if (!check("history read status 200", history.status === 200))
+				throw new Error("cannot read history; stopping");
+			const matches = history.body.filter((t) => t.memo === receipt.memo);
+			note(
+				`transactions with this memo: ${matches.map((t) => t.id).join(", ") || "none"}`,
 			);
-			note(`record stored in ${recordFile}`);
+			if (matches.length === 0) {
+				// One absent read never proves a pending POST did not commit: a request whose
+				// response was lost may still be processing and commit later. The receipt is kept
+				// unresolved, so `record` stays blocked; run `reconcile` again later.
+				check(
+					receipt.id
+						? "transaction with the receipt id is visible"
+						: "pending POST outcome resolved",
+					false,
+				);
+				note(
+					`no transaction with this memo is visible; ${basename(recordFile)} stays ${receipt.status} and \`record\` stays blocked. Run \`reconcile\` again later. Remove the receipt by hand only after confirming that no request can still commit.`,
+				);
+			} else {
+				check("exactly one transaction has this memo", matches.length === 1);
+				const id = receipt.id ?? matches[0]?.id ?? "";
+				check(
+					"receipt id matches the transaction found",
+					matches[0]?.id === id,
+				);
+				const summary = (await getJson<Summary>("/api/summary")).body;
+				const read = await getJson<Detail>(`/api/transactions/${id}`);
+				note(
+					`GET /api/transactions/${id} -> ${read.status} ${JSON.stringify(read.body)}`,
+				);
+				note(`summary: ${JSON.stringify(summary)}`);
+				checkRecord(read.status, read.body, {
+					id,
+					memo: receipt.memo,
+					summary,
+				});
+				if (failures === 0) {
+					writeReceipt(recordFile, {
+						...receipt,
+						status: "complete",
+						id,
+						detail: read.body,
+						summary,
+						recordedAt: stamp(),
+						reconciled: true,
+					});
+					note(
+						`receipt complete (reconciled): C-05 baseline stored in ${basename(recordFile)}`,
+					);
+				}
+			}
 		}
 	} else {
-		const saved = JSON.parse(readFileSync(recordFile, "utf8")) as {
+		check(
+			`running commit is the expected ${expectedCommit}`,
+			health.commit === expectedCommit,
+		);
+		const saved = requireComplete(recordFile, readReceipt(recordFile)) as {
 			id: string;
 			memo: string;
 			detail: Detail;
