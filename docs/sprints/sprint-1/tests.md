@@ -1,6 +1,6 @@
 # Sprint 1 Software Test Specification and results
 
-Draft 0.17, updated 16 November 2026. Historical PR #12/#14 runs and integrated PR #15/#22/#25 results remain recorded below. PR #25 for Issue #20 was approved by N0TAW00D and merged to `sprint-1-staging` at `53c20ff`; CI #59 passed on its PR head `420c6bd` (125 server tests / 518 assertions across 14 files, 11 browser E2E tests, type checks, Biome, web build and production Docker image build). A separate clean-checkout TEST-27 run passed on the merged staging SHA `53c20ff`; the exact setup and outcomes are recorded below. These results verify staging, not an accepted `main` release. Final release-matched checks and Part F/submission evidence remain outstanding. Lab 5 owns deployment/redeployment proof. PR #24's D-05 Origin/CSRF policy remains deferred.
+Draft 0.18, updated 20 November 2026. **TEST-27 passed on the accepted `main` release `265c995` (release PR #32): 131 server tests and 13 E2E tests, plus the production-server smoke and Theme 7 journey, recorded below.** Earlier history: Historical PR #12/#14 runs and integrated PR #15/#22/#25 results remain recorded below. PR #25 for Issue #20 was approved by N0TAW00D and merged to `sprint-1-staging` at `53c20ff`; CI #59 passed on its PR head `420c6bd` (125 server tests / 518 assertions across 14 files, 11 browser E2E tests, type checks, Biome, web build and production Docker image build). A separate clean-checkout TEST-27 run passed on the merged staging SHA `53c20ff`; the exact setup and outcomes are recorded below. Those staging results were superseded by the release-matched TEST-27 above. The PD1 report assembles the Part F evidence. Lab 5 owns deployment/redeployment proof. PR #24's D-05 Origin/CSRF policy remains deferred.
 
 ## Independent fixture and expected values
 
@@ -47,7 +47,7 @@ U = domain unit; I = HTTP API with a real isolated test database; E = browser jo
 | TEST-24 / AC-24 / U+I; `apps/server/tests/history.api.test.ts`, `apps/server/tests/transactions.api.test.ts` | Exercise payment and salary-receive dates at the opening boundary of the primary and every affected balance account, today/future dates, inclusive summary bounds and invalid ranges | Enforce D-04 boundaries and safe errors; Income/Expense classification accounts impose no opening-date cutoff |
 | TEST-25 / AC-25 / E; `e2e/sprint-1/usability.spec.ts`, `e2e/sprint-1/overview-feedback.spec.ts`, with `identity.spec.ts` and `money-journey.spec.ts` for related journeys | Check labelled sign-in, account, receive, payment and history controls at 390/768/1280 px; move focus with Tab; exercise delayed loading, fixture-backed empty/error states, retry on Accounts and Receive, and the Bangkok-today maximum for the opening date. Separate real-API journeys cover financial validation, pending submissions, uncertain outcomes and saved-state reads | Controls remain visible without horizontal overflow, keyboard focus is usable, and loading/empty/error feedback is actionable. Mocked account responses prove UI feedback only; API tests prove access and persistence |
 | TEST-26 / AC-26 / I+M; `apps/server/tests/persistence.integration.test.ts` (exists, #21) | Save opening balance through the API, then save the salary, card-charge and repayment journey through the production `src/index.ts` process; stop it, start a new process against the same database, then retrieve the same IDs, full history and summary | The process IDs differ while the API-written opening balance, persisted records and independent balances remain identical; Lab 5 adds redeployment proof |
-| TEST-27 / AC-27 / M; clean-checkout setup record | Clean checkout, placeholder-only environment, migrate/seed/build/run tests | PASS on staging SHA `53c20ff`; exact commands/results are recorded below. Repeat on the accepted `main` release before submission. |
+| TEST-27 / AC-27 / M; clean-checkout setup record | Clean checkout, placeholder-only environment, migrate/seed/build/run tests | **PASS on the accepted `main` release `265c995`** (20 Nov 2026), and earlier on staging SHA `53c20ff`. The exact commands and results for both are recorded below. |
 | TEST-28 / AC-28 / E; `e2e/sprint-1/money-journey.spec.ts` (payment and receive forms) | Delay each form's transaction POST and activate Submit again while pending. For the ambiguous-outcome case, let the API commit and return 201, drop the browser response, then load transaction history | Each form sends one request while pending and does not automatically retry. After the dropped response, a fresh history read shows exactly one additional saved transaction and the UI directs the User to check history before any deliberate retry. This tests client behavior only and does not claim server-side exactly-once processing |
 
 ## Test execution and isolation
@@ -69,7 +69,7 @@ First select a meaningful allocation/financial rule and a role/ownership restric
 
 ## Actual verification results
 
-TEST-01 to TEST-04 and the user-seed part of TEST-09 have the author-reported results below, on PR #12 head `120e83e` (run while #12 was open; #12 later merged into `sprint-1-staging` at `ed9bf57`); TEST-05 to TEST-07 have an author-reported local result on PR #14 head `7aaf591` (historical, separate from CI) and a GitHub Actions result on PR #14 head `4badd5b` (run 43576608481). Earlier F-03/F-04 results at `0b478aa`, PR #22 CI #52 and the integrated PR #25 verification are recorded separately. TEST-27 passed on the clean staging checkout at `53c20ff`. PR-level CI and staging setup are not an accepted `main` or product-release result. Final release verification and Lab 5 redeployment remain pending.
+TEST-01 to TEST-04 and the user-seed part of TEST-09 have the author-reported results below, on PR #12 head `120e83e` (run while #12 was open; #12 later merged into `sprint-1-staging` at `ed9bf57`); TEST-05 to TEST-07 have an author-reported local result on PR #14 head `7aaf591` (historical, separate from CI) and a GitHub Actions result on PR #14 head `4badd5b` (run 43576608481). Earlier F-03/F-04 results at `0b478aa`, PR #22 CI #52 and the integrated PR #25 verification are recorded separately. TEST-27 passed on the clean staging checkout at `53c20ff`. PR-level CI and staging setup are not a release result. The release-matched TEST-27 on `main` `265c995` is recorded below, and Lab 5 redeployment evidence is in `docs/labs/lab-05/deployment.md`.
 
 | AC / TEST IDs and actual file/test | Tested commit and command / run | Actual result and evidence |
 | --- | --- | --- |
@@ -94,7 +94,34 @@ TEST-01 to TEST-04 and the user-seed part of TEST-09 have the author-reported re
 | Static verification | `0b478aa`; `bun run check-types`; `bun x biome check apps packages scripts`; `bun run build:web` | Pass: server/package/web TypeScript checks, Biome on 46 files, and production web build. Local only |
 | PR #25 review follow-up (historical, pre-integration) | `9694096`; TypeScript checks for server, database package and web; Biome on the three changed TypeScript files; production Vite web build | Pass: static checks. PostgreSQL-backed tests and browser E2E were **NOT RUN** on that pre-integration head because Docker was unavailable. Superseded by the integrated CI row above. |
 
-### TEST-27 clean-checkout verification — staging only
+### TEST-27 clean-checkout verification — accepted `main` release
+
+Tested `main` at `265c99596dd55f3ab91f5ea3db7632df05ab5a65` (release PR #32, deployed as Cloud Run revision `pocket-ledger-00003-5rh`) on 20 Nov 2026. The checkout was a fresh `git clone https://github.com/Palapluem/pocket-ledger.git` into an empty directory with a clean `git status`. Tools: Bun 1.4.4, PostgreSQL `postgres:18.4` (the disposable `scripts/test-db.sh` container on loopback), and the Playwright-pinned Chromium. A second database in the same container, `pocket_ledger_demo`, was used for migrate, seed and the production-server smoke check. Synthetic credentials were generated locally, and no cloud or production data was used.
+
+- `bun install --frozen-lockfile`: passed.
+- `bun run db:migrate` on a fresh database: passed.
+- `bun run db:seed` (two synthetic users: one User, one Administrator): `Seeded 2 new user(s)`, `Seeded 5 new financial account(s)`. A second run gave `Seeded 0 new user(s)` and `Seeded 0 new financial account(s)`, so there are no duplicate seed inserts.
+- `bun run check-types`: passed.
+- `bunx biome check apps packages scripts e2e playwright.config.ts`: passed (56 files checked, no fixes).
+- `bun run build:web`: passed.
+- `bun test apps/server`: **131 passed, 0 failed, 534 assertions across 15 files**.
+- `bun run test:e2e`: **13 passed, 0 failed**.
+- Production server (`apps/server/src/index.ts` with the built web output, port 3100, `GIT_COMMIT` set to the release SHA) against the migrated database:
+  - `/api/health` returned `{"status":"ok","database":"ok","commit":"265c99596dd55f3ab91f5ea3db7632df05ab5a65"}`;
+  - `/` returned HTTP 200;
+  - `/api/nope` returned HTTP 404 `{"code":"NOT_FOUND","message":"Not found."}`.
+- **Theme 7 journey on that server** (headless Chromium; screenshots are kept for the PD1 report, outside Git):
+  - steps: opening Bank balance 10,000.00; salary 20,000.00 received into Bank; card charge 1,200.00 split Dining 700.00 / Groceries 500.00; repayment 500.00 from Bank to the card;
+  - the overview showed Bank 29,500.00, Credit card 700.00, Income 20,000.00, Expense 1,200.00 and the three history entries;
+  - 700.00 + 400.00 against 1,200.00 was rejected ("Allocations must add up exactly to the total.");
+  - after sign-out, `/overview` redirected to login and `GET /api/summary` returned 401 `UNAUTHENTICATED`;
+  - a fresh browser session showed the same values;
+  - the Administrator saw only "Manage users", and `GET /api/accounts`, `/api/transactions` and `/api/summary` each returned 403 `FORBIDDEN`.
+- The Docker image for this exact SHA was built by the Deploy run [44563996620](https://github.com/Palapluem/pocket-ledger/actions/runs/44563996620) (push digest `sha256:df61eee957b04694aef8a1e9c2234f52bc693944060a98b3292daffae3a837df`). CI on the `main` push, run [44563996778](https://github.com/Palapluem/pocket-ledger/actions/runs/44563996778), passed, as did both `build-test` runs on release PR #32 (`c7109e9`).
+
+The disposable container, the server process, the clone and the locally generated credentials were removed after verification.
+
+### TEST-27 clean-checkout verification — staging only (historical)
 
 Tested the exact merged staging commit `53c20ff9a986af0c2e5a9a6c44f8bd89d85491d9` in a disposable clean worktree. Tool versions: Bun 1.4.4, PostgreSQL `18.4`, and the Playwright-pinned Chromium build. The app/test environment used synthetic credentials and a loopback-only disposable PostgreSQL database; no development, cloud or production data was used.
 
