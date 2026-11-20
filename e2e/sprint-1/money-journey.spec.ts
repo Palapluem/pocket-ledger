@@ -131,6 +131,8 @@ test.describe("TEST-28 / AC-28 one submission, no automatic retry", () => {
 		// Commit the transaction, then drop the response to simulate an ambiguous outcome.
 		await page.unroute("**/api/transactions");
 		await page.goto("/transactions");
+		// Count only after the history has loaded: the earlier 100.00 entry must be visible.
+		await expect(page.getByRole("table")).toContainText("฿100.00");
 		const previousPaymentCount = await page
 			.getByRole("table")
 			.locator("tbody tr")
@@ -192,6 +194,8 @@ test.describe("TEST-28 / AC-28 receive form submission safety", () => {
 
 		await page.unroute("**/api/transactions");
 		await page.goto("/transactions");
+		// Count only after the history has loaded: the earlier 100.00 entry must be visible.
+		await expect(page.getByRole("table")).toContainText("฿100.00");
 		const previousReceiptCount = await page
 			.getByRole("table")
 			.locator("tbody tr")
