@@ -1,6 +1,6 @@
 # Three-sprint delivery plan
 
-Draft 0.4, updated 16 November 2026. The D-06 Sprint 1 scope and D-01 work split were accepted by both students and integrated through PR #15 (`98afb3b`). F-01–F-06 are now integrated into `sprint-1-staging` at `53c20ff`; PR #25 was approved by N0TAW00D. CI #59 passed on PR head `420c6bd`, and clean-checkout TEST-27 passed on staging. `main` remains bootstrap `a4cced2`; no accepted application release exists. LEB2 group name is 2-Nor.
+Draft 0.5, updated 21 November 2026. The D-06 Sprint 1 scope and D-01 work split were accepted by both students and integrated through PR #15 (`98afb3b`). F-01–F-06 are now integrated into `sprint-1-staging` at `53c20ff`; PR #25 was approved by N0TAW00D. CI #59 passed on PR head `420c6bd`, and clean-checkout TEST-27 passed on staging. Since 19 Nov, the accepted Sprint 1 release on `main` is `265c995` (release PR #32, deployed to Cloud Run; register in `docs/releases.md`). LEB2 group name is 2-Nor.
 
 | Sprint | Goal and included features | Dependencies | Completion outcome |
 | --- | --- | --- | --- |
@@ -36,4 +36,4 @@ The assignments below are the agreed Sprint 1 work split; rows without an owner 
 
 Deliverable 1 needs a local working release; completed Docker/GCP/CI is assessed in Lab 5. Lab 6 requires an independent project team, not the two developers reviewing themselves. Lab 7 needs an instructor/TA-approved change to already implemented behavior. Do not substitute an unfinished baseline feature for that maintenance exercise.
 
-The saved handout sets Deliverable 1 for 8 November 2026. Wisit later reported a cutoff of 15 November at 23:30 Asia/Bangkok; both have passed and no later extension is verified. As of 16 November, F-01–F-06 are integrated and tested on `sprint-1-staging` at `53c20ff`, but there is no accepted `main` release. Final release checks and the self-contained report remain incomplete. Do not relabel staging as a release or claim submission readiness.
+The saved handout sets Deliverable 1 for 8 November 2026. Wisit later reported a cutoff of 15 November at 23:30 Asia/Bangkok; both have passed and no later extension is verified. As of 16 November, F-01–F-06 are integrated and tested on `sprint-1-staging` at `53c20ff`, and on 19 Nov release PR #32 made `265c995` the accepted `main` release; release-matched TEST-27 passed on it on 20 Nov (`docs/releases.md`). The self-contained report remains incomplete; do not claim submission readiness.

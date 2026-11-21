@@ -36,3 +36,16 @@ The **runner** is the operator script, run from a repository checkout on the ope
   - 12:20:08, `record <dir> c03`: `RESULT: PASS (22/22 checks)`. Transaction `4d4af5f3-a6f4-467d-86ad-d553df317f81`; baseline in [c03-record.json](c03-record.json).
   - 12:20:14, after `docker compose restart app` (new PID): `verify`, `RESULT: PASS (13/13 checks)`.
   - 12:20:24, after `docker compose down` and `up -d` on the kept volume (new container; the seed rerun added 0 users and 0 accounts): `verify`, `RESULT: PASS (13/13 checks)`.
+
+## C-05: production, after redeploy (`verify`)
+- **Target:** the public URL after release PR #32 was deployed by run 44563996620 (new image, push digest `sha256:df61eee9…`). The revision changed from `pocket-ledger-00002-r2w` to `pocket-ledger-00003-5rh`. Health reported commit `265c99596dd55f3ab91f5ea3db7632df05ab5a65` and `database: ok`.
+- **Run:** 20 Nov 2026 14:38 UTC, `bun scripts/live-check.ts verify <dir> after-redeploy 265c99596dd55f3ab91f5ea3db7632df05ab5a65`.
+- **Runner:** script blob `9739f37`, identical to `scripts/live-check.ts` on `main` at `265c995`.
+- **Result:** `RESULT: PASS (14/14 checks)`:
+  - health database ok;
+  - sign-in;
+  - running commit is the expected `265c995…`;
+  - field-level read-back of `62b441fb…`: status 200, id, PAYMENT, Credit card, total 1200.00, memo, Bangkok date, allocations Dining 700.00 + Groceries 500.00;
+  - record identical to the baseline;
+  - summary identical to the baseline;
+  - record shown in the overview.
