@@ -49,3 +49,16 @@ The **runner** is the operator script, run from a repository checkout on the ope
   - record identical to the baseline;
   - summary identical to the baseline;
   - record shown in the overview.
+
+## C-05: production, after a second redeploy (`verify`)
+- **Target:** the public URL after release PR #38 was deployed by run 44885832231 (new image, push digest `sha256:d105b5a2…`; migration execution `pocket-ledger-migrate-wv8tl`). The revision changed from `pocket-ledger-00003-5rh` to `pocket-ledger-00004-hxk`. Health reported commit `37593da1cb3cd881e6b22845a2b4a929dbf6bc8e` and `database: ok`.
+- **Run:** 21 Nov 2026, after the deploy run completed at 09:04:35 UTC: `bun scripts/live-check.ts verify <dir> after-redeploy-2 37593da1cb3cd881e6b22845a2b4a929dbf6bc8e`.
+- **Runner:** script blob `9739f37`, identical to `scripts/live-check.ts` on `main` at `37593da`.
+- **Result:** `RESULT: PASS (14/14 checks)`:
+  - health database ok;
+  - sign-in;
+  - running commit is the expected `37593da…`;
+  - field-level read-back of `62b441fb…`: status 200, id, PAYMENT, Credit card, total 1200.00, memo, Bangkok date, allocations Dining 700.00 + Groceries 500.00;
+  - record identical to the baseline;
+  - summary identical to the baseline;
+  - record shown in the overview.
