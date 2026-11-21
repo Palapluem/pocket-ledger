@@ -1,6 +1,6 @@
 # Three-sprint delivery plan
 
-Draft 0.5, updated 21 November 2026. The D-06 Sprint 1 scope and D-01 work split were accepted by both students and integrated through PR #15 (`98afb3b`). F-01–F-06 are now integrated into `sprint-1-staging` at `53c20ff`; PR #25 was approved by N0TAW00D. CI #59 passed on PR head `420c6bd`, and clean-checkout TEST-27 passed on staging. Since 19 Nov, the accepted Sprint 1 release on `main` is `265c995` (release PR #32, deployed to Cloud Run; register in `docs/releases.md`). LEB2 group name is 2-Nor.
+Draft 0.5, updated 21 November 2026. The D-06 Sprint 1 scope and D-01 work split were accepted by both students and integrated through PR #15 (`98afb3b`). F-01–F-06 are now integrated into `sprint-1-staging` at `53c20ff`; PR #25 was approved by N0TAW00D. CI #59 passed on PR head `420c6bd`, and clean-checkout TEST-27 passed on staging. Since 19 Nov, the accepted Sprint 1 release on `main` is `265c995` (release PR #32, deployed to Cloud Run; register in `docs/releases.md`). Release PR #38 then advanced `main` to `37593da`, which deploys the same application code with only a TEST-28 test fix and documentation (`docs/releases.md`). LEB2 group name is 2-Nor.
 
 | Sprint | Goal and included features | Dependencies | Completion outcome |
 | --- | --- | --- | --- |
