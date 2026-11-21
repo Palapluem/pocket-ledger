@@ -62,3 +62,13 @@ The **runner** is the operator script, run from a repository checkout on the ope
   - record identical to the baseline;
   - summary identical to the baseline;
   - record shown in the overview.
+
+## Before/after screenshots (C-05)
+The C-04 `record` run and each later `verify` run saved the signed-in overview. All four show the same record (2026-11-18, Credit card 1,200.00 split Dining 700.00 / Groceries 500.00, memo `Lab 5 C-04 synthetic charge 2026-11-18T12:51:51.029Z`) and the same balances (Credit card 1,200.00, Dining 700.00, Groceries 500.00, Expense 1,200.00). The page footer shows the running commit.
+
+| State | Screenshot | Footer version | Revision |
+| --- | --- | --- | --- |
+| Baseline (C-04, after the save) | [c04-04-overview-after-save.png](c04-04-overview-after-save.png) | `bbf7c4a…` | `pocket-ledger-00001-dnf` |
+| After the restart | [after-restart-03-overview-same-record.png](after-restart-03-overview-same-record.png) | `bbf7c4a…` | `pocket-ledger-00002-r2w` |
+| After the first redeploy | [after-redeploy-03-overview-same-record.png](after-redeploy-03-overview-same-record.png) | `265c995…` | `pocket-ledger-00003-5rh` |
+| After the second redeploy | [after-redeploy-2-03-overview-same-record.png](after-redeploy-2-03-overview-same-record.png) | `37593da…` | `pocket-ledger-00004-hxk` |
