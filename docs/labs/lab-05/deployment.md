@@ -1,18 +1,18 @@
 # Deployment and release procedure
 
-> Working record for Lab 5 (Issue #17). Configuration and local results below are actual; cloud cells stay blank until the deployment runs. Store real secret values outside this document and Git.
+> Deployment and release record for Lab 5 (Issue #17). Every configuration, local and cloud result below is actual: the service has been deployed from two reviewed `main` releases (release table below), and the live checks C-01 to C-06 are recorded with their evidence. Store real secret values outside this document and Git.
 
 ## Product and accepted baseline
 
 | Field | Actual value |
 | --- | --- |
-| Team / section | |
+| Team / section | Wisit (`Palapluem`) and Natthawat (`N0TAW00D`); LEB2 group **2-Nor**. Course section: not yet confirmed (README) |
 | Product and repository | PocketLedger · https://github.com/Palapluem/pocket-ledger |
-| Accepted Sprint 1 tag / full commit | |
-| Current assessed release tag / full commit | |
+| Accepted Sprint 1 tag / full commit | No Git tag is used; releases are identified by the full `main` commit. First accepted Sprint 1 release: `bbf7c4a168b6b3585c4e973bb78faf7f233fd11b` (release PR #28, 16 Nov) |
+| Current assessed release tag / full commit | No tag. `265c99596dd55f3ab91f5ea3db7632df05ab5a65` (release PR #32, 19 Nov), serving as Cloud Run revision `pocket-ledger-00003-5rh` (`docs/releases.md`) |
 | Sprint staging branch | `sprint-1-staging` |
 | How the live service exposes or identifies its source commit (implemented) | `GET /api/health` returns `commit` (the full SHA passed as the `GIT_COMMIT` build arg); the page footer shows it |
-| Public URL | `https://pocket-ledger-468473091761.asia-southeast3.run.app` (expected Cloud Run URL, set as `PUBLIC_URL`; confirm after the first deployment) |
+| Public URL | `https://pocket-ledger-468473091761.asia-southeast3.run.app` (set as `PUBLIC_URL`). Verified: the deploy smoke checks of both releases passed against it, and on 2026-11-21T07:57Z a read-only `GET /api/health` returned `status: ok`, `database: ok` and commit `265c99596dd55f3ab91f5ea3db7632df05ab5a65` |
 
 ## Stack and deviations from the starter kit
 
@@ -205,4 +205,7 @@ Document the prior image/version, compatibility prerequisites, exact pipeline pr
 
 | Limitation / pending check | Impact | Owner | Status / evidence |
 | --- | --- | --- | --- |
-| | | | |
+| D-05 Origin/CSRF request protection is deferred | No formal production request-protection policy is chosen; the session cookie is HttpOnly, SameSite=Lax and Secure under HTTPS (D-05) | Both | Deferred; proposal PR #24 closed unmerged (`docs/decisions.md` D-05) |
+| The old revision keeps serving between the migration job and the service update | Migrations must stay backward compatible with the previous release | Both | By design (Migration / seed row above) |
+| Rollback / roll-forward was not exercised | No observed recovery time is recorded | Both | Not exercised; no procedure is recorded under "Rollback / recovery" |
+| `created_at` is a time-zone-naive `timestamp` | In a non-UTC local environment `createdAt` shifts; balances and transaction dates are unaffected. Production runs in UTC | Both | Known; not yet filed as an Issue |
