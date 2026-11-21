@@ -1,6 +1,6 @@
 # Feature inventory
 
-Draft 0.6, updated 16 November 2026. The D-01/D-06 Sprint 1 ownership split was accepted by both students and integrated through PR #15 (`98afb3b`). F-01–F-06 are integrated into `sprint-1-staging` at `53c20ff`: PR #22 delivered F-05/F-06 and PR #25 delivered F-03/F-04. N0TAW00D approved PR #25 before merge; CI #59 passed on its head `420c6bd`. Issues #20 and #21 are closed. F-07/F-08 and the stated later-sprint expansions remain planned, not implemented. No Sprint 1 feature has yet been accepted in a release on `main`, which remains `a4cced2`.
+Draft 0.7, updated 21 November 2026. The D-01/D-06 Sprint 1 ownership split was accepted by both students and integrated through PR #15 (`98afb3b`). F-01–F-06 are integrated into `sprint-1-staging` at `53c20ff`: PR #22 delivered F-05/F-06 and PR #25 delivered F-03/F-04. N0TAW00D approved PR #25 before merge; CI #59 passed on its head `420c6bd`. Issues #20 and #21 are closed. F-07/F-08 and the stated later-sprint expansions remain planned, not implemented. Since 19 Nov, F-01–F-06 are in accepted Sprint 1 release on `main` is `265c995` (release PR #32, deployed to Cloud Run; register in `docs/releases.md`).
 
 | Feature | Requirement coverage | Sprint 1 increment | Later completion |
 | --- | --- | --- | --- |

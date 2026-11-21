@@ -1,6 +1,6 @@
 # Engineering and delivery plan
 
-This plan covers one continuous PocketLedger product across all three sprints and six assessments. The SRS, System SDS, feature inventory, traceability, sprint plan and Sprint 1 contracts record the D-01 to D-07 choices accepted by both students and integrated through PR #15 (`98afb3b`) into `sprint-1-staging`. The Sprint 1 F-01–F-06 increment and its automated verification are now integrated in staging at `53c20ff`; PR #25 was approved and merged, CI #59 passed on head `420c6bd`, and clean-checkout TEST-27 passed on `53c20ff`. This is not an accepted `main` release. The remaining PD1 gates are the reviewed release to `main`, release-matched verification, final Part F/report evidence and the self-contained PDF.
+This plan covers one continuous PocketLedger product across all three sprints and six assessments. The SRS, System SDS, feature inventory, traceability, sprint plan and Sprint 1 contracts record the D-01 to D-07 choices accepted by both students and integrated through PR #15 (`98afb3b`) into `sprint-1-staging`. The Sprint 1 F-01–F-06 increment and its automated verification are now integrated in staging at `53c20ff`; PR #25 was approved and merged, CI #59 passed on head `420c6bd`, and clean-checkout TEST-27 passed on `53c20ff`. Since 19 Nov, the accepted Sprint 1 release on `main` is `265c995` (release PR #32, deployed to Cloud Run; register in `docs/releases.md`); release-matched TEST-27 passed on it on 20 Nov. The remaining PD1 gate is the self-contained PDF.
 
 ## Sources and open source questions
 
