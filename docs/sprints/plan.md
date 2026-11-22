@@ -10,7 +10,7 @@ Draft 0.5, updated 21 November 2026. The D-06 Sprint 1 scope and D-01 work split
 
 ## Immediate sequence
 
-1. Keep the accepted D-01 to D-07 baseline; the course section remains unconfirmed. D-05 Origin/CSRF request protection remains deferred in separate PR #24 and must be resolved before public deployment.
+1. Keep the accepted D-01 to D-07 baseline; the course section is confirmed as Section 1. D-05 Origin/CSRF request protection remains deferred: PR #24 was closed unmerged, and the public deployment discloses the deferral as a known limitation (`docs/labs/lab-05/deployment.md`). It is still to be resolved.
 2. F-01–F-06 and their core Sprint 1 journey are integrated into `sprint-1-staging` at `53c20ff`. PR #25 was approved by N0TAW00D; CI #59 passed on head `420c6bd`; clean-checkout TEST-27 passed on the merged staging SHA.
 3. Finish the single bounded status/evidence reconciliation in Issue #26. Obtain N0TAW00D's substantive review and merge that documentation PR into staging; do not create a second documentation PR for the same closeout.
 4. Run integration/acceptance checks on the final staging candidate, then open the required reviewed release PR from `sprint-1-staging` to `main`. N0TAW00D must review and merge it; no author self-approval or self-merge.

@@ -68,6 +68,6 @@ These proposed acceptance targets must be reviewed with the system design. They 
 
 ## Assumptions, decisions and acceptance boundary
 
-The team selected Theme 7 and PocketLedger; the LEB2 group name is 2-Nor. The D-01 to D-07 choices were accepted by both students and merged through PR #15 (`98afb3b`) into `sprint-1-staging`. The course section remains unknown. Origin/CSRF request protection is deferred and must be reviewed before public deployment. The example fixture is team-chosen data, not an instructor-supplied calculation.
+The team selected Theme 7 and PocketLedger; the LEB2 group name is 2-Nor. The D-01 to D-07 choices were accepted by both students and merged through PR #15 (`98afb3b`) into `sprint-1-staging`. The course section is confirmed as Section 1. Origin/CSRF request protection remains deferred. The public deployment discloses this as a known limitation (`labs/lab-05/deployment.md`), and it is still to be reviewed. The example fixture is team-chosen data, not an instructor-supplied calculation.
 
 An accepted Sprint 1 requires the complete agreed journey, actual tests of rules/persistence/access, substantive teammate reviews and a tested release on main. A contract draft or a green documentation check does not establish working product behavior. Later requirements must remain allocated in the feature inventory even when not implemented in Sprint 1.
