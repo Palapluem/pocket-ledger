@@ -1,10 +1,10 @@
 # Authentication and setup decision
 
-Draft 0.8, 15 November 2026 · Issue #2 · **Stateless JWT, 3600-second lifetime, HS256/`jose` and key source/rotation/retention agreed; Origin/CSRF request protection deferred until deployment review.** The choices were accepted by both students and integrated through PR #15 (`98afb3b`). This records the team's selected Sprint 1 authentication scope and the implementation details verified in merged PRs #12 and #14.
+Draft 0.8, updated 22 November 2026 (initial decision 15 November 2026) · Issue #2 · **Stateless JWT, 3600-second lifetime, HS256/`jose` and key source/rotation/retention agreed; Origin/CSRF request protection remains deferred. PR #24 was closed unmerged, and the limitation is disclosed for the current public deployment.** The choices were accepted by both students and integrated through PR #15 (`98afb3b`). This records the team's selected Sprint 1 authentication scope and the implementation details verified in merged PRs #12 and #14.
 
 ## Scope
 
-The team selected Better T Stack. Although Better Auth was included in the initial D-02 selection, the team now chooses a small first-party JWT flow for Sprint 1 seeded-user sign-in. The team accepts the logout and account-change limitations listed below; the 3600-second token lifetime and HS256 with `jose` are approved. Wisit accepted a minimum-32-byte random `JWT_SECRET` held in an ignored local `.env` or deployment secret store, manual replacement/restart rotation that invalidates all outstanding tokens, and no previous-key retention. Origin/CSRF policy is deferred until deployment review; the current Origin check is optional hardening. Public self-registration, email delivery, password recovery and financial workflows are outside this slice.
+The team selected Better T Stack. Although Better Auth was included in the initial D-02 selection, the team now chooses a small first-party JWT flow for Sprint 1 seeded-user sign-in. The team accepts the logout and account-change limitations listed below; the 3600-second token lifetime and HS256 with `jose` are approved. Wisit accepted a minimum-32-byte random `JWT_SECRET` held in an ignored local `.env` or deployment secret store, manual replacement/restart rotation that invalidates all outstanding tokens, and no previous-key retention. Origin/CSRF policy remains deferred; PR #24 was closed unmerged, and the limitation is disclosed for the current public deployment. The current Origin check is optional hardening. Public self-registration, email delivery, password recovery and financial workflows are outside this slice.
 
 ## Selected Sprint 1 approach: first-party signed JWT
 
@@ -26,7 +26,7 @@ This is the team's product-design choice, not a course requirement. PD1 and Lab 
 - Store passwords using an adaptive one-way password-hashing function from a trusted library, with parameters chosen before implementation. Never encrypt passwords for later decryption; follow the [OWASP Password Storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
 - Use a maintained JWT library. Pin the accepted signing algorithm; reject tokens with an unexpected algorithm, invalid signature, issuer, audience, not-before time or expiry.
 - Keep the random signing key in an ignored local `.env` or deployment secret store, never in Git or the client. Rotate manually by replacement and restart; the single-key policy invalidates every outstanding JWT and retains no previous key.
-- Use an HttpOnly, SameSite=Lax cookie and enable Secure under HTTPS. SameSite is one CSRF defense, not the only one. Origin/CSRF policy is deferred until deployment review; the existing configured-Origin guard is optional hardening and does not constitute an agreed request-protection policy.
+- Use an HttpOnly, SameSite=Lax cookie and enable Secure under HTTPS. SameSite is one CSRF defense, not the only one. Origin/CSRF policy remains deferred; PR #24 was closed unmerged, and the limitation is disclosed for the current public deployment. The existing configured-Origin guard is optional hardening and does not constitute an agreed request-protection policy.
 - Do not log or publish bearer tokens. JWT signature validation protects integrity, not confidentiality.
 
 ## Decisions recorded for F-01
@@ -87,4 +87,4 @@ Evidence for these choices comes only from the automated tests in the PR, not fr
 
 ## Implementation gate
 
-F-01 authentication is implemented and merged into `sprint-1-staging` (PR #12, merge `ed9bf57`). For future authentication changes, revisit the deferred Origin/CSRF policy before public deployment, record any change to the agreed D-05 key policy or D-07 public interface first, and keep the System SDS, Sprint 1 contract and STS consistent. Implement each change on a bounded branch from current staging and request the other teammate's review. Keep generated Better Auth routes and dependencies out of the Sprint 1 authentication path.
+F-01 authentication is implemented and merged into `sprint-1-staging` (PR #12, merge `ed9bf57`). For future authentication changes, revisit the deferred Origin/CSRF policy as a security follow-up; the current public deployment carries the disclosed limitation. Record any change to the agreed D-05 key policy or D-07 public interface first, and keep the System SDS, Sprint 1 contract and STS consistent. Implement each change on a bounded branch from current staging and request the other teammate's review. Keep generated Better Auth routes and dependencies out of the Sprint 1 authentication path.

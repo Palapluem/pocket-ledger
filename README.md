@@ -22,7 +22,7 @@ Users access their own financial data. Administrators manage platform user accou
 - [System-Level SDS](docs/system-sds.md)
 - [Three-sprint plan and rotating work](docs/sprints/plan.md)
 - [Sprint 1 feature contracts](docs/sprints/sprint-1/contract.md) and [STS/results](docs/sprints/sprint-1/tests.md)
-- [Authentication and setup decision](docs/sprints/sprint-1/auth-setup-proposal.md) — records the agreed JWT model and key handling; Origin/CSRF request protection is deferred until deployment review
+- [Authentication and setup decision](docs/sprints/sprint-1/auth-setup-proposal.md) — records the agreed JWT model and key handling; Origin/CSRF request protection remains deferred; PR #24 was closed unmerged and the limitation is disclosed for the current public deployment. Revisit in a future security review
 - [Financial vocabulary](GLOSSARY.md)
 - [Contribution and release workflow](CONTRIBUTING.md)
 - [Coordination and handoff](COORDINATION.md)
