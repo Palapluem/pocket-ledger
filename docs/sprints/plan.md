@@ -12,8 +12,8 @@ Draft 0.5, updated 22 November 2026. The D-06 Sprint 1 scope and D-01 work split
 
 1. Keep the accepted D-01 to D-07 baseline and confirmed identity: 2-Nor (TH-013_P7), Section 1 (regular program). D-05 Origin/CSRF request protection remains deferred; PR #24 closed unmerged, and the limitation is disclosed for the current public deployment.
 2. F-01–F-06 and their core Sprint 1 journey are integrated into `sprint-1-staging` at `53c20ff`. PR #25 was approved by N0TAW00D; CI #59 passed on head `420c6bd`; clean-checkout TEST-27 passed on the merged staging SHA.
-3. Issue #26 is closed after the staging status/evidence reconciliation. Review of release PR #41 found six remaining stale status passages; this docs-only follow-up corrects them on sprint-1-staging.
-4. After this follow-up is reviewed and merged, N0TAW00D re-reviews and merges release PR #41 from sprint-1-staging to main; no author self-approval or self-merge.
+3. The review of release PR #41 identified six stale status passages. PR #43 carries their corrections into `sprint-1-staging`.
+4. After PR #43 is reviewed and merged, N0TAW00D re-reviews and merges release PR #41 from `sprint-1-staging` to `main`; the author does not self-approve or self-merge.
 5. On the exact accepted `main` release, run and record the required checks. Capture Part F demonstrations, test output/excerpts, two reviewed Issue/PR examples, workflow/history evidence, contributions and final board status; complete A–F page ranges and the self-contained PDF.
 6. Keep Lab 5 separate: Docker/CI/GCP deployment and durable persistence proof belong there, not in PD1. The handout's 8 November deadline and the student-reported 15 November 23:30 cutoff have both passed; no later extension is verified.
 
