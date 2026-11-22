@@ -1,19 +1,19 @@
 # Team decisions
 
-This is the single decision register for PocketLedger. Assignment requirements are identified in the SRS. `Agreed` means both students have explicitly accepted the choice; the PR timeline records its separate review and merge state. Natthawat proposed D-01 to D-07 in PR #15, Wisit accepted them on 15 November, and PR #15 merged into `sprint-1-staging` at `98afb3b`. Feature implementation may proceed against this baseline through reviewed feature PRs. The course section remains open; deployment image configuration remains Lab 5 work. Any item explicitly marked open or deferred is still unresolved.
+This is the single decision register for PocketLedger. Assignment requirements are identified in the SRS. `Agreed` means both students have explicitly accepted the choice; the PR timeline records its separate review and merge state. Natthawat proposed D-01 to D-07 in PR #15, Wisit accepted them on 15 November, and PR #15 merged into `sprint-1-staging` at `98afb3b`. Feature implementation may proceed against this baseline through reviewed feature PRs. The student later confirmed Section 1 (regular program); the Lab 5 deployment record identifies the deployed images. Any item explicitly marked open or deferred is still unresolved.
 
 ## Confirmed context
 
 - Product: PocketLedger; Theme 7, Personal Money and Expense Logging System.
 - Team: Wisit Suwannao (Palapluem) and Natthawat Primsirikunawut (N0TAW00D).
-- LEB2 group name: **2-Nor**, clarified by the student on 7 November 2026. Do not infer a section or a separate group number from this name.
+- Team: **2-Nor (TH-013_P7)**. The student confirmed **Section 1 (regular program)**.
 - The product and course repositories are independent Git roots. The product uses reviewed integration into sprint-1-staging, followed by a reviewed release into main.
-- On 7 November the student requested preparation of the engineering documents and correction of the two report tabs. PR #5 confirmed the stack, and PR #9 recorded the first-party JWT choice. On 15 November, Wisit accepted the proposals for the D-01 work split, D-02 runtime pins, D-03 money rules, D-04 date/correction rules, D-06 Sprint 1 scope and D-07 journey/interfaces. Wisit also accepted the D-05 key-management proposal. The course section remains unknown. The Origin/CSRF policy is deferred for now; the current Origin check is optional implementation hardening, not an agreed security policy. The 2-Nor group name, stateless JWT model, 3600-second lifetime and HS256/`jose` choice were confirmed separately.
+- On 7 November the student requested preparation of the engineering documents and correction of the two report tabs. PR #5 confirmed the stack, and PR #9 recorded the first-party JWT choice. On 15 November, Wisit accepted the proposals for the D-01 work split, D-02 runtime pins, D-03 money rules, D-04 date/correction rules, D-06 Sprint 1 scope and D-07 journey/interfaces. Wisit also accepted the D-05 key-management proposal. The course section was unknown at that time and was later confirmed as Section 1. The Origin/CSRF policy is deferred for now; the current Origin check is optional implementation hardening, not an agreed security policy. The 2-Nor group name, stateless JWT model, 3600-second lifetime and HS256/`jose` choice were confirmed separately.
 
 | Decision | Owners | Status | Work affected |
 | --- | --- | --- | --- |
-| D-01 Team identifiers and rotating work | Wisit + Natthawat | PARTIAL: 2-Nor and Sprint 1 work split agreed; course section remains open | Submission identity and task ownership |
-| D-02 Stack and reproducible runtime | Wisit + Natthawat | STACK CONFIRMED; FIRST-PARTY JWT SELECTED; Bun 1.4.4 and PostgreSQL 18.4 pins agreed; deployment images remain Lab 5 work | System SDS, setup and implementation |
+| D-01 Team identifiers and rotating work | Wisit + Natthawat | CONFIRMED: 2-Nor (TH-013_P7), Section 1 and Sprint 1 work split | Submission identity and task ownership |
+| D-02 Stack and reproducible runtime | Wisit + Natthawat | STACK CONFIRMED; FIRST-PARTY JWT SELECTED; Bun 1.4.4 and PostgreSQL 18.4 pins agreed; see the Lab 5 deployment record for image details | System SDS, setup and implementation |
 | D-03 Money, balance signs and account compatibility | Wisit + Natthawat | AGREED FOR SPRINT 1; policy and independent fixture recorded in PR #15 | Financial contracts and expected values |
 | D-04 Dates, opening balances and correction boundary | Wisit + Natthawat | Baseline agreed for Sprint 1. On 16 November, Wisit confirmed future opening dates are invalid; PR #25 was re-reviewed and approved by N0TAW00D, then merged into staging at `53c20ff` | History, summaries and validation |
 | D-05 Authentication and deactivation | Wisit + Natthawat | JWT model, 3600 s, HS256/`jose`, and key source/rotation/retention AGREED; Origin/CSRF policy DEFERRED pending deployment review | Identity, authorization and administrator contract |
@@ -22,9 +22,9 @@ This is the single decision register for PocketLedger. Assignment requirements a
 
 ## D-01 Team identifiers and rotating work
 
-LEB2 group name is 2-Nor. Section and any separate team number remain blank in the report identity table until confirmed. Repository access for N0TAW00D was verified as write access on 7 November; this is access evidence, not a completed contribution.
+The confirmed team is 2-Nor (TH-013_P7), and the course section is 1 (regular program). Repository access for N0TAW00D was verified as write access on 7 November; this is access evidence, not a completed contribution.
 
-Both students must participate in design, tests, implementation, agent supervision, review and delivery. Assign bounded features or checks, then rotate. For Sprint 1, Natthawat implemented F-01/F-02 with Wisit's review; Wisit owns F-03 (accounts and opening balance) and F-04 (receive money), while Natthawat owns F-05 (split purchase and repayment) and F-06 (balances, history and summary). Each student cross-reviews the other's feature work. The course section remains unconfirmed. These assignments identify the next work; they do not claim that it is complete. Pair work must name both participants in the relevant Issue or PR.
+Both students must participate in design, tests, implementation, agent supervision, review and delivery. Assign bounded features or checks, then rotate. For Sprint 1, Natthawat implemented F-01/F-02 with Wisit's review; Wisit owns F-03 (accounts and opening balance) and F-04 (receive money), while Natthawat owns F-05 (split purchase and repayment) and F-06 (balances, history and summary). Each student cross-reviews the other's feature work. The assignments record the agreed Sprint 1 split; implementation and review evidence is recorded in `docs/team.md`. Pair work must name both participants in the relevant Issue or PR.
 
 ## D-02 Stack and reproducible runtime
 
@@ -66,7 +66,7 @@ Use an adaptive one-way password hash from a trusted library, never reversible p
 
 Agreed by Wisit on 15 November: Sprint 1 F-01 to F-06 provide login/logout, minimal enable/disable administration, reproducible bank/card/income/expense accounts, an opening bank balance, salary receipt, a split credit-card purchase, bank-to-card repayment, and balances/summary/history. The baseline still allocates all five account types and later correction/search/favourite/duplicate behavior across the three sprints.
 
-Seeded financial accounts are permitted by the assignment's Sprint 1 example. The UI for managing every account type belongs to Sprint 2; the User creates the opening bank balance in Sprint 1. The D-01 work split is agreed, while the course section remains unconfirmed.
+Seeded financial accounts are permitted by the assignment's Sprint 1 example. The UI for managing every account type belongs to Sprint 2; the User creates the opening bank balance in Sprint 1. The D-01 work split is agreed; the course section is confirmed as Section 1.
 
 ## D-07 Public interfaces and verification
 
@@ -78,7 +78,7 @@ Use unit checks for financial logic, API tests against an isolated real database
 
 | Decision | Agreed answer and rationale | Team confirmation / source | Date / contract revision |
 | --- | --- | --- | --- |
-| D-01 remaining identifiers and work split | Accepted Sprint 1 split: Natthawat implemented F-01/F-02 with Wisit reviewing; Wisit owns F-03/F-04 and Natthawat owns F-05/F-06, with cross-review. Course section remains open | Natthawat's PR #15 proposal; Wisit accepted on 15 November | 15 November 2026 |
+| D-01 remaining identifiers and work split | Accepted Sprint 1 split: Natthawat implemented F-01/F-02 with Wisit reviewing; Wisit owns F-03/F-04 and Natthawat owns F-05/F-06, with cross-review. Course section was open at that time and was later confirmed as Section 1 | Natthawat's PR #15 proposal; Wisit accepted on 15 November | 15 November 2026 |
 | D-02 | Better T Stack and first-party stateless JWT selected; Bun 1.4.4 and `postgres:18.4` pins agreed; Bun was already pinned on the PR base, and PR #15 applies PostgreSQL 18.4 to CI/test setup | Natthawat's PR #15 proposal; Wisit accepted on 15 November | 15 November 2026; deployment images remain Lab 5 work |
 | D-03 | THB integer satang, 0 < amount ≤ 1,000,000,000.00, two decimals; PAYMENT from Cash or Loan Taken (charge), RECEIVE into Cash; exact allocation sum, owned/type-compatible accounts, one line per account, none on the primary, mixed allowed types, no negative Cash/debt/receivable balances, atomic rejection | Natthawat's PR #15 proposal; Wisit accepted on 15 November | 15 November 2026 |
 | D-04 | Opening ≥ 0 with a date no later than today (Asia/Bangkok); transaction date from opening dates of all balance-bearing accounts involved through today; opening may be edited subject to balance/date constraints; no S1 idempotency guarantee; correction S2 and editable duplicate S3 | Baseline proposed by Natthawat and accepted by Wisit on 15 November; Wisit confirmed the future-opening-date boundary on 16 November; N0TAW00D approved PR #25 before its staging merge | 15–16 November 2026 |
