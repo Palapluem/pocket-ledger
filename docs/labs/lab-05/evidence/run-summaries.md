@@ -62,3 +62,21 @@ The **runner** is the operator script, run from a repository checkout on the ope
   - record identical to the baseline;
   - summary identical to the baseline;
   - record shown in the overview.
+
+## C-04: supplementary full-browser screenshots (manual)
+The C-04 script saved page-only screenshots, which do not show the browser address bar. These two full-window screenshots were therefore taken later, by hand, as supplementary evidence. They do not replace the scripted C-04 run of 18 Nov.
+- **Target:** the public Cloud Run URL. `/api/health` reported commit `37593da1cb3cd881e6b22845a2b4a929dbf6bc8e` and `database: ok`, with revision `pocket-ledger-00004-hxk`; no deploy has run since 21 Nov. Both screenshots show the production host in the address bar and this commit in the page footer.
+- **Run:** 22 Nov 2026 at about 11:17–11:25 (UTC+7), in a desktop browser signed in as the same synthetic User. The operator typed the password; it does not appear in either screenshot. The form was filled through browser automation and the screenshots were taken with the macOS window capture.
+- **Rule rejection** ([c04-full-browser-01-rule-rejection.png](c04-full-browser-01-rule-rejection.png)): a Credit card charge with a total of 450.00, split Dining 250.00 and Groceries 150.00 (allocated 400.00 of 450.00). Save was refused with "Allocations must add up exactly to the total." Nothing was saved; the next screenshot shows no 400.00 or 150.00 entry.
+- **Saved and shown** ([c04-full-browser-02-overview-after-save.png](c04-full-browser-02-overview-after-save.png)): the same form with Groceries corrected to 200.00 was saved. The overview shows the new 2026-11-22 charge of 450.00 (Dining 250.00, Groceries 200.00, memo `Lab 5 C-04 full-browser evidence 2026-11-22`) above the 18 Nov C-04 record. Balances moved by the expected amounts, from Credit card 1,200.00, Dining 700.00, Groceries 500.00 and Expense 1,200.00 to 1,650.00, 950.00, 700.00 and 1,650.00. Bank and Income stayed at 0.00.
+- **Effect on the C-05 baseline:** this charge changed the synthetic User's summary. The C-05 results in this file were all recorded before it, and a later `verify` against [c05-record.json](c05-record.json) would fail its summary check. The 18 Nov record `62b441fb…` itself is unchanged.
+
+## Before/after screenshots (C-05)
+The C-04 `record` run and each later `verify` run saved the signed-in overview. All four show the same record (2026-11-18, Credit card 1,200.00 split Dining 700.00 / Groceries 500.00, memo `Lab 5 C-04 synthetic charge 2026-11-18T12:51:51.029Z`) and the same balances (Credit card 1,200.00, Dining 700.00, Groceries 500.00, Expense 1,200.00). The page footer shows the running commit.
+
+| State | Screenshot | Footer version | Revision |
+| --- | --- | --- | --- |
+| Baseline (C-04, after the save) | [c04-04-overview-after-save.png](c04-04-overview-after-save.png) | `bbf7c4a…` | `pocket-ledger-00001-dnf` |
+| After the restart | [after-restart-03-overview-same-record.png](after-restart-03-overview-same-record.png) | `bbf7c4a…` | `pocket-ledger-00002-r2w` |
+| After the first redeploy | [after-redeploy-03-overview-same-record.png](after-redeploy-03-overview-same-record.png) | `265c995…` | `pocket-ledger-00003-5rh` |
+| After the second redeploy | [after-redeploy-2-03-overview-same-record.png](after-redeploy-2-03-overview-same-record.png) | `37593da…` | `pocket-ledger-00004-hxk` |
