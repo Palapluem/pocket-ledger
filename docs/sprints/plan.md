@@ -1,6 +1,6 @@
 # Three-sprint delivery plan
 
-Draft 0.5, updated 21 November 2026. The D-06 Sprint 1 scope and D-01 work split were accepted by both students and integrated through PR #15 (`98afb3b`). F-01–F-06 are now integrated into `sprint-1-staging` at `53c20ff`; PR #25 was approved by N0TAW00D. CI #59 passed on PR head `420c6bd`, and clean-checkout TEST-27 passed on staging. Since 19 Nov, the accepted Sprint 1 release on `main` is `265c995` (release PR #32, deployed to Cloud Run; register in `docs/releases.md`). LEB2 group name is 2-Nor.
+Draft 0.5, updated 22 November 2026. The D-06 Sprint 1 scope and D-01 work split were accepted by both students and integrated through PR #15 (`98afb3b`). F-01–F-06 are now integrated into `sprint-1-staging` at `53c20ff`; PR #25 was approved by N0TAW00D. CI #59 passed on PR head `420c6bd`, and clean-checkout TEST-27 passed on staging. Since 19 Nov, the accepted Sprint 1 release on `main` is `265c995` (release PR #32, deployed to Cloud Run; register in `docs/releases.md`). Release PR #38 then advanced `main` to `37593da`, which deploys the same application code with only a TEST-28 test fix and documentation (`docs/releases.md`). The confirmed team is 2-Nor (TH-013_P7), Section 1 (regular program).
 
 | Sprint | Goal and included features | Dependencies | Completion outcome |
 | --- | --- | --- | --- |
@@ -10,10 +10,10 @@ Draft 0.5, updated 21 November 2026. The D-06 Sprint 1 scope and D-01 work split
 
 ## Immediate sequence
 
-1. Keep the accepted D-01 to D-07 baseline; the course section remains unconfirmed. D-05 Origin/CSRF request protection remains deferred in separate PR #24 and must be resolved before public deployment.
+1. Keep the accepted D-01 to D-07 baseline and confirmed identity: 2-Nor (TH-013_P7), Section 1 (regular program). D-05 Origin/CSRF request protection remains deferred; PR #24 closed unmerged, and the limitation is disclosed for the current public deployment.
 2. F-01–F-06 and their core Sprint 1 journey are integrated into `sprint-1-staging` at `53c20ff`. PR #25 was approved by N0TAW00D; CI #59 passed on head `420c6bd`; clean-checkout TEST-27 passed on the merged staging SHA.
-3. Finish the single bounded status/evidence reconciliation in Issue #26. Obtain N0TAW00D's substantive review and merge that documentation PR into staging; do not create a second documentation PR for the same closeout.
-4. Run integration/acceptance checks on the final staging candidate, then open the required reviewed release PR from `sprint-1-staging` to `main`. N0TAW00D must review and merge it; no author self-approval or self-merge.
+3. The review of release PR #41 identified six stale status passages. PR #43 carries their corrections into `sprint-1-staging`.
+4. After PR #43 is reviewed and merged, N0TAW00D re-reviews and merges release PR #41 from `sprint-1-staging` to `main`; the author does not self-approve or self-merge.
 5. On the exact accepted `main` release, run and record the required checks. Capture Part F demonstrations, test output/excerpts, two reviewed Issue/PR examples, workflow/history evidence, contributions and final board status; complete A–F page ranges and the self-contained PDF.
 6. Keep Lab 5 separate: Docker/CI/GCP deployment and durable persistence proof belong there, not in PD1. The handout's 8 November deadline and the student-reported 15 November 23:30 cutoff have both passed; no later extension is verified.
 
