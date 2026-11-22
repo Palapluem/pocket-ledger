@@ -6,7 +6,7 @@
 
 | Field | Actual value |
 | --- | --- |
-| Team / section | Wisit (`Palapluem`) and Natthawat (`N0TAW00D`); LEB2 group **2-Nor**. Course section: not yet confirmed (README) |
+| Team / section | Wisit (`Palapluem`) and Natthawat (`N0TAW00D`); LEB2 group **2-Nor**. Course section: Section 1 (regular program) |
 | Product and repository | PocketLedger · https://github.com/Palapluem/pocket-ledger |
 | Accepted Sprint 1 tag / full commit | No Git tag is used; releases are identified by the full `main` commit. First accepted Sprint 1 release: `bbf7c4a168b6b3585c4e973bb78faf7f233fd11b` (release PR #28, 16 Nov) |
 | Current assessed release tag / full commit | No tag. `37593da1cb3cd881e6b22845a2b4a929dbf6bc8e` (release PR #38, 21 Nov), serving as Cloud Run revision `pocket-ledger-00004-hxk`. Its application code is identical to the Sprint 1 release `265c99596dd55f3ab91f5ea3db7632df05ab5a65` (release PR #32, 19 Nov); it adds only a TEST-28 test fix and documentation (`docs/releases.md`) |
