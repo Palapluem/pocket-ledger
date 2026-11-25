@@ -1,6 +1,8 @@
 # Lab 6 UAT preparation and records
 
-**Status: preparation only.** This follows master §10 until the detailed Lab 6 handout is available. No independent execution, defect or re-test has occurred.
+**Status: handed over and executed.** The Lab 6 handout (`Lab_6_Sprint_1_UAT.pdf`) is available and the instruction pack below follows it. The pack was handed to the partner UAT Team (Pockit), who executed UAT-01 to UAT-10 on commit `37593da` and recorded their results in [their run report](https://github.com/CPE334-Pockit/Pockit/blob/docs/lab-6-peer-uat/docs/labs/lab-06/peer-uat/evidence/run.md) (branch `docs/lab-6-peer-uat`, commit `1115d28`). The report lists no defect. For UAT-07 part B the UAT Team requested a restart; the Product Team rolled the same image to Cloud Run revision `pocket-ledger-00005-n78` on 2026-11-24 14:45 UTC.
+
+The executable cases UAT-01 to UAT-10, the handoff identity, the recording templates and the Product Team checklist are in [uat-instructions.md](uat-instructions.md), which supersedes the candidate inventory below. Execution and triage results belong in the tester's and the Product Team's records, not in that instruction file.
 
 ## Release and private access handoff
 
