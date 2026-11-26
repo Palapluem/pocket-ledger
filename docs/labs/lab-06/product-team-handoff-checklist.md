@@ -9,6 +9,7 @@ Use this checklist with [`uat-instructions.md`](uat-instructions.md) before send
 - [ ] Check that the pack gives safe roles and account labels, setup/reset steps, preconditions, user actions, and specific expected results.
 - [ ] Walk through the cases on the deployed application. If this has not happened, say so plainly and identify the remaining check.
 - [ ] Fill every `TBC` field in the copy that will be handed over: Product Team contact, test/re-test window, UAT team and participants. Do not send a copy with required fields blank.
+- [ ] Confirm that both students on the UAT Team will participate and that both are identified in the execution record.
 - [ ] Agree how synthetic test credentials will be delivered privately. Record only that delivery was confirmed; never put the channel or credential values in Git.
 - [ ] Confirm the partner has the pack, the tested version, the safe account access, and a way to ask questions or report a blocker.
 - [ ] Check all relative links, evidence instructions, and the exact-copy requirement before recording the final file hash.
@@ -23,7 +24,7 @@ Use this checklist with [`uat-instructions.md`](uat-instructions.md) before send
 | Live walk-through before handoff | Not confirmed by the versioned records. The preserved pack says it had not yet been confirmed when prepared. Do not mark complete without evidence of a later walk-through. |
 | Product Team contact and agreed test/re-test window | Still `TBC` in the preserved pack; no non-sensitive confirmation is recorded here. Confirm privately and add a dated, non-sensitive confirmation if available. |
 | Private credential delivery | The pack says credentials are delivered privately, but the delivery confirmation is not in the versioned record. Confirm privately; do not record the channel or values. |
-| UAT Team participation | The partner report identifies Pockit and names Guntee Doungmanee as the recorded tester. It does not establish participation by a second student; confirm separately if the course requirement needs evidence of both. |
+| UAT Team participation | The partner report identifies Pockit and names Guntee Doungmanee as the recorded tester. Lab 6 requires both students to participate; the available record does not establish participation by the second student. Obtain and record that confirmation before treating the participation requirement as complete. |
 | Partner case results and acceptance | The partner's report is authoritative. Keep case outcomes, findings, and its acceptance decision there rather than duplicating them in this handoff record. |
 
 This record makes the remaining evidence gaps visible; it does not turn an unverified item into a completed handoff requirement. Update it only when supporting evidence exists.
