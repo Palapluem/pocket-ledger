@@ -1,23 +1,29 @@
-# Lab 7 approved change, metrics and readiness
+# Lab 7 change request, metrics and readiness
 
-**Status: preparation only.** This follows master §10 until the detailed Lab 7 handout is available. No maintenance change has been selected or approved.
+**Status: preparation only.** The detailed handout is available. No maintenance change has been selected yet. The later spec-sheet announcement says Instructor/TA approval is not required for the change request; both students must agree on a substantive, non-trivial change to behavior already implemented in Sprint 1. That announcement supersedes only the handout's Instructor/TA-approval wording; all other requirements remain.
 
-## Approval and impact
+## Team decision and impact
 
 | Field | Actual decision / evidence |
 | --- | --- |
 | Change request and purpose | |
+| Both students' agreement, rationale and decision date | |
 | Existing implemented behavior and accepted version | |
 | Requested changed behavior | |
 | Why this is maintenance rather than an unfinished baseline feature | |
-| Instructor/TA approval, date and reference | |
 | Owner / teammate reviewer | |
 
-| Affected requirement / feature / SDS / AC | Old behavior | Approved new behavior | Tests / code / data / compatibility affected | Contract revision and review |
+| Affected requirement / feature / SDS / AC | Old behavior | Team-agreed new behavior | Tests / code / data / compatibility affected | Contract revision and review |
 | --- | --- | --- | --- | --- |
 | | | | | |
 
-Do not implement the assessed change before approval. Preserve the earlier baseline and the justified contract revision.
+Do not implement the assessed change until both students have agreed on its scope and the teammate has reviewed the revised contract/STS. Instructor/TA approval is not required under the later announcement. Preserve the identified baseline and the justified contract revision.
+
+## Announcement precedence and access for grading
+
+- The spec-sheet announcement overrides only the handout's Instructor/TA-approval step. It does not waive the Sprint 1 baseline, impact analysis, teammate contract review, test-first evidence, regression, release or readiness requirements.
+- Use synthetic test data. Supply safe test-account credentials through the private course handoff only; never place real passwords, tokens or production secrets in Git or the PDF.
+- Keep the assessed deployment and public repository available throughout grading.
 
 ## Red / green, regression and delivery
 
@@ -50,7 +56,7 @@ Use the actual repository, test output and workflow history retained since Lab 5
 
 | Area | Required check | Actual status / version / evidence |
 | --- | --- | --- |
-| Behavior and tests | Approved changed behavior and regression remain correct | |
+| Behavior and tests | Team-agreed changed behavior and regression remain correct | |
 | Defects / independent re-tests | Accepted findings resolved or clearly disclosed | |
 | Technical debt / required unfinished work | Distinguish a compromise from a missing required feature | |
 | Configuration / data | Safe env, migration compatibility and durable data | |
