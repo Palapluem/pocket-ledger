@@ -1,6 +1,6 @@
 # PocketLedger Sprint 1 UAT instructions: revision 2 addendum
 
-**Status: scope update, 27 November 2026.** The Product Team withdrew UAT-04 and UAT-05 from the required UAT run. The Pockit UAT Team recorded the same scope in its report (Pockit commit `e212779`, `docs/labs/lab-06/peer-uat/evidence/run.md`, "Withdrawn from revised scope"). This addendum takes effect after teammate review of PR #49.
+**Status: scope update, 27 November 2026.** The Product Team withdrew UAT-04 and UAT-05 from the required UAT run. The Pockit UAT Team recorded the same scope in its report (Pockit commit `e212779`, `docs/labs/lab-06/peer-uat/evidence/run.md`, "Withdrawn from revised scope"). This addendum takes effect after teammate review and merge of PR #50.
 
 ## Relation to the handed-over plan
 
