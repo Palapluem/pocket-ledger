@@ -38,6 +38,8 @@ export const accounts = pgTable(
 			.notNull()
 			.default(sql`0`),
 		openingDate: calendarDate("opening_date"),
+		/** D-08: optional per-payment limit in satang; only meaningful for Loan Taken accounts. */
+		paymentLimitSatang: bigint("payment_limit_satang", { mode: "bigint" }),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
@@ -49,6 +51,10 @@ export const accounts = pgTable(
 			sql`${table.openingAmountSatang} >= 0`,
 		),
 		check("accounts_currency_thb", sql`${table.currency} = 'THB'`),
+		check(
+			"accounts_payment_limit_range",
+			sql`${table.paymentLimitSatang} IS NULL OR ${table.paymentLimitSatang} BETWEEN 1 AND 100000000000`,
+		),
 	],
 );
 

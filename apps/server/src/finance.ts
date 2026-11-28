@@ -51,6 +51,15 @@ function parseOpeningAmount(value: unknown): bigint | null {
 	return amount <= MAX_OPENING_SATANG ? amount : null;
 }
 
+const PAYMENT_LIMIT_MESSAGE =
+	"Enter a limit between 0.01 and 1,000,000,000.00 THB with at most two decimal places, or clear it.";
+
+/** D-08: a payment limit is a money-format amount (0.01 to 1,000,000,000.00, no sign). */
+function parsePaymentLimit(value: unknown): bigint | null | undefined {
+	if (value === null) return null;
+	return parseAmount(value) ?? undefined;
+}
+
 /** A domain rejection: thrown inside the database transaction so nothing is written. */
 class Rejection extends Error {
 	constructor(
@@ -148,6 +157,10 @@ function accountDtos(ledger: Awaited<ReturnType<typeof loadLedger>>) {
 			openingAmount: formatAmount(a.openingAmountSatang),
 			openingDate: a.openingDate === null ? null : calendar(a.openingDate),
 			balance: formatAmount(balances.get(a.id) ?? 0n),
+			paymentLimit:
+				a.paymentLimitSatang === null
+					? null
+					: formatAmount(a.paymentLimitSatang),
 		}));
 }
 
@@ -281,6 +294,20 @@ async function saveTransaction(
 					"An allocation account type is not allowed for this form.",
 				);
 		}
+
+		// D-08: the owner-set payment limit of a Loan Taken primary account, read from the
+		// row locked above. It precedes the D-04 date bounds and the balance check.
+		if (
+			input.form === "PAYMENT" &&
+			primary.type === "LOAN_TAKEN" &&
+			primary.paymentLimitSatang !== null &&
+			input.totalSatang > primary.paymentLimitSatang
+		)
+			throw new Rejection(
+				422,
+				"PAYMENT_LIMIT_EXCEEDED",
+				`A payment from this account cannot exceed THB ${formatAmount(primary.paymentLimitSatang)}.`,
+			);
 
 		if (input.date > bangkokToday())
 			throw ruleRejection(
@@ -503,6 +530,79 @@ export function financeRoutes(deps: {
 						),
 					};
 					const result = accountDtos(updatedLedger).find(
+						(item) => item.id === updated.id,
+					);
+					if (!result) throw new Error("updated account DTO was not produced");
+					return result;
+				});
+				return json(200, accountDto);
+			} catch (error) {
+				if (error instanceof Rejection)
+					return failure(error.status, error.code, error.message);
+				throw error;
+			}
+		})
+		.put("/api/accounts/:id/payment-limit", async ({ request, params }) => {
+			const guard = await requireUser(request);
+			if (guard.error) return guard.error;
+			let body: unknown;
+			try {
+				body = await request.json();
+			} catch {
+				body = undefined;
+			}
+			const input = (body ?? {}) as Record<string, unknown>;
+			const limitSatang =
+				"paymentLimit" in input
+					? parsePaymentLimit(input.paymentLimit)
+					: undefined;
+			if (limitSatang === undefined)
+				return json(400, {
+					code: "INVALID_INPUT",
+					message: PAYMENT_LIMIT_MESSAGE,
+					field: "paymentLimit",
+				});
+			if (!UUID.test(params.id))
+				return failure(404, "NOT_FOUND", "Account not found.");
+
+			try {
+				const accountDto = await db.transaction(async (tx) => {
+					const [account] = await tx
+						.select()
+						.from(accounts)
+						.where(
+							and(
+								eq(accounts.id, params.id),
+								eq(accounts.ownerId, guard.identity.id),
+							),
+						)
+						.orderBy(asc(accounts.id))
+						.limit(1)
+						.for("update");
+					if (!account)
+						throw new Rejection(404, "NOT_FOUND", "Account not found.");
+					if (account.type !== "LOAN_TAKEN")
+						throw new Rejection(
+							422,
+							"RULE_VIOLATION",
+							"A payment limit is only available for Loan Taken accounts.",
+						);
+
+					const [updated] = await tx
+						.update(accounts)
+						.set({ paymentLimitSatang: limitSatang, updatedAt: new Date() })
+						.where(
+							and(
+								eq(accounts.id, account.id),
+								eq(accounts.ownerId, guard.identity.id),
+							),
+						)
+						.returning();
+					if (!updated)
+						throw new Rejection(404, "NOT_FOUND", "Account not found.");
+
+					const ledger = await loadLedger(tx, guard.identity.id);
+					const result = accountDtos(ledger).find(
 						(item) => item.id === updated.id,
 					);
 					if (!result) throw new Error("updated account DTO was not produced");
