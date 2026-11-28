@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
+import { schema } from "@pocket-ledger/db";
+import { eq } from "drizzle-orm";
 
 import {
 	cardCharge,
@@ -513,5 +515,322 @@ describe("TEST-10/13/14/24 / AC-10, AC-13, AC-14 and AC-24 RECEIVE behavior", ()
 		});
 		expect(await f.balances(alice)).toMatchObject({ Salary: "20000.00" });
 		expect(await f.counts()).toEqual({ transactions: 1, lines: 1 });
+	});
+});
+
+describe("TEST-29 / AC-32, AC-33 payment limit on a Loan Taken account (D-08)", () => {
+	type AccountBody = Record<string, unknown>;
+	const setLimit = (accountId: string, value: unknown, cookie = alice) =>
+		f.send("PUT", `/api/accounts/${accountId}/payment-limit`, {
+			body: { paymentLimit: value },
+			cookie,
+		});
+	const getAccount = async (accountId: string, cookie = alice) =>
+		(await (
+			await f.send("GET", `/api/accounts/${accountId}`, { cookie })
+		).json()) as AccountBody;
+	/** A Loan Taken charge whose single allocation is Dining and equals the total. */
+	const charge = (total: string, overrides: Record<string, unknown> = {}) =>
+		cardCharge(f.accounts.userA, {
+			total,
+			allocations: [{ accountId: f.accounts.userA.Dining, amount: total }],
+			...overrides,
+		});
+	const limitMessage = (amount: string) =>
+		`A payment from this account cannot exceed THB ${amount}.`;
+	const insertCarLoan = async () => {
+		const [owner] = await f.db
+			.select({ id: schema.users.id })
+			.from(schema.users)
+			.where(eq(schema.users.email, "alice@example.test"));
+		if (!owner) throw new Error("fixture user missing");
+		const [row] = await f.db
+			.insert(schema.accounts)
+			.values({
+				ownerId: owner.id,
+				key: "car-loan",
+				name: "Car loan",
+				type: "LOAN_TAKEN",
+				openingDate: "2026-11-01",
+			})
+			.returning();
+		if (!row) throw new Error("car loan insert failed");
+		return row.id;
+	};
+	const expectNothingWritten = async () => {
+		expect(await f.counts()).toEqual({ transactions: 0, lines: 0 });
+	};
+	const limitCard = async (value: string) => {
+		const res = await setLimit(f.accounts.userA["Credit card"], value);
+		expect(res.status).toBe(200);
+		return res;
+	};
+
+	test("the owner sets a payment limit and reads it back", async () => {
+		const cardId = f.accounts.userA["Credit card"];
+		const before = await getAccount(cardId);
+		const res = await setLimit(cardId, "100.00");
+		expect(res.status).toBe(200);
+		expect(await res.json()).toEqual({ ...before, paymentLimit: "100.00" });
+		expect((await getAccount(cardId)).paymentLimit).toBe("100.00");
+	});
+
+	test("a payment above the limit is rejected; equal to the limit is accepted", async () => {
+		await limitCard("100.00");
+
+		const over = await post(charge("100.01"));
+		expect(over.status).toBe(422);
+		expect(await over.json()).toMatchObject({
+			code: "PAYMENT_LIMIT_EXCEEDED",
+			message: limitMessage("100.00"),
+		});
+		await expectNothingWritten();
+		expect(await f.balances(alice)).toEqual({
+			Bank: "0.00",
+			"Credit card": "0.00",
+			Salary: "0.00",
+			Dining: "0.00",
+			Groceries: "0.00",
+		});
+		const history = await f.send("GET", "/api/transactions", {
+			cookie: alice,
+		});
+		expect(await history.json()).toEqual([]);
+
+		const equal = await post(charge("100.00"));
+		expect(equal.status).toBe(201);
+		const balances = await f.balances(alice);
+		expect(balances["Credit card"]).toBe("100.00");
+		expect(balances.Dining).toBe("100.00");
+		expect(await f.counts()).toEqual({ transactions: 1, lines: 1 });
+	});
+
+	test("a split payment is judged on its total", async () => {
+		await limitCard("100.00");
+		const a = f.accounts.userA;
+
+		const over = await post(
+			cardCharge(a, {
+				total: "100.01",
+				allocations: [
+					{ accountId: a.Dining, amount: "60.00" },
+					{ accountId: a.Groceries, amount: "40.01" },
+				],
+			}),
+		);
+		expect(over.status).toBe(422);
+		expect(await over.json()).toMatchObject({ code: "PAYMENT_LIMIT_EXCEEDED" });
+		await expectNothingWritten();
+
+		const equal = await post(
+			cardCharge(a, {
+				total: "100.00",
+				allocations: [
+					{ accountId: a.Dining, amount: "60.00" },
+					{ accountId: a.Groceries, amount: "40.00" },
+				],
+			}),
+		);
+		expect(equal.status).toBe(201);
+		expect(await f.counts()).toEqual({ transactions: 1, lines: 2 });
+	});
+
+	test("with no limit set, a large charge is accepted (default behavior)", async () => {
+		const res = await post(charge("5000000.00"));
+		expect(res.status).toBe(201);
+		const balances = await f.balances(alice);
+		expect(balances["Credit card"]).toBe("5000000.00");
+		expect(balances.Dining).toBe("5000000.00");
+	});
+
+	test("a cleared limit restores the old behavior", async () => {
+		const cardId = f.accounts.userA["Credit card"];
+		await limitCard("100.00");
+		const cleared = await setLimit(cardId, null);
+		expect(cleared.status).toBe(200);
+		expect(await cleared.json()).toMatchObject({ paymentLimit: null });
+		expect((await post(charge("1000.00"))).status).toBe(201);
+	});
+
+	test("only a payment with the limited Loan Taken primary is limited", async () => {
+		const a = f.accounts.userA;
+		await f.setOpening(a.Bank, 1_000_000n);
+		await limitCard("100.00");
+
+		expect((await post(charge("100.00"))).status).toBe(201);
+		expect((await post(charge("100.00"))).status).toBe(201);
+		expect((await post(repayment(a, "150.00"))).status).toBe(201);
+		const cashPayment = await post({
+			form: "PAYMENT",
+			primaryAccountId: a.Bank,
+			date: "2026-11-05",
+			total: "500.00",
+			allocations: [{ accountId: a.Dining, amount: "500.00" }],
+		});
+		expect(cashPayment.status).toBe(201);
+		const receipt = await post({
+			form: "RECEIVE",
+			primaryAccountId: a.Bank,
+			date: "2026-11-06",
+			total: "500.00",
+			allocations: [{ accountId: a.Salary, amount: "500.00" }],
+		});
+		expect(receipt.status).toBe(201);
+
+		expect(await f.balances(alice)).toEqual({
+			Bank: "9850.00",
+			"Credit card": "50.00",
+			Salary: "500.00",
+			Dining: "700.00",
+			Groceries: "0.00",
+		});
+	});
+
+	test("a second Loan Taken account without a limit, and another User, are unaffected", async () => {
+		const carLoanId = await insertCarLoan();
+		await limitCard("100.00");
+
+		const carCharge = await post(
+			charge("100.01", { primaryAccountId: carLoanId }),
+		);
+		expect(carCharge.status).toBe(201);
+
+		const bob = await f.login("userB");
+		const bobCharge = await post(
+			cardCharge(f.accounts.userB, {
+				total: "100.01",
+				allocations: [{ accountId: f.accounts.userB.Dining, amount: "100.01" }],
+			}),
+			bob,
+		);
+		expect(bobCharge.status).toBe(201);
+		expect((await f.balances(alice))["Credit card"]).toBe("0.00");
+	});
+
+	test("the limit is checked before date bounds and balance, after structural validation", async () => {
+		const carLoanId = await insertCarLoan();
+		await limitCard("100.00");
+		const tomorrow = addCalendarDays(bangkokDateForTest(), 1);
+
+		const futureOver = await post(charge("100.01", { date: tomorrow }));
+		expect(futureOver.status).toBe(422);
+		expect(await futureOver.json()).toMatchObject({
+			code: "PAYMENT_LIMIT_EXCEEDED",
+		});
+		await expectNothingWritten();
+
+		const futureEqual = await post(charge("100.00", { date: tomorrow }));
+		expect(futureEqual.status).toBe(422);
+		expect(await futureEqual.json()).toMatchObject({ code: "INVALID_DATE" });
+		await expectNothingWritten();
+
+		const badDate = await post(charge("100.01", { date: "2026-02-30" }));
+		expect(badDate.status).toBe(400);
+		expect(await badDate.json()).toMatchObject({
+			code: "INVALID_INPUT",
+			field: "date",
+		});
+		await expectNothingWritten();
+
+		const overWithBalanceProblem = await post(
+			charge("100.01", {
+				allocations: [{ accountId: carLoanId, amount: "100.01" }],
+			}),
+		);
+		expect(overWithBalanceProblem.status).toBe(422);
+		expect(await overWithBalanceProblem.json()).toMatchObject({
+			code: "PAYMENT_LIMIT_EXCEEDED",
+		});
+		await expectNothingWritten();
+
+		const equalWithBalanceProblem = await post(
+			charge("100.00", {
+				allocations: [{ accountId: carLoanId, amount: "100.00" }],
+			}),
+		);
+		expect(equalWithBalanceProblem.status).toBe(422);
+		expect(await equalWithBalanceProblem.json()).toMatchObject({
+			code: "INSUFFICIENT_BALANCE",
+		});
+		await expectNothingWritten();
+	});
+
+	test("anonymous and Administrator are rejected", async () => {
+		const anonymous = await f.send("POST", "/api/transactions", {
+			body: charge("100.00"),
+		});
+		expect(anonymous.status).toBe(401);
+		expect(await anonymous.json()).toMatchObject({ code: "UNAUTHENTICATED" });
+
+		const admin = await post(charge("100.00"), await f.login("admin"));
+		expect(admin.status).toBe(403);
+		expect(await admin.json()).toMatchObject({ code: "FORBIDDEN" });
+		await expectNothingWritten();
+	});
+
+	test("ownership is checked before the limit", async () => {
+		await limitCard("100.00");
+		const bob = await f.login("userB");
+
+		const res = await post(
+			cardCharge(f.accounts.userB, {
+				primaryAccountId: f.accounts.userA["Credit card"],
+				total: "100.01",
+				allocations: [{ accountId: f.accounts.userB.Dining, amount: "100.01" }],
+			}),
+			bob,
+		);
+		expect(res.status).toBe(404);
+		const body = (await res.json()) as { code: string };
+		expect(body.code).toBe("NOT_FOUND");
+		await expectNothingWritten();
+		expect((await f.balances(alice))["Credit card"]).toBe("0.00");
+	});
+
+	test("lowering a limit below earlier payments is allowed and history is unchanged", async () => {
+		expect((await post(charge("500.00"))).status).toBe(201);
+
+		await limitCard("100.00");
+		expect((await f.balances(alice))["Credit card"]).toBe("500.00");
+		const history = (await (
+			await f.send("GET", "/api/transactions", { cookie: alice })
+		).json()) as unknown[];
+		expect(history).toHaveLength(1);
+
+		const over = await post(charge("100.01"));
+		expect(over.status).toBe(422);
+		expect(await over.json()).toMatchObject({ code: "PAYMENT_LIMIT_EXCEEDED" });
+
+		expect((await post(charge("100.00"))).status).toBe(201);
+		expect((await f.balances(alice))["Credit card"]).toBe("600.00");
+	});
+
+	test("the general amount rules are unchanged", async () => {
+		await limitCard("100.00");
+		for (const total of ["1000000000.01", "100.001", "0.00"]) {
+			const res = await post(charge(total));
+			expect(res.status).toBe(400);
+			expect(await res.json()).toMatchObject({
+				code: "INVALID_INPUT",
+				field: "total",
+			});
+		}
+		await expectNothingWritten();
+	});
+
+	test("the message shows the account's own limit, not a constant", async () => {
+		const set = await limitCard("2500.50");
+		expect(await set.json()).toMatchObject({ paymentLimit: "2500.50" });
+
+		const over = await post(charge("2500.51"));
+		expect(over.status).toBe(422);
+		const body = (await over.json()) as { code: string; message: string };
+		expect(body.code).toBe("PAYMENT_LIMIT_EXCEEDED");
+		expect(body.message).toBe(limitMessage("2500.50"));
+		expect(body.message).toContain("THB 2500.50");
+		expect(body.message).not.toContain("100.00");
+		await expectNothingWritten();
+
+		expect((await post(charge("2500.50"))).status).toBe(201);
 	});
 });

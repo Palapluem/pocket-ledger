@@ -292,3 +292,68 @@ test.describe("TEST-10/13/14/23 / opening balance and salary receive journey", (
 		await expect(page.getByText("Salary · ฿20000.00")).toBeVisible();
 	});
 });
+
+test.describe("TEST-30 / AC-34 payment limit in the browser", () => {
+	test("the owner sets, enforces and clears a limit on the Loan Taken card", async ({
+		page,
+	}) => {
+		await signIn(page, E2E_USERS.limit);
+		await page.goto("/accounts");
+
+		// Only the Loan Taken card has a limit editor, and it starts unrestricted.
+		await expect(
+			page.getByRole("heading", { name: "Payment limit" }),
+		).toHaveCount(1);
+		await expect(page.getByText("No limit")).toBeVisible();
+
+		// Invalid input shows the server's 400 message.
+		await page.getByLabel("Payment limit amount (THB)").fill("abc");
+		await page.getByRole("button", { name: "Save payment limit" }).click();
+		await expect(page.getByRole("alert")).toHaveText(
+			"Enter a limit between 0.01 and 1,000,000,000.00 THB with at most two decimal places, or clear it.",
+		);
+
+		// A valid limit is saved and confirmed by a fresh account read.
+		await page.getByLabel("Payment limit amount (THB)").fill("100.00");
+		const confirmedRead = page.waitForResponse(
+			(response) =>
+				response.request().method() === "GET" &&
+				/\/api\/accounts\/[^/]+$/.test(new URL(response.url()).pathname),
+		);
+		await page.getByRole("button", { name: "Save payment limit" }).click();
+		const read = await confirmedRead;
+		expect(read.status()).toBe(200);
+		expect(await read.json()).toMatchObject({ paymentLimit: "100.00" });
+		await expect(page.getByRole("status")).toHaveText(
+			"Payment limit saved and retrieved from the account record.",
+		);
+		await expect(page.getByText("฿100.00").first()).toBeVisible();
+
+		// An over-limit payment is rejected with the server message and no state change.
+		await fillPayment(page, CARD, "100.01", [[DINING, "100.01"]]);
+		await page.getByRole("button", { name: "Save" }).click();
+		await expect(page.getByRole("alert")).toHaveText(
+			"A payment from this account cannot exceed THB 100.00.",
+		);
+		await expect(page).toHaveURL(/\/transactions\/new$/);
+		await page.goto("/overview");
+		await expect(page.getByTestId("balance-Credit card")).toHaveText("0.00");
+		await expect(page.getByText("No transactions yet.")).toBeVisible();
+
+		// A payment equal to the limit is accepted.
+		await fillPayment(page, CARD, "100.00", [[DINING, "100.00"]]);
+		await page.getByRole("button", { name: "Save" }).click();
+		await expect(page).toHaveURL(/\/overview$/);
+		await expect(page.getByTestId("balance-Credit card")).toHaveText("100.00");
+
+		// Clearing the limit removes the restriction.
+		await page.goto("/accounts");
+		await page.getByRole("button", { name: "Clear payment limit" }).click();
+		await expect(page.getByRole("status")).toHaveText("Payment limit cleared.");
+		await expect(page.getByText("No limit")).toBeVisible();
+		await fillPayment(page, CARD, "100.01", [[DINING, "100.01"]]);
+		await page.getByRole("button", { name: "Save" }).click();
+		await expect(page).toHaveURL(/\/overview$/);
+		await expect(page.getByTestId("balance-Credit card")).toHaveText("200.01");
+	});
+});
