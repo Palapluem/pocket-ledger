@@ -1,6 +1,6 @@
 # Software Requirements Specification
 
-PocketLedger, draft 0.3, updated 22 November 2026. This baseline translates Theme 7 into identified requirements. Assignment-defined behavior is required; policy choices are agreed only where [team decisions](decisions.md) marks them agreed; anything still open requires team review before affected implementation.
+PocketLedger, draft 0.4, updated 28 November 2026. Revision 0.4 (Lab 7, D-08, draft pending teammate review) revises BR-10 and adds BR-14 for card charges; revision 0.3 (22 November 2026) is the accepted Sprint 1 text. This baseline translates Theme 7 into identified requirements. Assignment-defined behavior is required; policy choices are agreed only where [team decisions](decisions.md) marks them agreed; anything still open requires team review before affected implementation.
 
 ## Context and actors
 
@@ -28,7 +28,7 @@ Sprint 1 is the agreed usable journey described in the sprint plan, not the enti
 | FR-02 | An Administrator can inspect platform user identities and enable or disable a user without reading their finances | F-02 |
 | FR-03 | A User can create and manage owned financial accounts across all five account types | F-03 |
 | FR-04 | A User can establish opening balances with a defined effective date and inspect their effect separately from income/expense | F-03 |
-| FR-05 | A User can make a payment or record a charge from Cash or Loan Taken, allocating the total to the assignment-defined destination categories | F-05 |
+| FR-05 | A User can make a payment or record a charge from Cash or Loan Taken, allocating the total to the assignment-defined destination categories. A card charge above THB 100,000.00 is rejected (BR-14, D-08; revision 0.4) | F-05 |
 | FR-06 | A User can receive money into Cash, allocating the total to income, loan repayments received, new borrowing or transfers | F-04 |
 | FR-07 | A User can retrieve correct account balances, receivables and debts after a committed transaction | F-06 |
 | FR-08 | A User can inspect income/expense and category summaries for a defined date range | F-06 |
@@ -50,10 +50,11 @@ Sprint 1 is the agreed usable journey described in the sprint plan, not the enti
 | BR-07 | Validation or persistence failure leaves no partial transaction or balance effect | Atomic design required for correct results; D-03/D-07 |
 | BR-08 | Dates, opening cut-offs and reporting boundaries follow one explicit policy | D-04 |
 | BR-09 | A duplicate is a separate editable record; saving it does not change the source | Assignment requirement; save/retry policy in later contract |
-| BR-10 | Money precision, valid range, amount signs and rounding are explicit; invalid amounts are rejected without silent rounding | D-03 |
+| BR-10 | Money precision, valid range, amount signs and rounding are explicit; invalid amounts are rejected without silent rounding. Revision 0.4: the 0 < total ≤ 1,000,000,000.00 range applies to every transaction, and BR-14 adds a stricter limit for card charges only. Before revision 0.4, no limit applied to a card charge beyond that range. | D-03; D-08 |
 | BR-11 | A disabled identity cannot sign in; effect on an already-issued credential follows the D-05 limits | D-05 |
 | BR-12 | Re-running setup does not overwrite existing personal financial activity | Reproducibility safeguard |
 | BR-13 | A transaction form sends no automatic retry; it disables further submission while a request is pending and directs the user to check history after an ambiguous result before manually retrying. Sprint 1 does not guarantee server-side exactly-once creation | D-04 |
+| BR-14 | (Revision 0.4, Lab 7) A card charge, meaning a `PAYMENT` whose primary account is Loan Taken, with a total greater than THB 100,000.00 is rejected with `422 PAYMENT_LIMIT_EXCEEDED` and writes nothing; a total of exactly 100,000.00 is accepted. The limit is fixed, applies when the transaction is created, and does not apply to a Cash `PAYMENT` or to `RECEIVE`. Reason: risk control; a larger purchase is split or paid by another form. Existing saved transactions are unchanged | D-08 (revises D-03 for card charges) |
 
 ## Non-functional requirements and verification targets
 

@@ -19,6 +19,7 @@ This is the single decision register for PocketLedger. Assignment requirements a
 | D-05 Authentication and deactivation | Wisit + Natthawat | JWT model, 3600 s, HS256/`jose`, and key source/rotation/retention AGREED; Origin/CSRF policy DEFERRED as a known limitation of the current public deployment; revisit in a future security review | Identity, authorization and administrator contract |
 | D-06 Sprint 1 scope and feature ownership | Wisit + Natthawat | AGREED: F-03/F-04 Wisit, F-05/F-06 Natthawat, with cross-review | Sprint plan and implementation Issues |
 | D-07 Public interfaces and verification | Wisit + Natthawat | Sprint 1 example journey, baseline routes/DTOs and verification approach AGREED; feature-specific changes remain reviewed in their PRs | API/data/UI contract and STS |
+| D-08 Card charge cap (Lab 7 change; revises D-03 for card charges only) | Wisit + Natthawat | PROPOSED 28 November 2026 by Natthawat; Wisit's agreement date to be recorded after teammate review of the contract revision. Not implemented | Sprint 1 contract F-05 (AC-29 to AC-33), System SDS, STS TEST-29/30, `apps/server/src/finance.ts` |
 
 ## D-01 Team identifiers and rotating work
 
@@ -45,6 +46,8 @@ The required property is atomicity: a rejected or failed transaction leaves no p
 - Allocation: at least one allocation line; the allocation sum must equal the transaction total exactly. Every referenced account belongs to the acting User, and each allocation account type must be allowed for that form by the System SDS effect table. No line may reference the primary account, and an account may appear in at most one line of a transaction. Mixed lines of different allowed types are allowed.
 - No negative balances: a transaction is rejected (422) if it would make a Cash account balance below zero, or reduce a Loan Taken (debt) or Loan Given (receivable) balance below zero (no overpayment). The check runs inside the same database transaction as the write, against locked current balances.
 - Atomic rejection: any validation, ownership or balance failure writes nothing; a persistence failure rolls back the whole request. The draft Sprint 1 journey uses only the documented salary, split card purchase and bank-to-card repayment cases.
+
+**Revision (28 November 2026, D-08):** the single-amount maximum above applies unchanged to every transaction except a card charge. A card charge (a `PAYMENT` whose primary account is Loan Taken) is additionally limited to THB 100,000.00 by D-08. The original D-03 wording is kept as the accepted Sprint 1 baseline (release `37593da`).
 
 ## D-04 Dates, opening balances and correction boundary
 
@@ -74,6 +77,20 @@ The System SDS and Sprint 1 contract define the agreed baseline route names, DTO
 
 Use unit checks for financial logic, API tests against an isolated real database for persistence/access/atomicity, and selected browser journeys for the required user workflow. A screenshot, a mock-only test or an AI claim is not proof of persistence or backend privacy. Actual test paths, results and red/green commits remain blank until executable tests exist and run.
 
+## D-08 Card charge cap (Lab 7 maintenance change)
+
+Proposed by Natthawat on 28 November 2026 as the team's Lab 7 change to behavior already implemented in Sprint 1. It revises D-03 for card charges only. Wisit's agreement date is recorded in the revision table below once given; until both students have agreed and the teammate has reviewed the contract revision, this decision is not accepted and nothing is implemented.
+
+- **Old rule (D-03 / BR-10 / AC-16, as implemented at `37593da`):** every transaction total is greater than 0 and at most THB 1,000,000,000.00, with no further limit on a card charge.
+- **New rule:** a card charge is a `PAYMENT` whose primary account is Loan Taken. If its total is greater than THB 100,000.00 (10,000,000 satang), the request is rejected with `422 PAYMENT_LIMIT_EXCEEDED`. Nothing is written and no balance changes. A total of exactly 100,000.00 is accepted; 100,000.01 is rejected.
+- **Fixed, not configurable:** the cap is a single constant for every card and every user. A user-configurable per-card limit is not part of this change (see backlog below).
+- **Unchanged:** a `PAYMENT` from any other primary account (Cash) and every `RECEIVE` keep the 1,000,000,000.00 cap. A total above 1,000,000,000.00, with more than two decimals, or at most 0 still returns `400 INVALID_INPUT` before the card cap is considered. Balance formulas, the effect matrix, date rules, ownership and the Administrator boundary do not change.
+- **Check order:** authentication (401) and role (403, Administrator), structural validation (400), owner-scoped account lookup (404), allocation and form/type checks, then the card cap, then the balance check. An over-limit card charge therefore always returns `PAYMENT_LIMIT_EXCEEDED`, never `INSUFFICIENT_BALANCE`, and a foreign or unknown account is `404` regardless of the amount.
+- **When it applies:** on creating a transaction only. Existing transactions (including any card charge above the cap saved before this change) are not modified, remain readable and keep contributing to derived balances. Later correction (F-07) and duplicate (F-08) saves must apply the same cap when they create or change a card charge; their contracts must say so.
+- **Reason:** a risk-control policy. A single card purchase above THB 100,000.00 is more likely to be an entry error than a real purchase, so it must be split into several charges or paid by another form (for example from a Cash account). This is a team policy choice, not an assignment requirement.
+- **No migration:** the rule is a constant in application code and adds no stored field. The database `transactions_total_max` CHECK stays at 1e11 satang because Cash payments and receipts still allow up to THB 1,000,000,000.00, and a per-row CHECK cannot depend on the primary account's type without a cross-table rule.
+- **Backlog / technical debt (out of Lab 7 scope):** a user-configurable per-card limit. It would need a new endpoint, a migration and account editing, which overlaps the Sprint 2 account-management contract (Issue #46). It is not decided here.
+
 ## Agreement and revision record
 
 | Decision | Agreed answer and rationale | Team confirmation / source | Date / contract revision |
@@ -85,5 +102,6 @@ Use unit checks for financial logic, API tests against an isolated real database
 | D-05 | Stateless JWT, accepted logout/account-change limits, 3600-second lifetime, HS256/`jose`, and secret-store/manual-rotation/no-old-key policy agreed; current Origin guard remains optional hardening; Origin/CSRF policy is deferred and disclosed as a known limitation of the current public deployment | Both students accepted the stateless-token limits; Wisit accepted the key policy on 15 November; request protection is deferred by Wisit | 15 November 2026 |
 | D-06 | F-01 to F-06 Sprint 1 boundary with Wisit on F-03/F-04 and Natthawat on F-05/F-06 | Natthawat's PR #15 proposal; Wisit accepted on 15 November | 15 November 2026 |
 | D-07 | Agreed Sprint 1 journey and expected-value fixture (opening bank 10,000; salary 20,000; card purchase 1,200 split 700/500; repayment 500), baseline routes/DTOs and verification approach; feature-specific changes reviewed in their PRs | Natthawat's PR #15 proposal; Wisit accepted on 15 November | 15 November 2026 |
+| D-08 | Card charge (PAYMENT with a Loan Taken primary account) total above THB 100,000.00 is rejected with `422 PAYMENT_LIMIT_EXCEEDED`; exactly 100,000.00 is accepted; Cash PAYMENT and RECEIVE keep the D-03 cap; fixed constant, create only, no migration; revises D-03 for card charges only. Baseline before the change: `37593da` | Proposed by Natthawat; Wisit's agreement: [date to be recorded] | 28 November 2026, contract revision 1.3 (draft) |
 
 Historical status snapshot (after PR #15, before the later F-01–F-06 implementation PRs): the D-01 to D-07 choices and runtime pins were accepted; the course section was still unconfirmed; Issues #11 and #13 still represented incomplete identity/administration work. PR #4 established the documentation baseline, PR #5 recorded the selected stack, and PR #6 added the initial auth/setup proposal. PR #7 was approved by Palapluem and merged into `sprint-1-staging` at `3e8bc5f` as a session-policy/API proposal, later superseded by the JWT decision in PR #9. This dated snapshot is retained as history, not current status. As of 16 November, PRs #18, #19, #22, #23 and #25 are integrated into `sprint-1-staging` at `53c20ff`; PR #25 was approved by N0TAW00D, and CI #59 passed on its head `420c6bd`. Issues #20 and #21 are closed. `main` was then still bootstrap `a4cced2`; the accepted release followed on 19 Nov (`docs/releases.md`). PR #24 was closed unmerged; its D-05 policy remains deferred.

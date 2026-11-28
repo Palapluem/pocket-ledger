@@ -1,6 +1,6 @@
 # Sprint 1 Software Test Specification and results
 
-Draft 0.18, updated 22 November 2026. **TEST-27 passed on the accepted `main` release `265c995` (release PR #32): 131 server tests and 13 E2E tests, plus the production-server smoke and Theme 7 journey, recorded below.** Earlier history: Historical PR #12/#14 runs and integrated PR #15/#22/#25 results remain recorded below. PR #25 for Issue #20 was approved by N0TAW00D and merged to `sprint-1-staging` at `53c20ff`; CI #59 passed on its PR head `420c6bd` (125 server tests / 518 assertions across 14 files, 11 browser E2E tests, type checks, Biome, web build and production Docker image build). A separate clean-checkout TEST-27 run passed on the merged staging SHA `53c20ff`; the exact setup and outcomes are recorded below. Those staging results were superseded by the release-matched TEST-27 above. The PD1 report assembles the Part F evidence. Lab 5 owns deployment/redeployment proof. D-05 Origin/CSRF request protection remains deferred; PR #24 was closed unmerged.
+Draft 0.19, updated 28 November 2026. Revision 0.19 plans TEST-29 and TEST-30 for the Lab 7 card-charge cap (D-08, contract revision 1.3, draft); both are NOT WRITTEN and NOT RUN, so no result is claimed. Draft 0.18, updated 22 November 2026. **TEST-27 passed on the accepted `main` release `265c995` (release PR #32): 131 server tests and 13 E2E tests, plus the production-server smoke and Theme 7 journey, recorded below.** Earlier history: Historical PR #12/#14 runs and integrated PR #15/#22/#25 results remain recorded below. PR #25 for Issue #20 was approved by N0TAW00D and merged to `sprint-1-staging` at `53c20ff`; CI #59 passed on its PR head `420c6bd` (125 server tests / 518 assertions across 14 files, 11 browser E2E tests, type checks, Biome, web build and production Docker image build). A separate clean-checkout TEST-27 run passed on the merged staging SHA `53c20ff`; the exact setup and outcomes are recorded below. Those staging results were superseded by the release-matched TEST-27 above. The PD1 report assembles the Part F evidence. Lab 5 owns deployment/redeployment proof. D-05 Origin/CSRF request protection remains deferred; PR #24 was closed unmerged.
 
 ## Independent fixture and expected values
 
@@ -49,6 +49,56 @@ U = domain unit; I = HTTP API with a real isolated test database; E = browser jo
 | TEST-26 / AC-26 / I+M; `apps/server/tests/persistence.integration.test.ts` (exists, #21) | Save opening balance through the API, then save the salary, card-charge and repayment journey through the production `src/index.ts` process; stop it, start a new process against the same database, then retrieve the same IDs, full history and summary | The process IDs differ while the API-written opening balance, persisted records and independent balances remain identical; Lab 5 adds redeployment proof |
 | TEST-27 / AC-27 / M; clean-checkout setup record | Clean checkout, placeholder-only environment, migrate/seed/build/run tests | **PASS on the accepted `main` release `265c995`** (20 Nov 2026), and earlier on staging SHA `53c20ff`. The exact commands and results for both are recorded below. |
 | TEST-28 / AC-28 / E; `e2e/sprint-1/money-journey.spec.ts` (payment and receive forms) | Delay each form's transaction POST and activate Submit again while pending. For the ambiguous-outcome case, let the API commit and return 201, drop the browser response, then load transaction history | Each form sends one request while pending and does not automatically retry. After the dropped response, a fresh history read shows exactly one additional saved transaction and the UI directs the User to check history before any deliberate retry. This tests client behavior only and does not claim server-side exactly-once processing |
+| TEST-29 / AC-29 to AC-32 / I; `apps/server/tests/transactions.api.test.ts` (planned, Lab 7, D-08; NOT WRITTEN) | Real isolated database fixture. Card charge totals 100,000.00 and 100,000.01; Cash PAYMENT and RECEIVE of 100,000.01; precedence with a would-be-negative allocation; User B, Administrator and anonymous callers. Exact cases below | 100,000.00 card charge: 201. 100,000.01 card charge: 422 `PAYMENT_LIMIT_EXCEEDED`, no rows, balances unchanged. Cash PAYMENT and RECEIVE of 100,000.01: 201. Over-limit plus overdraw: still `PAYMENT_LIMIT_EXCEEDED`. B: 404; Administrator: 403; anonymous: 401 |
+| TEST-30 / AC-33 / E; `e2e/sprint-1/money-journey.spec.ts` (planned, Lab 7, D-08; NOT WRITTEN) | In the existing payer journey, submit a 100,000.01 card charge from the browser after the D-03 overdraw step, then reload | The alert shows "A card charge cannot exceed THB 100,000.00."; the URL stays on the form; after reload the balances and history are exactly the prior values |
+
+## Lab 7 planned tests: card-charge cap (D-08)
+
+Status: **planned only; NOT WRITTEN, NOT RUN.** These tests are agreed before any code under the contract-first rule. Baseline for the red run: accepted release `37593da1cb3cd881e6b22845a2b4a929dbf6bc8e` (PD1 `265c995` is code-identical; later commits change documentation only). No result is recorded here.
+
+### Red-test design choice
+
+The cap needs no stored limit, so the tests use only things that already exist at `37593da`: the `financeFixture` helper (starter accounts with opening date 2026-11-01), the existing `cardCharge`, `repayment` and `salary` builders, `f.setOpening`, `f.counts`, `f.balances` and the public `POST /api/transactions` route. They therefore compile and run unchanged on `37593da`. The intended red is behavioral: the old code accepts a 100,000.01 card charge, so the over-limit tests fail on their assertions (`Expected: 422, Received: 201`), not on a missing route, missing column, type error or fixture failure. The limit is not set through any API or database column, because none is part of this change. Independent expected values are written as literals in the test, never computed with the production balance helper.
+
+### TEST-29: `apps/server/tests/transactions.api.test.ts`, `describe("TEST-29 / AC-29 to AC-32 card-charge cap (D-08)")`
+
+Common setup: `financeFixture()`; `alice = login("userA")`. Starter accounts have opening 0 and opening date 2026-11-01. A card charge needs no funds because it increases the card debt. The helper `cardCharge(f.accounts.userA, { total, allocations: [{ accountId: Dining, amount }] })` is used with date 2026-11-03.
+
+| Case (test name) | Setup and request | Assertions | On `37593da` (red run) |
+| --- | --- | --- | --- |
+| a. `100,000.00 card charge is accepted` | Alice charge: total `100000.00`, allocation Dining `100000.00` | status 201; body total `100000.00`; `f.balances(alice)`: Credit card `100000.00`, Dining `100000.00`, Bank `0.00`; `f.counts()` `{ transactions: 1, lines: 1 }`; `GET /api/transactions/:id` returns the same total | PASS (boundary guard; it must pass before and after) |
+| b. `100,000.01 card charge is rejected with PAYMENT_LIMIT_EXCEEDED and no effect` | Alice charge: total `100000.01`, Dining `100000.01` | status 422; body `code` = `PAYMENT_LIMIT_EXCEEDED` and `message` = "A card charge cannot exceed THB 100,000.00."; `f.counts()` `{ transactions: 0, lines: 0 }`; balances: Credit card, Dining and Bank all `0.00`; fresh `GET /api/transactions` is `[]` | **FAIL**: `Expected: 422, Received: 201` (intended red) |
+| c. `a split card charge totalling 100,000.01 is rejected` | Alice charge: total `100000.01`, Dining `60000.00` plus Groceries `40000.01` | 422 `PAYMENT_LIMIT_EXCEEDED`; counts and balances as in b | **FAIL**: `Expected: 422, Received: 201` (the cap applies to the total, not to a line) |
+| d. `over-limit is reported before insufficient balance` | Insert a second Loan Taken account for Alice directly in the fixture database (`schema.accounts`, key `card-2`, opening 0, opening date 2026-11-01). Alice charge: primary Credit card, total `100000.01`, allocation to the second card `100000.01` (a repayment that would make it negative) | 422 `PAYMENT_LIMIT_EXCEEDED`; counts `{0,0}`; both card balances `0.00` | **FAIL** on the code assertion: received 422 with `INSUFFICIENT_BALANCE` (status matches, code differs) |
+| e. `Cash PAYMENT of 100,000.01 is still accepted` | `f.setOpening(Bank, 20_000_000n)` (200,000.00); Alice `PAYMENT` primary Bank, total `100000.01`, allocation Dining `100000.01` | 201; Bank `99999.99`; Dining `100000.01`; counts `{1,1}` | PASS (scope guard) |
+| f. `RECEIVE of 100,000.01 is still accepted` | Alice `RECEIVE` into Bank, total `100000.01`, allocation Salary `100000.01` | 201; Bank `100000.01`; Salary `100000.01`; counts `{1,1}` | PASS (scope guard) |
+| g. `amounts above the general maximum are still 400` | Card charge total `1000000000.01`; and total `100000.001` | each 400 `INVALID_INPUT` with `field: "total"`; counts `{0,0}` | PASS (precedence guard; the existing TEST-16 above-the-maximum case also covers this) |
+| h. `another User cannot reach the card through the cap` | Bob (`userB`) posts a card charge of `100000.01` whose primary is Alice's Credit card | 404 `NOT_FOUND`; Alice's and Bob's counts `{0,0}`; Alice's balances `0.00`; response has no `PAYMENT_LIMIT_EXCEEDED` | PASS (guard; also 404 on the old code) |
+| i. `Administrator and anonymous are rejected before the cap` | Administrator posts the 100,000.01 charge with Alice's IDs; then a request without a cookie | 403 `FORBIDDEN`; 401 `UNAUTHENTICATED`; counts `{0,0}` | PASS (guard) |
+
+Expected red result on `37593da`: cases b, c and d fail; a, e, f, g, h and i pass. If any guard case fails on `37593da`, the red run is invalid (an environment or fixture fault) and must be repaired before the result is recorded. The green run must pass all nine cases, and the whole existing suite (see regression below) must still pass with no edit to an existing expected value.
+
+### TEST-30: `e2e/sprint-1/money-journey.spec.ts`
+
+Add one step to the existing payer test (`TEST-17/19/22`): after the D-03 overdraw step and before the final fresh read, call `fillPayment(page, CARD, "100000.01", [[DINING, "100000.01"]])`, click Save, expect `page.getByRole("alert")` to have text `A card charge cannot exceed THB 100,000.00.` and the URL to remain `/transactions/new`. The existing final assertions (Credit card `1,200.00`, Bank `0.00`, one history entry) then prove the rejected charge left no effect. An accepted 100,000.00 charge is deliberately not added to this journey (it would change the shared payer's balances); it is covered by TEST-29a. On `37593da` this step fails because the save succeeds and the page navigates to `/overview` with no alert (and the later fresh-read assertions would also fail). It uses the existing disposable E2E database and the existing payer user; no new fixture user is needed. The optional hint under Total is not asserted.
+
+### Regression guard
+
+The behavior that must remain unchanged is protected by these existing tests; none of their expected values changes in this revision. A grep of `apps/server/tests`, `e2e` and `scripts` found no existing card charge above 1,200.00; the only large amounts are the 1,000,000,000.00 boundary cases, which are structural (400) and unaffected.
+
+| Protected behavior | Existing TEST IDs and files |
+| --- | --- |
+| Card charge of 1,200 split 700/500, debt and Expense effects | TEST-17 (`transactions.api.test.ts`, `money-journey.spec.ts`), TEST-22 (`summary.api.test.ts`, `money.unit.test.ts`) |
+| Repayment from Cash, no overpayment, no overdraft (`INSUFFICIENT_BALANCE`) | TEST-18, TEST-15 (`transactions.api.test.ts`) |
+| Allocation mismatch and atomic rejection | TEST-19, TEST-20 (`transactions.atomicity.test.ts`), TEST-14 |
+| Amount range, scale, sign and 1,000,000,000.00 maximum (400) | TEST-16 (`money.unit.test.ts` `parseAmount`, `transactions.api.test.ts`) |
+| RECEIVE salary and date rules | TEST-13, TEST-24 |
+| Ownership, Administrator denial | TEST-12, TEST-21, TEST-08 (`ownership.api.test.ts`, `accounts.api.test.ts`) |
+| History, summary and persistence reads | TEST-23, TEST-26, TEST-11 |
+| Single submission, no automatic retry | TEST-28 (`money-journey.spec.ts`) |
+| Clean setup, seed and full suite | TEST-27 (repeated on the Lab 7 release) |
+
+Design constraint implied by the regression guard: `parseAmount` and `MAX_AMOUNT_MINOR` in `money.ts` must not change, because `money.unit.test.ts` pins the 1,000,000,000.00 boundary for all forms; the cap is a separate check in `saveTransaction`.
 
 ## Test execution and isolation
 
@@ -66,6 +116,7 @@ First select a meaningful allocation/financial rule and a role/ownership restric
 | Cross-owner financial access, TEST-21 (`ownership.api.test.ts`) | Tests first at `6db753a` (expected 201 for A's own charge, received 404: no endpoint). Intended red by mutation on `ba5e2dc`: owner scope removed from the account lock query, `bun test apps/server/tests/ownership.api.test.ts -t "cannot charge"` → `Expected: 404, Received: 201`, 0 pass / 1 fail; mutation reverted, not committed | `8c32ad5`; `bun test apps/server` → 106 pass, 0 fail |
 | F-06 loading/failure feedback, TEST-25 (`overview-feedback.spec.ts`) | Tests first at `6afc291`; `bun run build:web && bunx playwright test e2e/sprint-1/overview-feedback.spec.ts` → 0 pass / 2 fail because the loading status and failure alert were absent | `6be7476` adds loading status and safe retryable failure feedback; same command → 2 pass. Fixture-backed responses prove UI feedback only |
 | Persistence across process restart, TEST-26 (`persistence.integration.test.ts`) | Sensitivity mutation on `6afc291` resets the disposable fixture database between process starts; `bun test apps/server/tests/persistence.integration.test.ts` → 0 pass / 1 fail because saved identifiers differ. Mutation was reverted and not committed | `6afc291`; same command → 1 pass; the test runs production `src/index.ts` as a new OS process and verifies the full financial fixture after restart |
+| Card-charge cap, TEST-29/30 (Lab 7, D-08) | **PLANNED, NOT RUN.** Test-only commit on top of `37593da`/staging; `bun test apps/server/tests/transactions.api.test.ts -t "TEST-29"`; intended failure `Expected: 422, Received: 201` in cases b and c, and a wrong error code in case d (see the Lab 7 section above) | **PLANNED, NOT RUN.** Implementation commit and the same command; then `bun test apps/server`, `bun run test:e2e` and the CI run |
 
 ## Actual verification results
 

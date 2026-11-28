@@ -1,6 +1,6 @@
 # System-Level Software Design Specification
 
-Draft 0.10, updated 22 November 2026. Better T Stack and first-party stateless JWT for Sprint 1 seeded-user authentication are selected. Both students accepted D-01 to D-07 through PR #15 at `98afb3b`. The F-01–F-06 Sprint 1 increment is integrated into `sprint-1-staging` at `53c20ff`; PR #25 was approved by N0TAW00D, and CI #59 passed on its head `420c6bd`. Clean-checkout TEST-27 also passed on `53c20ff`. These checks are staging evidence, not an accepted release. The team is in Section 1 (regular program). PR #24, which proposed an Origin/CSRF policy, was closed unmerged; the policy remains deferred and is disclosed as a known limitation of the current public deployment. The accepted Sprint 1 release on `main` is `265c995` (release PR #32; see `docs/releases.md`), and release-matched TEST-27 passed on it. Release PR #38 then advanced `main` to `37593da`, which deploys the same application code with only a TEST-28 test fix and documentation (`docs/releases.md`). The PD1 submission remains outstanding. The SRS defines required product behavior.
+Draft 0.11, updated 28 November 2026. Revision 0.11 (Lab 7, D-08, draft pending teammate review) adds a fixed card-charge cap to the money rules, the `POST /api/transactions` contract and the error list; no data-model or migration change. The text below is otherwise the draft 0.10 baseline. Draft 0.10 summary: Better T Stack and first-party stateless JWT for Sprint 1 seeded-user authentication are selected. Both students accepted D-01 to D-07 through PR #15 at `98afb3b`. The F-01–F-06 Sprint 1 increment is integrated into `sprint-1-staging` at `53c20ff`; PR #25 was approved by N0TAW00D, and CI #59 passed on its head `420c6bd`. Clean-checkout TEST-27 also passed on `53c20ff`. These checks are staging evidence, not an accepted release. The team is in Section 1 (regular program). PR #24, which proposed an Origin/CSRF policy, was closed unmerged; the policy remains deferred and is disclosed as a known limitation of the current public deployment. The accepted Sprint 1 release on `main` is `265c995` (release PR #32; see `docs/releases.md`), and release-matched TEST-27 passed on it. Release PR #38 then advanced `main` to `37593da`, which deploys the same application code with only a TEST-28 test fix and documentation (`docs/releases.md`). The PD1 submission remains outstanding. The SRS defines required product behavior.
 
 ## Architecture and responsibilities
 
@@ -25,7 +25,7 @@ Balances are derived from opening balances and persisted transaction/allocation 
 | UserAccount | id, email, displayName, passwordHash, role, enabled, timestamps | Unique normalized identity; User or Administrator; no plaintext password |
 | JWT credential | sub, displayName, role, iss, aud, iat, exp claims | Signed, not encrypted; held in an HttpOnly cookie and not persisted as a server-side session; existing claims remain effective until expiry while the signing key is accepted |
 | FinancialAccount | id, ownerId, name, type, currency, openingAmountMinor, openingDate | Five required types; owner is a User; opening policy D-03/D-04 |
-| FinancialTransaction | id, ownerId, form, primaryAccountId, date, totalMinor, memo, createdAt | Positive exact total under D-03; supported form; primary account owned by same User |
+| FinancialTransaction | id, ownerId, form, primaryAccountId, date, totalMinor, memo, createdAt | Positive exact total under D-03; supported form; primary account owned by same User; revision 0.11: no new field. The card-charge cap (D-08) is enforced in application code, and the database total CHECK (at most 1e11 satang) is unchanged because Cash payments and receipts still allow it |
 | AllocationLine | id, transactionId, accountId, amountMinor, position | Positive exact amount; all accounts owned by transaction owner; sum equals total |
 | Favourite / correction records | Future contract fields | Allocate in S2/S3; no unreviewed schema or implemented behavior claimed |
 
@@ -50,6 +50,12 @@ Agreed D-03 in PR #15 specifies THB with two decimal places, amounts greater tha
 | Receive allocation | Cash | Minus allocation (transfer sent) |
 
 Income/expense summaries include only their relevant classification effects within the inclusive Asia/Bangkok calendar-date range agreed in D-04. Opening balances, transfers, borrowing and debt repayments are excluded. A transaction date must be on or after the opening date of its primary account and every referenced balance-bearing account (Cash, Loan Taken or Loan Given), and no later than today. Income/Expense classification accounts do not impose an opening-date cutoff. An opening balance/date can be revised after activity only if no resulting balance is negative and no existing transaction falls before the revised opening date; the change recalculates derived history and creates no separate audit event in Sprint 1. The PAYMENT allocation rows apply to both a Cash and a Loan Taken primary account; for example, a card charge allocates to Expense, and a bank-to-card repayment is a PAYMENT from Cash allocated to the card (Loan Taken). Allocation rules (D-03): at least one line; each line references a different owned account; no line references the primary account; mixed lines of different allowed types in one transaction are allowed (for example Expense plus Loan Taken repayment); any other form/type combination, including an Income or Expense primary account, is rejected. Sprint 1 tests the salary, card-charge and repayment combinations; Sprint 2 completes tests for the remaining allowed combinations.
+
+### Card-charge cap (D-08, revision 0.11)
+
+A card charge is a `PAYMENT` whose primary account is Loan Taken. Its total must be at most THB 100,000.00 (`MAX_CARD_CHARGE_SATANG` = 10,000,000n, a fixed constant in the server's finance module; there is no per-account value). A larger total is rejected with `422 PAYMENT_LIMIT_EXCEEDED` and the whole request writes nothing. The cap compares the already-parsed exact satang total, so 100,000.00 is accepted and 100,000.01 is rejected. It does not apply to a `PAYMENT` from a Cash primary account or to any `RECEIVE`; those keep the D-03 maximum of 1,000,000,000.00. The general amount parser, the 400 `INVALID_INPUT` outcomes and the effect matrix above are unchanged. Applied only when a transaction is created; existing rows are not re-validated.
+
+Validation order inside `saveTransaction` (new step marked): structural validation of the body (400, before the transaction); owner-scoped, locked account lookup (404 for a foreign or unknown ID); distinct-line and primary-line check (`INVALID_ALLOCATION`); allocation sum (`ALLOCATION_MISMATCH`); primary and allocation type checks (`INCOMPATIBLE_ACCOUNT`); **card cap (`PAYMENT_LIMIT_EXCEEDED`, new)**; date checks (`INVALID_DATE`); balance check (`INSUFFICIENT_BALANCE`). Authentication (401) and the Administrator role check (403) precede all of these. Because the cap precedes the balance check, an over-limit card charge never reports `INSUFFICIENT_BALANCE`.
 
 ## Role and ownership matrix
 
@@ -81,7 +87,7 @@ Keep real credentials outside Git and the report. The first implementation suppl
 | Transaction history/detail | User retrieves saved records and allocations | Empty, loaded, safe inaccessible record, load failure |
 | Platform users | Administrator sees identities and enables/disables under the agreed policy | Loading, loaded, rejected operation, success; no financial navigation |
 
-Agreed baseline route labels are /login, /overview, /accounts, /transactions/new, /transactions, and /admin/users under D-07; feature PRs review any refinements. Use labelled fields, meaningful button names, keyboard access and readable status messages. Validate on both UI and server; retain entered values after a rejected submission. Disable duplicate UI submission while the request is pending; this alone does not establish an idempotent server API.
+Agreed baseline route labels are /login, /overview, /accounts, /transactions/new, /transactions, and /admin/users under D-07; feature PRs review any refinements. Use labelled fields, meaningful button names, keyboard access and readable status messages. Validate on both UI and server; retain entered values after a rejected submission. Revision 0.11: the server's `PAYMENT_LIMIT_EXCEEDED` message is shown in the existing alert region and the entered values are retained; the payment form may show a short hint (card charges are limited to THB 100,000.00 each) under Total when a Loan Taken primary account is selected. The server remains the authority. Disable duplicate UI submission while the request is pending; this alone does not establish an idempotent server API.
 
 ## Sprint 1 baseline API contract (agreed)
 
@@ -97,7 +103,7 @@ These are the agreed Sprint 1 baseline public interfaces. The session, administr
 | GET /api/accounts | -> owned account identities/types and balances | User only; scoped before query |
 | GET /api/accounts/:id | -> one owned account and its opening/balance state | User only; safe 404 outside ownership scope |
 | PUT /api/accounts/:id/opening-balance | amount/date -> updated owned opening state | User only; safe 404 outside scope; opening/date/amount errors |
-| POST /api/transactions | form, primaryAccountId, date, total, allocations, optional memo -> 201 saved transaction | User only; reject mismatched total, incompatible/foreign accounts, invalid amount/date; atomic failure |
+| POST /api/transactions | form, primaryAccountId, date, total, allocations, optional memo -> 201 saved transaction | User only; reject mismatched total, incompatible/foreign accounts, invalid amount/date; atomic failure; revision 0.11: a card charge (PAYMENT, Loan Taken primary) with total above 100,000.00 returns `422 PAYMENT_LIMIT_EXCEEDED`, atomic, nothing written (D-08) |
 | GET /api/transactions and /api/transactions/:id | -> owned history or saved transaction with allocations | User only; safe 404 for inaccessible detail; later search/pagination specified separately |
 | GET /api/summary?from=...&to=... | -> owned balances, income and expense for the agreed inclusive Asia/Bangkok reporting period | User only; validate range; no administrator/global aggregation |
 
@@ -106,6 +112,18 @@ Card charge example (PAYMENT with a Loan Taken primary account, allocated to two
 ```json
 {"form":"PAYMENT","primaryAccountId":"owned-card-id","date":"2026-11-02","total":"1200.00","allocations":[{"accountId":"owned-dining-id","amount":"700.00"},{"accountId":"owned-groceries-id","amount":"500.00"}]}
 ```
+
+Transaction error outcomes relevant to revision 0.11 (existing codes are unchanged; one is added):
+
+| Status / code | When | Revision |
+| --- | --- | --- |
+| 401 `UNAUTHENTICATED`; 403 `FORBIDDEN` (Administrator) | No/invalid credential; Administrator caller | Unchanged; precede the cap |
+| 400 `INVALID_INPUT` (with `field`) | Shape, form, exact amount (above 1,000,000,000.00, more than two decimals, zero or negative), real date, 1 to 50 lines, memo | Unchanged |
+| 404 `NOT_FOUND` | Any referenced account outside the caller's scope or unknown | Unchanged; precedes the cap |
+| 422 `INVALID_ALLOCATION`, `ALLOCATION_MISMATCH`, `INCOMPATIBLE_ACCOUNT` | Allocation and type rules | Unchanged; precede the cap |
+| **422 `PAYMENT_LIMIT_EXCEEDED`** | Card charge total above THB 100,000.00 | New in 0.11 (D-08); message: "A card charge cannot exceed THB 100,000.00." |
+| 422 `INVALID_DATE`, `INSUFFICIENT_BALANCE` | Date and balance rules | Unchanged; follow the cap |
+| 500 `INTERNAL_ERROR` | Persistence failure after rollback | Unchanged |
 
 The example identifiers are fixtures, not deployed resources. D-07 approves these baseline DTOs, HTTP outcomes and error semantics; a feature PR may propose a reviewed refinement before tests and implementation. Tests must assert approved public responses and persisted outcomes.
 
