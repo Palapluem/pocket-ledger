@@ -551,9 +551,14 @@ export function financeRoutes(deps: {
 			} catch {
 				body = undefined;
 			}
-			const input = (body ?? {}) as Record<string, unknown>;
+			// A root JSON value that is not an object (42, true, "text", null, an array) is
+			// invalid input, not a crash.
+			const input =
+				typeof body === "object" && body !== null && !Array.isArray(body)
+					? (body as Record<string, unknown>)
+					: undefined;
 			const limitSatang =
-				"paymentLimit" in input
+				input !== undefined && "paymentLimit" in input
 					? parsePaymentLimit(input.paymentLimit)
 					: undefined;
 			if (limitSatang === undefined)
