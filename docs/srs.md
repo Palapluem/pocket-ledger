@@ -1,6 +1,6 @@
 # Software Requirements Specification
 
-PocketLedger, draft 0.3, updated 22 November 2026. This baseline translates Theme 7 into identified requirements. Assignment-defined behavior is required; policy choices are agreed only where [team decisions](decisions.md) marks them agreed; anything still open requires team review before affected implementation.
+PocketLedger, draft 0.4, updated 28 November 2026. Revision 0.4 (Lab 7, D-08, agreed 28 November 2026; implemented on branch `feature/52-payment-limit`, pending review) revises BR-10, adds BR-14 and extends FR-03/FR-05 for an owner-set payment limit on Loan Taken accounts; revision 0.3 (22 November 2026) is the accepted Sprint 1 text. This baseline translates Theme 7 into identified requirements. Assignment-defined behavior is required; policy choices are agreed only where [team decisions](decisions.md) marks them agreed; anything still open requires team review before affected implementation.
 
 ## Context and actors
 
@@ -26,9 +26,9 @@ Sprint 1 is the agreed usable journey described in the sprint plan, not the enti
 | --- | --- | --- |
 | FR-01 | A person can log in, obtain current-user identity and log out; protected operations require a valid, unexpired signed credential; a disabled user cannot sign in again, while an already-issued token remains usable until expiry (D-05, BR-11) | F-01 |
 | FR-02 | An Administrator can inspect platform user identities and enable or disable a user without reading their finances | F-02 |
-| FR-03 | A User can create and manage owned financial accounts across all five account types | F-03 |
+| FR-03 | A User can create and manage owned financial accounts across all five account types. Revision 0.4 (D-08): a User can also set, change or clear an optional payment limit on each owned Loan Taken account (BR-14) | F-03 |
 | FR-04 | A User can establish opening balances with a defined effective date and inspect their effect separately from income/expense | F-03 |
-| FR-05 | A User can make a payment or record a charge from Cash or Loan Taken, allocating the total to the assignment-defined destination categories | F-05 |
+| FR-05 | A User can make a payment or record a charge from Cash or Loan Taken, allocating the total to the assignment-defined destination categories. Revision 0.4 (D-08): a payment whose primary account is a Loan Taken account with an owner-set payment limit is rejected when its total exceeds that limit | F-05 |
 | FR-06 | A User can receive money into Cash, allocating the total to income, loan repayments received, new borrowing or transfers | F-04 |
 | FR-07 | A User can retrieve correct account balances, receivables and debts after a committed transaction | F-06 |
 | FR-08 | A User can inspect income/expense and category summaries for a defined date range | F-06 |
@@ -50,10 +50,11 @@ Sprint 1 is the agreed usable journey described in the sprint plan, not the enti
 | BR-07 | Validation or persistence failure leaves no partial transaction or balance effect | Atomic design required for correct results; D-03/D-07 |
 | BR-08 | Dates, opening cut-offs and reporting boundaries follow one explicit policy | D-04 |
 | BR-09 | A duplicate is a separate editable record; saving it does not change the source | Assignment requirement; save/retry policy in later contract |
-| BR-10 | Money precision, valid range, amount signs and rounding are explicit; invalid amounts are rejected without silent rounding | D-03 |
+| BR-10 | Money precision, valid range, amount signs and rounding are explicit; invalid amounts are rejected without silent rounding. Revision 0.4: the 0.01 to 1,000,000,000.00 range applies to every transaction, and BR-14 adds a stricter optional per-account limit. Before revision 0.4 there was no per-account limit. | D-03; D-08 |
 | BR-11 | A disabled identity cannot sign in; effect on an already-issued credential follows the D-05 limits | D-05 |
 | BR-12 | Re-running setup does not overwrite existing personal financial activity | Reproducibility safeguard |
 | BR-13 | A transaction form sends no automatic retry; it disables further submission while a request is pending and directs the user to check history after an ambiguous result before manually retrying. Sprint 1 does not guarantee server-side exactly-once creation | D-04 |
+| BR-14 | (Revision 0.4, Lab 7, agreed 28 November 2026; implemented on branch `feature/52-payment-limit`, pending review) The owner of a Loan Taken account (a credit card or any other loan owed) may set an optional per-transaction payment limit, 0.01 to 1,000,000,000.00 with at most two decimals, and may clear it. When it is set, a `PAYMENT` whose primary account is that account and whose total is greater than the limit is rejected with `422 PAYMENT_LIMIT_EXCEEDED` and writes nothing; a total equal to the limit is accepted. With no limit (the default for every existing account) behavior is unchanged. Cash payments, receipts and repayments into the account are not limited. The limit is set only on the owner's own Loan Taken accounts, applies when a transaction is created and does not alter saved transactions | D-08 (revises D-03 for payments on Loan Taken accounts) |
 
 ## Non-functional requirements and verification targets
 

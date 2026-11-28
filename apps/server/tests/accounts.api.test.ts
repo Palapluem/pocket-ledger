@@ -404,3 +404,305 @@ describe("TEST-09 / AC-09 through AC-12 account foundation", () => {
 		expect(invalidId.status).toBe(404);
 	});
 });
+
+describe("TEST-31 / AC-29 to AC-31 payment limit setter (D-08)", () => {
+	type LimitedAccountDto = AccountDto & { paymentLimit?: string | null };
+
+	const listAccounts = async (cookie: string) =>
+		readJson<LimitedAccountDto[]>(
+			await send("GET", "/api/accounts", { cookie }),
+		);
+	const accountByName = async (cookie: string, name: string) => {
+		const found = (await listAccounts(cookie)).find((a) => a.name === name);
+		if (!found) throw new Error(`${name} fixture is missing.`);
+		return found;
+	};
+	const putLimit = (accountId: string, cookie: string, paymentLimit: unknown) =>
+		send("PUT", `/api/accounts/${accountId}/payment-limit`, {
+			cookie,
+			body: { paymentLimit },
+		});
+	const readDetail = async (accountId: string, cookie: string) =>
+		readJson<LimitedAccountDto>(
+			await send("GET", `/api/accounts/${accountId}`, { cookie }),
+		);
+	const loginAs = async (who: keyof typeof FIXTURE) => {
+		const response = await send("POST", "/api/session", {
+			body: { email: FIXTURE[who].email, password: FIXTURE[who].password },
+		});
+		return response.headers.get("set-cookie")?.split(";")[0] ?? "";
+	};
+	/** Sends a request with a chosen Origin header and a raw body. */
+	const sendRaw = (
+		method: string,
+		path: string,
+		init: { cookie?: string; origin?: string; rawBody?: string },
+	) =>
+		app.handle(
+			new Request(`http://localhost${path}`, {
+				method,
+				headers: {
+					"content-type": "application/json",
+					...(init.cookie ? { cookie: init.cookie } : {}),
+					origin: init.origin ?? ALLOWED_ORIGIN,
+				},
+				body: init.rawBody,
+			}),
+		);
+	/** The driver wraps database errors; collect the whole cause chain as text. */
+	const errorText = (error: unknown): string => {
+		const parts: string[] = [];
+		let current: unknown = error;
+		for (let depth = 0; current && depth < 6; depth += 1) {
+			const e = current as {
+				message?: unknown;
+				constraint?: unknown;
+				cause?: unknown;
+			};
+			parts.push(String(e.message ?? ""), String(e.constraint ?? ""));
+			current = e.cause;
+		}
+		return parts.join(" | ");
+	};
+	const insertAccount = async (
+		key: string,
+		name: string,
+		type: "LOAN_GIVEN",
+	) => {
+		const owner = await db.query.users.findFirst({
+			where: eq(schema.users.email, FIXTURE.userA.email),
+		});
+		if (!owner) throw new Error("User A fixture is missing.");
+		const [row] = await db
+			.insert(schema.accounts)
+			.values({ ownerId: owner.id, key, name, type, openingDate: "2026-11-01" })
+			.returning();
+		if (!row) throw new Error("account insert failed");
+		return row.id;
+	};
+
+	test("every account starts with a null payment limit", async () => {
+		const { cookie } = await signIn();
+		const accounts = await listAccounts(cookie);
+		expect(accounts).toHaveLength(5);
+		for (const account of accounts) {
+			expect(account.paymentLimit).toBeNull();
+			expect((await readDetail(account.id, cookie)).paymentLimit).toBeNull();
+		}
+	});
+
+	test("the owner sets, normalizes, reads back and clears the limit", async () => {
+		const { cookie } = await signIn();
+		const card = await accountByName(cookie, "Credit card");
+		const steps: [string | null, string | null][] = [
+			["100.00", "100.00"],
+			["250", "250.00"],
+			["0.01", "0.01"],
+			["1000000000.00", "1000000000.00"],
+			[null, null],
+			[null, null],
+		];
+		for (const [sent, expected] of steps) {
+			const response = await putLimit(card.id, cookie, sent);
+			expect(response.status).toBe(200);
+			const body = await readJson<LimitedAccountDto>(response);
+			expect(body).toEqual({ ...card, paymentLimit: expected });
+
+			expect((await readDetail(card.id, cookie)).paymentLimit).toBe(expected);
+			expect((await accountByName(cookie, "Credit card")).paymentLimit).toBe(
+				expected,
+			);
+			const summary = await readJson<{ accounts: LimitedAccountDto[] }>(
+				await send("GET", "/api/summary", { cookie }),
+			);
+			expect(summary.accounts.find((a) => a.id === card.id)?.paymentLimit).toBe(
+				expected,
+			);
+		}
+	});
+
+	test("invalid values are rejected without change", async () => {
+		const { cookie } = await signIn();
+		const card = await accountByName(cookie, "Credit card");
+		expect((await putLimit(card.id, cookie, "100.00")).status).toBe(200);
+
+		const invalidValues: unknown[] = [
+			"0",
+			"0.00",
+			"-1.00",
+			"100.001",
+			"1000000000.01",
+			"1e3",
+			" 100.00",
+			"100.00 ",
+			"",
+			"abc",
+			100,
+			true,
+			[],
+			{},
+		];
+		const expectInvalid = async (response: Response) => {
+			expect(response.status).toBe(400);
+			expect(await response.json()).toMatchObject({
+				code: "INVALID_INPUT",
+				field: "paymentLimit",
+			});
+		};
+		for (const value of invalidValues)
+			await expectInvalid(await putLimit(card.id, cookie, value));
+		await expectInvalid(
+			await send("PUT", `/api/accounts/${card.id}/payment-limit`, {
+				cookie,
+				body: { somethingElse: "100.00" },
+			}),
+		);
+		await expectInvalid(
+			await sendRaw("PUT", `/api/accounts/${card.id}/payment-limit`, {
+				cookie,
+				rawBody: "{not json",
+			}),
+		);
+		expect((await readDetail(card.id, cookie)).paymentLimit).toBe("100.00");
+	});
+
+	test("a JSON body that is not an object is rejected as invalid input", async () => {
+		const { cookie } = await signIn();
+		const card = await accountByName(cookie, "Credit card");
+		expect((await putLimit(card.id, cookie, "100.00")).status).toBe(200);
+
+		for (const rawBody of ["42", "true", '"text"', "null", "[]", "{}"]) {
+			const response = await sendRaw(
+				"PUT",
+				`/api/accounts/${card.id}/payment-limit`,
+				{ cookie, rawBody },
+			);
+			expect(response.status).toBe(400);
+			expect(await response.json()).toMatchObject({
+				code: "INVALID_INPUT",
+				field: "paymentLimit",
+			});
+		}
+		expect((await readDetail(card.id, cookie)).paymentLimit).toBe("100.00");
+	});
+
+	test("only Loan Taken accounts accept a limit", async () => {
+		const { cookie } = await signIn();
+		const loanGivenId = await insertAccount(
+			"friend-loan",
+			"Friend loan",
+			"LOAN_GIVEN",
+		);
+		const targets = [
+			(await accountByName(cookie, "Bank")).id,
+			(await accountByName(cookie, "Salary")).id,
+			(await accountByName(cookie, "Dining")).id,
+			loanGivenId,
+		];
+		for (const id of targets) {
+			const earlier = await readDetail(id, cookie);
+			for (const value of ["100.00", null]) {
+				const response = await putLimit(id, cookie, value);
+				expect(response.status).toBe(422);
+				expect(await response.json()).toMatchObject({
+					code: "RULE_VIOLATION",
+				});
+			}
+			expect(await readDetail(id, cookie)).toEqual(earlier);
+		}
+	});
+
+	test("access and ownership", async () => {
+		const { cookie: aliceCookie } = await signIn();
+		const card = await accountByName(aliceCookie, "Credit card");
+		const earlier = await readDetail(card.id, aliceCookie);
+		const path = `/api/accounts/${card.id}/payment-limit`;
+
+		const anonymous = await send("PUT", path, {
+			body: { paymentLimit: "100.00" },
+		});
+		expect(anonymous.status).toBe(401);
+		expect(await anonymous.json()).toMatchObject({ code: "UNAUTHENTICATED" });
+
+		const admin = await putLimit(card.id, await loginAs("admin"), "100.00");
+		expect(admin.status).toBe(403);
+		expect(await admin.json()).toMatchObject({ code: "FORBIDDEN" });
+
+		const bobCookie = await loginAs("userB");
+		const foreign = await putLimit(card.id, bobCookie, "100.00");
+		expect(foreign.status).toBe(404);
+		expect(await foreign.json()).toMatchObject({ code: "NOT_FOUND" });
+
+		const unknown = await putLimit(
+			"00000000-0000-4000-8000-0000000000ff",
+			aliceCookie,
+			"100.00",
+		);
+		expect(unknown.status).toBe(404);
+		expect(await unknown.json()).toMatchObject({ code: "NOT_FOUND" });
+
+		const malformed = await putLimit("not-an-id", aliceCookie, "100.00");
+		expect(malformed.status).toBe(404);
+		expect(await malformed.json()).toMatchObject({ code: "NOT_FOUND" });
+
+		const crossOrigin = await sendRaw("PUT", path, {
+			cookie: aliceCookie,
+			origin: "http://evil.test",
+			rawBody: JSON.stringify({ paymentLimit: "100.00" }),
+		});
+		expect(crossOrigin.status).toBe(403);
+		expect(await crossOrigin.json()).toMatchObject({
+			code: "FORBIDDEN_ORIGIN",
+		});
+
+		expect(await readDetail(card.id, aliceCookie)).toEqual(earlier);
+	});
+
+	test("an opening-balance update and a seed rerun keep the limit", async () => {
+		const { cookie } = await signIn();
+		const card = await accountByName(cookie, "Credit card");
+		expect((await putLimit(card.id, cookie, "100.00")).status).toBe(200);
+
+		const opening = await send(
+			"PUT",
+			`/api/accounts/${card.id}/opening-balance`,
+			{ cookie, body: { amount: "10.00", date: "2026-11-01" } },
+		);
+		expect(opening.status).toBe(200);
+		expect(await readJson<LimitedAccountDto>(opening)).toMatchObject({
+			openingAmount: "10.00",
+			paymentLimit: "100.00",
+		});
+
+		const rerun = await seedStarterAccounts(testDatabaseUrl());
+		expect(rerun).toBe(0);
+		expect((await readDetail(card.id, cookie)).paymentLimit).toBe("100.00");
+	});
+
+	test("the limit is stored as satang and the database CHECK holds", async () => {
+		const { cookie } = await signIn();
+		const card = await accountByName(cookie, "Credit card");
+		expect((await putLimit(card.id, cookie, "100.00")).status).toBe(200);
+
+		const stored = (await db.execute(
+			sql`select payment_limit_satang::text as v from accounts where id = ${card.id}`,
+		)) as unknown as { v: string }[];
+		expect(stored[0]?.v).toBe("10000");
+
+		const setRaw = (value: number) =>
+			db.execute(
+				sql`update accounts set payment_limit_satang = ${value} where id = ${card.id}`,
+			);
+		for (const bad of [0, 100000000001]) {
+			let failure = "";
+			try {
+				await setRaw(bad);
+			} catch (error) {
+				failure = errorText(error);
+			}
+			expect(failure).toContain("accounts_payment_limit_range");
+		}
+		await setRaw(1);
+		await setRaw(100000000000);
+	});
+});

@@ -23,6 +23,13 @@ export const E2E_USERS = {
 		role: "user" as const,
 		password: "e2e-retry-pass",
 	},
+	/** Used only by the Lab 7 payment-limit journey (TEST-30). */
+	limit: {
+		email: "lena@e2e.test",
+		displayName: "Lena",
+		role: "user" as const,
+		password: "e2e-limit-pass",
+	},
 	/** Used only by the Lab 5 live-check receipt test (scripts/live-check.ts). */
 	receipt: {
 		email: "rex@e2e.test",

@@ -34,6 +34,6 @@ The assignments below are the agreed Sprint 1 work split; rows without an owner 
 
 ## Release and assessment gates
 
-Deliverable 1 needs a local working release; completed Docker/GCP/CI is assessed in Lab 5. Lab 6 requires an independent project team, not the two developers reviewing themselves. Lab 7 needs an instructor/TA-approved change to already implemented behavior. Do not substitute an unfinished baseline feature for that maintenance exercise.
+Deliverable 1 needs a local working release; completed Docker/GCP/CI is assessed in Lab 5. Lab 6 requires an independent project team, not the two developers reviewing themselves. The later Lab 7 spec-sheet announcement says no Instructor/TA approval is required for the Sprint 1 change request: both students must agree on a substantive, non-trivial change to behavior already implemented in Sprint 1. Do not substitute an unfinished baseline feature for that maintenance exercise.
 
 The saved handout sets Deliverable 1 for 8 November 2026. Wisit later reported a cutoff of 15 November at 23:30 Asia/Bangkok; both have passed and no later extension is verified. As of 16 November, F-01–F-06 are integrated and tested on `sprint-1-staging` at `53c20ff`, and on 19 Nov release PR #32 made `265c995` the accepted `main` release; release-matched TEST-27 passed on it on 20 Nov (`docs/releases.md`). The self-contained report remains incomplete; do not claim submission readiness.

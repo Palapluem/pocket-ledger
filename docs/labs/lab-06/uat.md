@@ -1,49 +1,19 @@
-# Lab 6 UAT preparation and records
+# Lab 6 UAT handoff record
 
-**Status: preparation only.** This follows master §10 until the detailed Lab 6 handout is available. No independent execution, defect or re-test has occurred.
+**Handoff status: the UAT plan was handed to Pockit, and the partner has published an execution record.** The Product Team shared the UAT-01 to UAT-10 plan for the PocketLedger Sprint 1 release on 23 November 2026. The partner's record is the source for case execution, findings, and its acceptance decision. This page records the handoff and links to that record; it does not summarize partner results or claim acceptance.
 
-## Release and private access handoff
+The handed-over plan is preserved unchanged in [`uat-instructions.md`](uat-instructions.md) (Git blob `ec167cd`, identical to the partner copy that Pockit ran on 23–25 November). A [revision 2 addendum](uat-instructions-revision-2.md), dated 27 November 2026, withdraws UAT-04 and UAT-05 from the required run, matching the scope recorded in the partner report. It keeps all case IDs and does not modify the handed-over file. The handed-over plan includes the test scope, version, safe account labels, procedures, expected results, and recording templates. The companion [Product Team handoff checklist](product-team-handoff-checklist.md) records the preparation checks and identifies handoff details that still need confirmation.
 
-| Field | Confirmed value |
+## Handoff record
+
+| Item | Record |
 | --- | --- |
-| PocketLedger accepted release tag / full SHA | |
-| Public URL / served revision | |
-| Preparing team and date | |
-| Independent partner team / testers | |
-| Test window and stable test-data reset procedure | |
-| Private delivery channel for synthetic account credentials | |
-| Known limitations affecting the cases | |
+| Product Team | PocketLedger, 2-Nor (TH-013_P7): Wisit Suwannao and Natthawat Primsirikunawut |
+| UAT Team | Pockit; see the partner's report for tester attribution |
+| Sprint 1 source under test | `37593da1cb3cd881e6b22845a2b4a929dbf6bc8e` |
+| Public application URL | <https://pocket-ledger-468473091761.asia-southeast3.run.app> |
+| UAT plan | Handed over: [`uat-instructions.md`](uat-instructions.md) (blob `ec167cd`). Revision 2 addendum (UAT-04/05 withdrawn): [`uat-instructions-revision-2.md`](uat-instructions-revision-2.md) |
+| Partner execution record | [Pocket Ledger Sprint 1 UAT results](https://github.com/CPE334-Pockit/Pockit/blob/0a7a766d0d5078b02bfea6f8dc85058d0b9cbc7d/docs/labs/lab-06/peer-uat/evidence/run.md) (original run); [scope update marking UAT-04/05 withdrawn](https://github.com/CPE334-Pockit/Pockit/commit/e212779a15640d24c39494b1c59563f8ce1c1ea9) (Pockit commit `e212779`) |
+| Results and acceptance | Maintained by the UAT Team. The UAT Team recorded its decision in [Pockit Issue #53](https://github.com/CPE334-Pockit/Pockit/issues/53#issuecomment-7201498329): "Decision: Accepted. Release 37593da. Testers: Guntee Doungmanee, Polwarit Watthanahemmarat. Date: 2026-11-27." This page quotes that record and does not make its own decision. |
 
-Do not put actual credentials in this file. The partner must receive safe User A, User B and Admin test access as required by the cases, and know the tested version.
-
-## Candidate case inventory
-
-These cases must be finalized against approved AC and running UI/API behavior before handing them to the partner.
-
-| Case | Goal | Coverage and expected behavior | Linked feature / AC |
-| --- | --- | --- | --- |
-| UAT-01 | Complete the core finance journey | Opening balance → salary → split card charge → repayment → persisted balances/debt/summary/history match the agreed values | |
-| UAT-02 | Reject an invalid allocation | Allocation total differs from transaction total; useful rejection, no partial record/balance change | |
-| UAT-03 | Protect another user's records | User B cannot read or change User A's financial data, including accounts used in allocation lines | |
-| UAT-04 | Enforce the Admin privacy boundary | Admin can perform agreed platform-user work but cannot read/change users' financial records or summaries | |
-| UAT-05 | Retrieve state/history and durable results | The same recorded transaction and related values can be retrieved after the agreed persistence/state check | |
-
-For each case, specify exact safe preconditions, user-facing steps and expected output, not only a test ID. A minimum of four cases is required by the master; these five address PocketLedger's separate ownership and Admin boundaries.
-
-## Execution record (one row per case and run)
-
-| UAT ID | User goal / linked AC | Preconditions and steps | Expected result | Actual result and evidence | PASS / FAIL | Tester / team / date | Release / revision | Defect link |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| | | | | | | | | |
-
-Record execution on the partner's application separately from results received for PocketLedger. Neither a developer's self-check nor the other member of the same team is independent cross-team UAT.
-
-## Defect triage and closure
-
-| Defect | Case / observed version | Reproduction, expected / actual | Severity / impact | Decision and rationale | Owner | Regression red / fix / PR / CI / deployed version | Independent re-test and version |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| | | | | | | | |
-
-Decisions are accepted, duplicate, not a defect or enhancement with a reason. Track one legitimate accepted defect through a regression test, fix, teammate review, CI/deployment and independent partner re-test. Preserve the failed and corrected versions.
-
-If no genuine accepted defect is found, ask the TA for the controlled known-failing exercise on an isolated version/branch. Do not invent a defect or break the accepted live application to manufacture evidence. Report access or partner delays promptly so the TA can assist.
+Do not put credentials, tokens, private contact details, or account secrets in this repository. Confirm any outstanding handoff information privately and record only a non-sensitive confirmation in the checklist.
