@@ -6,7 +6,7 @@ Two levels of evidence are cited below:
 - **Feature-level evidence on staging (historical).** The Sprint 1 F-01–F-06 implementation was integrated in `sprint-1-staging` at `53c20ff`; CI #59 passed on PR #25 head `420c6bd`, and clean-checkout TEST-27 passed on `53c20ff`. Rows that say "on staging" cite this evidence.
 - **Accepted `main` release.** Release PR #32 was reviewed and merged to `main` at `265c995` (`docs/releases.md`). On that commit, main CI run 44563996778 passed, and the clean-checkout TEST-27 passed on 20 Nov (131 server tests, 13 E2E tests; `docs/sprints/sprint-1/tests.md`). These are the same Sprint 1 suites, run as a whole on the release commit; no separate feature-specific check was run on `main`. After `265c995` was deployed, Lab 5 C-05 read back the C-04 production record (created on the previous release `bbf7c4a`) unchanged, 14/14 (`docs/labs/lab-05/deployment.md`). Release PR #38 then advanced `main` to `37593da` with the same application code (only a TEST-28 test fix and documentation); main CI run 44885832238 passed on it, and C-05 passed 14/14 again after that redeploy.
 
-Only the full three-sprint scope and the final submitted PDF remain outstanding. Actual commands and test names are in the STS.
+The agreed D-08 (Lab 7) implementation, tests and verification, the full three-sprint scope and the final submitted PDF remain outstanding. Actual commands and test names are in the STS.
 
 | Requirement | Feature / responsibility | Planned sprint and AC / verification | Current result |
 | --- | --- | --- | --- |
