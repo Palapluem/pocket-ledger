@@ -24,10 +24,10 @@ All times below are Asia/Bangkok. Later work must retain the same team, reposito
 | Assessment | Due | Points / course weight | Completion gate | Current state |
 | --- | --- | --- | --- | --- |
 | Deliverable 1 | Original handout: 8 Nov 2026, 23:59; student-reported cutoff: 15 Nov, 23:30 +07 | 80 / 8% | Accepted, tested Sprint 1 release on `main`; self-contained PDF Parts A–F | Accepted `main` release `265c995` (release PR #32; deployed as revision `pocket-ledger-00003-5rh`). Release-matched TEST-27 passed on 20 Nov (131 server / 13 E2E tests, smoke and Theme 7 journey; `docs/sprints/sprint-1/tests.md`). Part F evidence is captured and the self-contained PDF is prepared in the CPE334 course repository. This repository does not record or verify LEB2 submission; the reported cutoff has passed and no later extension is verified. |
-| Lab 5 | 22 Nov 2026, 23:59, extended as reported by the students (originally 15 Nov 2026, 23:59) | 100 / 5% | Docker, public GCP workflow, durable data, required CI and repeatable release | C-01 to C-06 recorded in `docs/labs/lab-05/deployment.md`: C-02 blocked-merge proof (#34, recorded by #35), C-03 clean-clone container, C-04 live journey, C-05 restart and two redeploys (14/14 on `265c995` and on `37593da`), and C-06 source/image/revision. Issue #17 is closed; PRs #39 and #40 are merged into staging. Release PR #41 awaits the requested status-text corrections and re-review |
-| Lab 6 | 22 Nov 2026, 23:59 per master | 100 / 5% | Independent UAT, legitimate defect handling and independent re-test | Handout and report shell available; deployment is complete on main `37593da` (revision `pocket-ledger-00004-hxk`); independent partner UAT/acceptance remains pending |
+| Lab 5 | 22 Nov 2026, 23:59, extended as reported by the students (originally 15 Nov 2026, 23:59) | 100 / 5% | Docker, public GCP workflow, durable data, required CI and repeatable release | C-01 to C-06 are recorded in `docs/labs/lab-05/deployment.md`. Release PR #41 merged to `main` at `6380212` on 22 Nov; it carries Lab 5 evidence/docs and did not change the application or trigger a redeploy. The recorded application deployment is `37593da` / Cloud Run revision `pocket-ledger-00004-hxk`, restarted as `pocket-ledger-00005-n78` with the same image on 24 Nov (`docs/labs/lab-06/product-team-handoff-checklist.md`). |
+| Lab 6 | Handout: 22 Nov 2026, 23:59; student-reported revised cutoff: 29 Nov 2026, 23:59 Asia/Bangkok (confirm in LEB2) | 100 / 5% | Independent UAT, legitimate defect handling and independent re-test | The UAT Team recorded acceptance of release `37593da` on 27 Nov (Pockit Issue #53, cited in `docs/labs/lab-06/uat.md`). Revision `pocket-ledger-00004-hxk` was restarted as `pocket-ledger-00005-n78` with the same image on 24 Nov (`docs/labs/lab-06/product-team-handoff-checklist.md`). |
 | Deliverable 2 | 29 Nov 2026, 23:59 (handout §4) | 70 / 7% | All Sprint 2 complete; meaningful tested Sprint 3 progress; deployed candidate | Documentation/report shell prepared; Sprint 2/3 implementation, UAT and deployed candidate remain NOT RUN |
-| Lab 7 | 29 Nov 2026, 23:59 per master | 100 / 5% | Approved change to implemented behavior, red/green and regression-safe release | Await detailed handout / approved change |
+| Lab 7 | 29 Nov 2026, 23:59 per master | 100 / 5% | Team-agreed substantive change to implemented behavior, red/green and regression-safe release | Detailed handout is available; change selection and team agreement are pending. No Instructor/TA approval is required under the later spec-sheet announcement. |
 | Final Delivery | 13 Dec 2026, 23:59 (handout §4) | 100 / 10% | Complete three-sprint product, final QA/UAT, deployed final version, PDF and video | Not started |
 
 The final examination period is 1–11 December. By 29 November the product should be substantially complete; reserve the last period for bounded completion, defects and final verification rather than major missing workflows.
@@ -110,14 +110,16 @@ Preserve the original Sprint 2 release even if the candidate includes later work
 
 ## Lab 7: maintenance and release readiness
 
-Preparation currently follows master §10. Obtain instructor/TA approval for one change to already implemented behavior or a business rule. An unfinished feature already in the baseline is not the maintenance exercise.
+The later spec-sheet announcement says the team does not need Instructor/TA approval for its Sprint 1 change request. Both students should agree on a substantive, non-trivial change to a rule or behavior already implemented in Sprint 1. The announcement supersedes only the handout's Instructor/TA-approval wording; an unfinished feature is still not a qualifying maintenance change, and the baseline, impact, pre-code contract review, test-first, regression, release and readiness requirements remain.
 
 | Area | Points in master | Required outcome |
 | --- | ---: | --- |
-| Impact and revised contract | 25 | Approved change → affected requirement/feature/SDS/AC/tests/code, reviewed revision |
+| Impact and revised contract | 25 | Team-agreed change → affected requirement/feature/SDS/AC/tests/code, reviewed revision |
 | Implementation/regression | 50 | Intended changed-behavior red test → implementation → pass/regression → reviewed CI/deployed release |
 | Objective metrics | 15 | Five dated metrics with sources and an action-oriented interpretation of at most 100 words |
 | Readiness/retrospective | 10 | Defect/test/debt/config/docs/release checks and three short answers: helped, hurt, change next |
+
+Use synthetic data and test accounts. Supply safe test-account credentials through the private course handoff only; keep the assessed deployment and public repository available through grading. Never include real passwords, tokens or production secrets in the PDF or Git.
 
 Use the [change and metrics record](labs/lab-07/change-and-metrics.md). Keep CI history from Lab 5. Counts do not earn points for being large.
 
