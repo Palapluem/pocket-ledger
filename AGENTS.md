@@ -44,8 +44,8 @@ Read this file, `CONTRIBUTING.md`, `COORDINATION.md`, `GLOSSARY.md`, `docs/decis
 - Use separate disposable test resources only when authorized, identify them before use and clean up owned resources afterward. Do not touch another task's servers/databases/worktrees.
 - Record actual commands, file/test names, results and tested commits. Planned/unknown is not PASS; final evidence must match the final assessed version.
 - Lab 6 requires an independent partner team. A teammate review or developer self-check is not independent UAT.
-- Lab 7 requires instructor/TA approval for a change to implemented behavior; an unfinished baseline feature is not that exercise.
-- Keep the repository public and the assessed deployment available through grading.
+- The later Lab 7 spec-sheet announcement says Instructor/TA approval is not required for the change request. Both students must agree on a substantive, non-trivial change to behavior already implemented in Sprint 1; retain the other handout requirements and do not substitute an unfinished feature.
+- Keep the repository public and the assessed deployment available through grading. Use synthetic test accounts and supply their safe credentials only through the private course handoff; never put real passwords, tokens or production secrets in Git or the PDF.
 
 ## Finishing a task
 

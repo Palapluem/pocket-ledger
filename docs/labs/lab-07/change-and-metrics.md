@@ -12,7 +12,7 @@
 | --- | --- |
 | Change request and purpose | Let an owner cap a single payment on a Loan Taken account to guard against entry mistakes, with an owner-scoped setter, a stored limit, an enforcement rule and a UI editor. Purpose: optional, owner-controlled risk control; off by default |
 | Both students' agreement, rationale and decision date | **AGREED 28 November 2026** by Wisit and Natthawat (contract revision 1.4). Natthawat proposed D-08 the same day; Wisit requested changes on PR #53, the contract was revised, and Wisit then agreed. Rationale: optional, owner-controlled risk control that is substantive but off by default. Implementation: NOT STARTED. Instructor/TA approval is not required (announcement; Issue #47) |
-| Existing implemented behavior and accepted version | D-03 / BR-10 / AC-16: every transaction total is between 0.01 and THB 1,000,000,000.00 with at most two decimals; no per-account limit. Accepted Sprint 1 release **`37593da1cb3cd881e6b22845a2b4a929dbf6bc8e`** (release PR #38, deployed as revision `pocket-ledger-00004-hxk`). The PD1 release `265c995` has identical application code; later commits on `sprint-1-staging` are documentation only (verified: no difference under `apps/`, `packages/` or `e2e/` between `37593da` and `sprint-1-staging` at `c0a9d1e`) |
+| Existing implemented behavior and accepted version | D-03 / BR-10 / AC-16: every transaction total is between 0.01 and THB 1,000,000,000.00 with at most two decimals; no per-account limit. Accepted Sprint 1 release **`37593da1cb3cd881e6b22845a2b4a929dbf6bc8e`** (release PR #38, deployed as revision `pocket-ledger-00004-hxk`, restarted on 24 November as `pocket-ledger-00005-n78` with the same image). The PD1 release `265c995` has identical application code; later commits on `sprint-1-staging` are documentation only (verified: no difference under `apps/`, `packages/` or `e2e/` between `37593da` and `sprint-1-staging` at `c0a9d1e`) |
 | Requested changed behavior | With a limit set on a Loan Taken account: a `PAYMENT` with that primary account and total above the limit is `422 PAYMENT_LIMIT_EXCEEDED` (nothing written); equal is accepted; null (default) is unchanged; Cash `PAYMENT`, `RECEIVE` and repayments into the loan are unaffected. New `PUT /api/accounts/:id/payment-limit`; `paymentLimit` on the account DTO; nullable column and migration `0005_payment_limit.sql`; "Payment limit" editor on Loan Taken cards. Checked after ownership, allocation and type rules and before the D-04 date bounds and the balance check; applies on create only |
 | Why this is maintenance rather than an unfinished baseline feature | Sprint 1 already implements and has released payments and charges on Loan Taken accounts and their acceptance (AC-17, TEST-17). The change modifies an accepted rule (D-03 maximum, AC-16) and extends accepted account and transaction behavior. It does not complete any F-01 to F-06 requirement and is not the Sprint 2 account-management scope (Issue #46: create, rename) |
 | Why it is substantive | It spans a database migration, a new owner-scoped API with its own validation and error outcomes, a change to the shared account DTO, a UI editor, transaction-rule precedence (limit versus ownership, structural date, D-04 bounds and balance), concurrency with the account row lock, and the ownership and Administrator boundaries on a new endpoint |
@@ -59,7 +59,13 @@ Pre-change baseline measurement of those suites: the TEST-27 result on release `
 
 Issue #46 covers account create, list/detail and rename. D-08 adds one nullable account column, one `PUT` endpoint, one DTO field and one editor on existing Loan Taken cards, and nothing else about account management: no create, rename, delete or archive. They are separate scopes, but they touch the same files, so the sequencing matters: both would change `accounts` schema, `accountDtos` and the account route area of `finance.ts`, the accounts screen, and each would want the next migration number (`0005`). Whichever is implemented second must take the next free migration number and journal index and rebase its DTO tests on the other's fields; the #46 contract must cite D-08's `paymentLimit` field and the PUT. #46 requires accepted D-03 rules to stay intact; D-08 is an explicit, dated, agreed revision of D-03, not a silent one. No D-08 behavior is claimed for an account created through #46: a newly created Loan Taken account has a null limit.
 
-PR #48 (Issue #47) also edits this file. Likely textual conflict: both rewrite the title, status line and the "Team decision and impact" tables. This revision deliberately adopts #48's title, heading and "Both students' agreement, rationale and decision date" row so that the conflict is limited to the filled cells and the status paragraph. Resolve it by merging the updated `sprint-1-staging` into this branch after #48 merges (no rebase of published commits), keeping #48's announcement-precedence section and these filled tables. This branch does not merge or modify #48.
+PR #48 (Issue #47) also edited this file. It merged into `sprint-1-staging` on 28 November 2026, and `sprint-1-staging` was then merged into this branch. The conflict was resolved by keeping the filled D-08 tables above and the announcement-precedence and grading-access section from PR #48 below.
+
+## Announcement precedence and access for grading
+
+- The spec-sheet announcement overrides only the handout's Instructor/TA-approval step. It does not waive the Sprint 1 baseline, impact analysis, teammate contract review, test-first evidence, regression, release or readiness requirements.
+- Use synthetic test data. Supply safe test-account credentials through the private course handoff only; never place real passwords, tokens or production secrets in Git or the PDF.
+- Keep the assessed deployment and public repository available throughout grading.
 
 ## Red / green, regression and delivery
 
@@ -92,7 +98,7 @@ Use the actual repository, test output and workflow history retained since Lab 5
 
 | Area | Required check | Actual status / version / evidence |
 | --- | --- | --- |
-| Behavior and tests | Approved changed behavior and regression remain correct | |
+| Behavior and tests | Team-agreed changed behavior and regression remain correct | |
 | Defects / independent re-tests | Accepted findings resolved or clearly disclosed | |
 | Technical debt / required unfinished work | Distinguish a compromise from a missing required feature | |
 | Configuration / data | Safe env, migration compatibility and durable data | |
