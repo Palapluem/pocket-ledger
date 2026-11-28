@@ -1,0 +1,2 @@
+ALTER TABLE "accounts" ADD COLUMN "payment_limit_satang" bigint;--> statement-breakpoint
+ALTER TABLE "accounts" ADD CONSTRAINT "accounts_payment_limit_range" CHECK ("accounts"."payment_limit_satang" IS NULL OR "accounts"."payment_limit_satang" BETWEEN 1 AND 100000000000);
