@@ -566,6 +566,26 @@ describe("TEST-31 / AC-29 to AC-31 payment limit setter (D-08)", () => {
 		expect((await readDetail(card.id, cookie)).paymentLimit).toBe("100.00");
 	});
 
+	test("a JSON body that is not an object is rejected as invalid input", async () => {
+		const { cookie } = await signIn();
+		const card = await accountByName(cookie, "Credit card");
+		expect((await putLimit(card.id, cookie, "100.00")).status).toBe(200);
+
+		for (const rawBody of ["42", "true", '"text"', "null", "[]", "{}"]) {
+			const response = await sendRaw(
+				"PUT",
+				`/api/accounts/${card.id}/payment-limit`,
+				{ cookie, rawBody },
+			);
+			expect(response.status).toBe(400);
+			expect(await response.json()).toMatchObject({
+				code: "INVALID_INPUT",
+				field: "paymentLimit",
+			});
+		}
+		expect((await readDetail(card.id, cookie)).paymentLimit).toBe("100.00");
+	});
+
 	test("only Loan Taken accounts accept a limit", async () => {
 		const { cookie } = await signIn();
 		const loanGivenId = await insertAccount(
