@@ -28,6 +28,8 @@ export type Account = {
 	openingAmount: string;
 	openingDate: string | null;
 	balance: string;
+	/** D-08: two-decimal string, or null when no limit is set (a missing value means null). */
+	paymentLimit?: string | null;
 };
 
 export type TransactionForm = "PAYMENT" | "RECEIVE";
@@ -146,6 +148,11 @@ export const api = {
 		request<Account>(`/api/accounts/${id}/opening-balance`, {
 			method: "PUT",
 			body: JSON.stringify({ amount, date }),
+		}),
+	updatePaymentLimit: (id: string, paymentLimit: string | null) =>
+		request<Account>(`/api/accounts/${id}/payment-limit`, {
+			method: "PUT",
+			body: JSON.stringify({ paymentLimit }),
 		}),
 	transactions: () => request<Transaction[]>("/api/transactions"),
 	getTransaction: (id: string) =>

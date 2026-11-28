@@ -110,6 +110,91 @@ function OpeningBalanceEditor({
 	);
 }
 
+function PaymentLimitEditor({
+	account,
+	onSaved,
+}: {
+	account: Account;
+	onSaved: (account: Account) => void;
+}) {
+	const [limit, setLimit] = useState(account.paymentLimit ?? "");
+	const [saving, setSaving] = useState(false);
+	const [error, setError] = useState<string>();
+	const [status, setStatus] = useState<string>();
+
+	const submit = async (next: string | null, success: string) => {
+		setError(undefined);
+		setStatus(undefined);
+		setSaving(true);
+		try {
+			await api.updatePaymentLimit(account.id, next);
+			const confirmed = await api.getAccount(account.id);
+			onSaved(confirmed);
+			setLimit(confirmed.paymentLimit ?? "");
+			setStatus(success);
+		} catch (e) {
+			setError(
+				errorMessage(
+					e,
+					"The payment limit could not be confirmed. You may retry this update.",
+				),
+			);
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	return (
+		<form
+			className="opening-form"
+			onSubmit={(event: FormEvent) => {
+				event.preventDefault();
+				void submit(
+					limit,
+					"Payment limit saved and retrieved from the account record.",
+				);
+			}}
+		>
+			<h3>Payment limit</h3>
+			<p className="muted">
+				Current limit:{" "}
+				{account.paymentLimit ? `฿${account.paymentLimit}` : "No limit"}
+			</p>
+			<label>
+				Amount (THB)
+				<input
+					aria-label="Payment limit amount (THB)"
+					inputMode="decimal"
+					value={limit}
+					onChange={(event) => setLimit(event.target.value)}
+				/>
+			</label>
+			{error && (
+				<p className="error" role="alert">
+					{error}
+				</p>
+			)}
+			{status && (
+				<p className="success" role="status">
+					{status}
+				</p>
+			)}
+			<div className="row">
+				<button type="submit" disabled={saving}>
+					{saving ? "Saving…" : "Save payment limit"}
+				</button>
+				<button
+					type="button"
+					disabled={saving}
+					onClick={() => void submit(null, "Payment limit cleared.")}
+				>
+					Clear payment limit
+				</button>
+			</div>
+		</form>
+	);
+}
+
 export function AccountsPage() {
 	const [accounts, setAccounts] = useState<Account[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -193,6 +278,9 @@ export function AccountsPage() {
 									account={account}
 									onSaved={updateAccount}
 								/>
+							)}
+							{account.type === "LOAN_TAKEN" && (
+								<PaymentLimitEditor account={account} onSaved={updateAccount} />
 							)}
 						</article>
 					))}
